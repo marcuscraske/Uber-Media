@@ -20,5 +20,20 @@ Terminals (media computers) require a unique identifier/key to be used by your m
 <div><!--ERR_MSG--></div>
 </div>
 
+<h3>Generate Configuration File</h3>
+You can download a configuration file for a media computer and simply drop it in the folder of the Uber Media server application e.g. "<i>C:\Program Files\Ubermeat\Media</i>"; you may need to change the database connection settings!
+<form method="get" action="<!--URL-->/admin/terminals/generate">
+<div class="T">
+<div>&nbsp;</div><div>&nbsp;</div>
+
+<div>Terminal:</div>
+<div><select name="tid">%GEN_TERMINALS%</select></div>
+
+<div>&nbsp;</div>
+<div><input type="submit" value="Download" class="BUTTON" /></div>
+
+</div>
+</form>
+
 <h3>Remove Existing Key</h3>
 %TERMINALS%]]></html></template>

@@ -29,6 +29,8 @@ namespace UberMedia
             }
             // Shared installation
             // -- Currently not needed
+            // Start core
+            Core.Core_Start();
             return string.Empty;
         }
         /// <summary>

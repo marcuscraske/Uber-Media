@@ -91,8 +91,9 @@ namespace UberMedia
                 // Index each drive
                 foreach (ResultRow drive in GlobalConnector.Query_Read("SELECT pfolderid, physicalpath, allow_web_synopsis FROM physical_folders ORDER BY title ASC")) Indexer.IndexDrive(drive["pfolderid"], drive["physicalpath"], drive["allow_web_synopsis"].Equals("1"));
             }
-            catch
+            catch(Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine("Core failed to start - " + ex.Message + "!\n\nStack-trace:\n" + ex.StackTrace);
                 State = CoreState.Error;
                 return;
             }
