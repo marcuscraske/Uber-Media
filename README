@@ -23,7 +23,7 @@ may also be suitable for commercial applications.
 > Terminals can automatically connect to a central node.
 
 To-do/current issues:
-> Create an installer and include a lightweight MySQL server (we could experiment with SQLite since this is supported by Connector) and Cassini .NET 2.0 web-server.
+> Major sync issues between drawing and work-processor for terminals causing errors.
 > Implement a YouTube interface.
 > Implement backward-compatible web features if the user lacks HTML5.
 > We could add a policy system, which overrides locally specified settings - like the GPO in Active Directory; this could also be used to deliver interfaces.

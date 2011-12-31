@@ -9,6 +9,7 @@ using System.Xml;
 using UberLib.Connector;
 using UberLib.Connector.Connectors;
 using System.Threading;
+using System.IO;
 
 namespace UberMediaServer
 {
@@ -36,6 +37,12 @@ namespace UberMediaServer
         /// <param name="e"></param>
         private void Main_Shown(object sender, EventArgs e)
         {
+            if (!File.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Settings.xml"))
+            {
+                ConfigGenerator cg = new ConfigGenerator();
+                cg.Show();
+                return;
+            }
             try
             {
                 // Create information pane
@@ -44,9 +51,10 @@ namespace UberMediaServer
                 np.Width = Width;
                 // Load configuration
                 settings = new XmlDocument();
-                settings.Load("Settings.xml");
                 try
                 {
+                    string rawxml = File.ReadAllText("Settings.xml");
+                    settings.LoadXml(rawxml);
                     // Establish terminal settings
                     terminalKey = settings["settings"]["terminal"]["key"].InnerText;
                     // Establish database settings

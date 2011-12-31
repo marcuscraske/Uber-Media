@@ -925,6 +925,7 @@ public partial class _Default : System.Web.UI.Page
                         writer.Flush();
                         writer.Close();
                         sw.Flush();
+                        Response.AddHeader("content-disposition", "attachment;filename=Config.xml");
                         Response.Write(sw.ToString());
                         // Disposal and terminate response
                         sw.Dispose();
