@@ -1,0 +1,1 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[Represents a header/category of a group of settings on the admin settings page.]]></description><html><![CDATA[<h3>%CATEGORY%</h3>]]></html></template>

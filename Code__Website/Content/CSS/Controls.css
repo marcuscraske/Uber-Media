@@ -1,0 +1,178 @@
+﻿/* Actual controls such as play etc */
+.CONTROLS
+{
+    width: 36em;
+    margin: auto;
+}
+.B
+{
+    float: left;
+    display: block;
+    width: 6em;
+    height: 6em;
+    background-size: 100%;
+    text-decoration: none;
+}
+.BPREV
+{
+    background: url('../Images/Controls/previous.png');
+}
+.BPREV:hover
+{
+    background: url('../Images/Controls/previous_h.png');
+}
+.BSKIP_B
+{
+    background: url('../Images/Controls/skip_backward.png');
+}
+.BSKIP_B:hover
+{
+    background: url('../Images/Controls/skip_backward_h.png');
+}
+.BSTOP
+{
+    background: url('../Images/Controls/stop.png');
+}
+.BSTOP:hover
+{
+    background: url('../Images/Controls/stop_h.png');
+}
+.BPLAY
+{
+    background: url('../Images/Controls/play.png');
+}
+.BPLAY:hover
+{
+    background: url('../Images/Controls/play_h.png');
+}
+.BPAUSE
+{
+    background: url('../Images/Controls/pause.png');
+}
+.BPAUSE:hover
+{
+    background: url('../Images/Controls/pause_h.png');
+}
+.BSKIP_F
+{
+    background: url('../Images/Controls/skip_forward.png');
+}
+.BSKIP_F:hover
+{
+    background: url('../Images/Controls/skip_forward_h.png');
+}
+.BNEXT
+{
+    background: url('../Images/Controls/next.png');
+}
+.BNEXT:hover
+{
+    background: url('../Images/Controls/next_h.png');
+}
+#TIME
+{
+    float: left;
+}
+.VOLUME
+{
+    float: right;
+}
+.MUTE, .UNMUTE
+{
+    display: block;
+    width: 2em; height: 2em;
+    float: right;
+    background-size: 100%;
+    text-decoration: none;
+}
+.MUTE
+{
+    background: url('../Images/Controls/mute.png');
+}
+.UNMUTE
+{
+    background: url('../Images/Controls/unmute.png');
+}
+input[type=range]
+{
+    -webkit-appearance: none !important;
+    background: #9C0;
+    height: 1em;
+    cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb
+{
+    -webkit-appearance: none !important;
+    background: #360;
+    height: 1em;
+    width: 1em;
+}
+#POSITION
+{
+    width: 100%;
+}
+#VOLUME
+{
+    width: 8em;
+}
+/* Playlist item */
+.PITEM
+{
+    display: block;
+    text-decoration: none;
+    width: 100%;
+    height: 4em;
+    border: solid 0.1em #000;
+    vertical-align: top;
+    background: #9C0;
+    -webkit-box-shadow: 0px 0px 5px #999;
+    -moz-box-shadow: 0px 0px 5px #999;
+    box-shadow: 0px 0px 5px #999;
+    float: left;
+    margin: 0em 1em 1em 0em;
+}
+.PITEM a.i
+{
+    text-decoration: none;
+}
+.PITEM a.i:hover
+{
+    opacity: 0.8;
+}
+.PITEM img
+{
+    width: 5em;
+    height: 4em;
+    border: none;
+    border-right: solid 0.1em #000;
+    background: url('../Images/thumbnail.png');
+    background-size: 100%;
+}
+.PITEM a
+{
+    float: left;
+}
+.PITEM a.x
+{
+    display: block;
+    float: right;
+    width: 1.5em;
+    height: 100%;
+    line-height: 4em;
+    text-decoration: none;
+    font-weight: bold;
+    color: #9C0;
+    background: #000;
+    text-align: center;
+    border-left: solid 0.1em #000;
+}
+.PITEM a.x:hover
+{
+    background: #9C0;
+    color: #000;
+}
+.PITEM div
+{
+    float: left;
+    padding: 0.5em;
+}

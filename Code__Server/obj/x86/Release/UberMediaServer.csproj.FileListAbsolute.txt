@@ -1,0 +1,11 @@
+X:\Dropbox\Dropbox\Projects\Projects\UberMediaServer\bin\Release\UberMediaServer.exe
+X:\Dropbox\Dropbox\Projects\Projects\UberMediaServer\bin\Release\UberMediaServer.pdb
+X:\Dropbox\Dropbox\Projects\Projects\UberMediaServer\bin\Release\Networking.dll
+X:\Dropbox\Dropbox\Projects\Projects\UberMediaServer\bin\Release\Networking.pdb
+X:\Dropbox\Dropbox\Projects\Projects\UberMediaServer\obj\x86\Release\ResolveAssemblyReference.cache
+X:\Dropbox\Dropbox\Projects\Projects\UberMediaServer\obj\x86\Release\UberMediaServer.Form1.resources
+X:\Dropbox\Dropbox\Projects\Projects\UberMediaServer\obj\x86\Release\UberMediaServer.Properties.Resources.resources
+X:\Dropbox\Dropbox\Projects\Projects\UberMediaServer\obj\x86\Release\ResGen.read.1.tlog
+X:\Dropbox\Dropbox\Projects\Projects\UberMediaServer\obj\x86\Release\ResGen.write.1.tlog
+X:\Dropbox\Dropbox\Projects\Projects\UberMediaServer\obj\x86\Release\UberMediaServer.exe
+X:\Dropbox\Dropbox\Projects\Projects\UberMediaServer\obj\x86\Release\UberMediaServer.pdb

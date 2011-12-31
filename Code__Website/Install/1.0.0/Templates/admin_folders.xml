@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[For the folders section of the admin system.]]></description><html><![CDATA[<h2>Folders</h2>
+<p>Below are the main media folders, which are each indexed and added to your media library.</p>
+<h2>Add Folder</h2>
+<form method="post" action="<!--URL-->/admin/folders">
+<div class="T">
+	<div>
+	Title:
+	</div>
+	<div>
+	<input type="text" name="title" value="%TITLE%" />
+	</div>
+	
+	<div>Physical path:</div>
+	<div>
+	<input type="text" name="path" value="%PATH%" />
+	</div>
+
+		<div>Allow web synopsis:</div>
+		<div>
+	<input type="checkbox" name="synopsis" value="1" %SYNOPSIS% /> This will retrieve media information from third-party sources for every item in this folder.
+	</div>
+	
+	<div>&nbsp;</div>
+	<div><input type="submit" value="Add" class="BUTTON" /></div>
+</div>
+<div class="clear"></div>
+
+<div class="ERROR_BOX" style="<!--ERR_STYLE-->">
+<div><!--ERR_MSG--></div>
+</div>
+
+</form>
+<h2>Current Folders</h2>
+%CURRENT_FOLDERS%]]></html></template>

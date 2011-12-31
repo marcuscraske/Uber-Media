@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[Admin tags page.]]></description><html><![CDATA[<h2>Tags</h2>
+<h3>Add New Tag</h3>
+<form method="post" action="<!--URL-->/admin/tags">
+<div class="T">
+
+<div>Title:</div>
+<div><input type="text" name="title" /></div>
+
+<div>&nbsp;</div>
+<div><input type="submit" class="BUTTON" value="Add" /></div>
+<div&nbsp;</div>
+</div>
+</form>
+<div class="clear"></div>
+
+<div class="ERROR_BOX" style="<!--ERR_STYLE-->">
+<div><!--ERR_MSG--></div>
+</div>
+
+<h3>Remove Tags</h3>
+%TAGS%]]></html></template>

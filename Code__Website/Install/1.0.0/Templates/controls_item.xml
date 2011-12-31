@@ -1,0 +1,4 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[]]></description><html><![CDATA[<div class="PITEM">
+<a href="<!--URL-->/control?mc=<!--MEDIACOMPUTER-->&manual=1&cmd=remove&cid=%CID%" class="x">X</a>
+<a href="<!--URL-->/item/%VITEMID%" class="i"><img src="<!--URL-->/Content/Thumbnails/%VITEMID%.png" onerror="ImageError(this);" alt="%TITLE%'s thumbnail" title="%TITLE%'s thumbnail" /></a><div>%TITLE%</div>
+</div>]]></html></template>

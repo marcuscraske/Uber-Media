@@ -1,0 +1,2 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[The footer cointainer.]]></description><html><![CDATA[<div class="clear"></div>
+<div class="B_FOOTER">%BUTTONS%Page: %PAGE%</div>]]></html></template>

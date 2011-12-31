@@ -1,0 +1,34 @@
+Uber Media
+===========
+A networked media application allowing multiple terminals, or media-computers, to be deployed and controlled using a web-interface featuring CSS3 and HTML5;
+a wide-range of media items are supported through a dynamic plugin-system, with the items indexed in a virtual file-system to allow fast searching and virtual
+organization and data-collection (such as user-ratings and descriptions pulled from third-party services).
+
+Installation:
+1. Install the website on an ASP.NET server.
+2. Go to the website, you will be asked to complete an installation wizard.
+3. Add a terminal/media-computer and download the generated Config.xml file.
+4. Install the server and copy the generated Config.xml into the same directory.
+5. Installation complete - add folders to be indexed and run the terminal/media-server.
+
+Features:
+> Virtual file-system; multiple folders, which can be local or file-shares, can be indexed.
+> Open-ended plugin-system which allows for custom-written interfaces to be used to play items.
+> Easy-to-use and easy to deploy due to not requiring any software to be installed on the client-side.
+> AJAX to reduce bandwidth and increase functionality.
+> Thumbnail generation of media items.
+> Ability to pull movie descriptions using the RottenTomatoes API, with a custom algorithm for intelligent seaches if the title is malformed.
+> Multiple media-computers can be installed, requiring only unique identifiers; this increases networked efficiency whilst providing centralized control and distribution. This feature
+may also be suitable for commercial applications.
+> Terminals can automatically connect to a central node.
+
+To-do/current issues:
+> Create an installer and include a lightweight MySQL server (we could experiment with SQLite since this is supported by Connector) and Cassini .NET 2.0 web-server.
+> Implement a YouTube interface.
+> Implement backward-compatible web features if the user lacks HTML5.
+> We could add a policy system, which overrides locally specified settings - like the GPO in Active Directory; this could also be used to deliver interfaces.
+> Menu on the server-side for TV-remote/media-remote users.
+> User system with modifiable permissions.
+
+Contributors:
+> Limpygnome		ubermeat.co.uk			limpygnome at gmail.com

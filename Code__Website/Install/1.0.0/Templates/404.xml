@@ -1,0 +1,3 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[Used for 404 (page not found) message.]]></description><html><![CDATA[<h2>404</h2>
+<p>The requested page could not be found ;_;.<p>
+<p>This could be due to a media item being deleted, a programmatic error or a mistyped/malformed URL.</p>]]></html></template>

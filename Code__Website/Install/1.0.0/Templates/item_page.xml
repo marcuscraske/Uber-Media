@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[The HTML of an items page.]]></description><html><![CDATA[<img src="%THUMBNAIL%" class="I_THUMBNAIL" alt="Thumbnail" title="%TITLE%'s thumbnail" onerror="ImageError(this);" />
+<p class="I_INFO">
+<span class="h">Type:</span><span>%TYPE%</span>
+<span class="h">Views:</span><span>%VIEWS%</span>
+<span class="h">Rating:</span><span>%RATING%</span>
+<span class="h">Date added:</span><span>%DATE_ADDED%</span>
+</p>
+<p class="clear">%DESCRIPTION%</p>
+<h2>Tags</h2>
+%TAGS%
+<h2>Add Tag</h2>
+<form method="post" action="<!--URL-->/item/%VITEMID%">
+<div class="T">
+	<div>Tag:</div>
+	<div><select name="tag">%OPTIONS_TAGS%</select></div>
+	<div>&nbsp;</div>
+	<div><input type="submit" class="BUTTON" value="Add" /></div>
+</div>
+<div class="clear"></div>
+</form>]]></html></template>
