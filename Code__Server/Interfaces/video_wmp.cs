@@ -119,7 +119,7 @@ namespace UberMediaServer.Interfaces
         {
             get
             {
-                return p.Ctlcontrols.currentPosition;
+                return p != null ? p.Ctlcontrols.currentPosition : 0;
             }
             set
             {
@@ -136,7 +136,7 @@ namespace UberMediaServer.Interfaces
             p.Invoke((MethodInvoker)delegate()
             {
                 p.Ctlcontrols.stop();
-                p.Dispose();
+                //p.Dispose();
             });
             p = null;
         }

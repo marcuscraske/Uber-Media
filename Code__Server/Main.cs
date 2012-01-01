@@ -270,6 +270,9 @@ namespace UberMediaServer
         /// </summary>
         void intf_MediaEnd()
         {
+            // Clear the information pane now playing text
+            np.UpdateNowPlaying(null);
+            // Play the next item
             controlItemNext();
         }
         #endregion
@@ -542,7 +545,9 @@ namespace UberMediaServer
                 _currentInterface = (Interfaces.Interface)System.Reflection.Assembly.GetExecutingAssembly().CreateInstance("UberMediaServer.Interfaces." + query["interface"], false, System.Reflection.BindingFlags.CreateInstance, null,
                     new object[] { this, query["path"], vitemid }, null, null);
                 HookInterfaceEvent_End();
+                // Update information pane
                 np.DisplayMessage("Now playing:\t\t" + query["title"]);
+                np.UpdateNowPlaying(query["title"]);
                 vitemid = query["vitemid"];
                 Refocus();
                 // Update views

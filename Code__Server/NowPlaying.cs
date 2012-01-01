@@ -11,6 +11,9 @@ namespace UberMediaServer
 {
     public partial class NowPlaying : Form
     {
+        public const int fadeTime = 200; // The amount of time before the pane begins to fade away (10ms  * this variable)
+        private int count = 0; // Stores timing for fading
+        private string nowPlaying = null;
         public NowPlaying()
         {
             InitializeComponent();
@@ -24,6 +27,7 @@ namespace UberMediaServer
         }
         Font font = new Font("Arial", 20.0f, FontStyle.Bold);
         Font font_position = new Font("Arial", 16.0f, FontStyle.Bold);
+        Font fontNowPlaying = new Font("Arial", 14.0f, FontStyle.Bold);
         SolidBrush brush = new SolidBrush(Color.White);
         string message = null;
         double[] seconds = null; // <current, total>
@@ -44,10 +48,8 @@ namespace UberMediaServer
         {
             Invoke((MethodInvoker)delegate()
             {
-                Invalidate();
                 Opacity = 1;
-                timer1.Interval = 2000;
-                timer1.Enabled = true;
+                count = 0;
             });
         }
         private void NowPlaying_Paint(object sender, PaintEventArgs e)
@@ -76,23 +78,25 @@ namespace UberMediaServer
                     info += ts.Hours.ToString("00") + ":" + ts.Minutes.ToString("00") + ":" + ts.Seconds.ToString("00");
                     e.Graphics.DrawString(info, font_position, brush, (float)Width - e.Graphics.MeasureString(info, font_position).Width, 25);
                 }
+                // Draw the current item being played
+                string _nowPlaying = nowPlaying ?? "No item is currently playing.";
+                e.Graphics.DrawString(_nowPlaying, fontNowPlaying, brush, (float)Width - e.Graphics.MeasureString(_nowPlaying, fontNowPlaying).Width, Height - (fontNowPlaying.Height + 10));
             }
             catch { }
         }
         private void timer1_Tick(object sender, EventArgs e)
         {
-            if (timer1.Interval == 2000)
-                timer1.Interval = 10;
+            if (count < fadeTime)
+                count ++;
             else if (Opacity > 0)
-            {
                 Opacity -= 0.01;
-                Invalidate();
-            }
             else
-            {
                 message = null;
-                timer1.Enabled = false;
-            }
+            Invalidate();
+        }
+        public void UpdateNowPlaying(string text)
+        {
+            nowPlaying = text;
         }
     }
 }
