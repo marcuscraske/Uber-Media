@@ -23,12 +23,12 @@ may also be suitable for commercial applications.
 > Terminals can automatically connect to a central node.
 
 To-do/current issues:
-> Major sync issues between drawing and work-processor for terminals causing errors.
 > Implement a YouTube interface.
 > Implement backward-compatible web features if the user lacks HTML5.
 > We could add a policy system, which overrides locally specified settings - like the GPO in Active Directory; this could also be used to deliver interfaces.
 > Menu on the server-side for TV-remote/media-remote users.
 > User system with modifiable permissions.
+> Possible memory leak issue with WMP interface due to not being disposed; this needs to be investigated further.
 
 Contributors:
 > Limpygnome		ubermeat.co.uk			limpygnome at gmail.com
