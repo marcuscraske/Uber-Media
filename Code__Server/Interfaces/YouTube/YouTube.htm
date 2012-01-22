@@ -1,0 +1,168 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<!--    Some of the code in this is unused due to originating from another project of mine, feel welcome
+        to clean it up - limpygnome
+-->
+	<head>
+         <style type="text/css">
+        body
+        {
+            margin: 0em;
+            background: #000;
+            overflow: hidden;
+        }
+        </style>
+        <script type="text/javascript" src="swfobject.js"></script>
+		<title>IDLE</title>
+		<script type="text/javascript" language="javascript">
+		    var ply;
+		    function onYouTubePlayerReady()
+		    {
+		        ply = document.getElementById('ytplayer');
+		        ply.addEventListener("onStateChange", "onytplayerStateChange");
+		        ply.addEventListener("onError", "onPlayerError");
+		    }
+		    function onPlayerError(errorCode)
+		    {
+		        document.title = 'ERROR' + errorCode;
+		    }
+		    function onytplayerStateChange(newState)
+		    {
+		        switch (newState)
+		        {
+		            case -1:
+		                document.title = "LOADING";
+		                break;
+		            case 0:
+		                document.title = "FINISHED";
+		                break;
+		            case 1:
+		                document.title = "PLAYING";
+		                break;
+		            case 2:
+		                document.title = "PAUSED";
+		                break;
+		        }
+		    }
+		    // Core
+		    function YT_Load(url)
+		    {
+		        if (ply) ply.loadVideoById(url, 0);
+		    }
+		    function YT_Unload()
+		    {
+		        ply.stopVideo();
+		    }
+		    // Actions
+		    function YT_Action_Unstop()
+		    {
+		        ply.playVideo();
+		    }
+		    function YT_Action_ToggleStop()
+		    {
+		        if (ply)
+		            if (ply.getPlayerState == 1)
+		                ply.stopVideo();
+		            else
+		                ply.playVideo();
+		    }
+		    function YT_Action_TogglePause()
+		    {
+		        if (ply)
+		            if (ply.getPlayerState() == 1)
+		                ply.pauseVideo();
+		            else
+		                ply.playVideo();
+		    }
+		    function YT_Action_SetVolume(rate)
+		    {
+		        if (ply && rate >= 0 && rate <= 100)
+		            ply.setVolume(rate);
+		    }
+		    function YT_Action_Mute()
+		    {
+		        if (ply)
+		            ply.mute();
+		    }
+		    function YT_Action_Unmute()
+		    {
+		        if (ply)
+		            ply.unMute();
+		    }
+		    function YT_Action_ToggleMute()
+		    {
+		        if (ply)
+		            if (ply.isMuted())
+		                ply.unMute();
+		            else
+		                ply.mute();
+		    }
+		    function YT_Action_Play()
+		    {
+		        if (ply)
+		            ply.playVideo();
+		    }
+		    function YT_Action_Pause()
+		    {
+		        if (ply)
+		            ply.pauseVideo();
+		    }
+		    function YT_Action_Position(seconds)
+		    {
+		        if (ply)
+		            ply.seekTo(seconds, true);
+		    }
+		    function YT_Action_Stop()
+		    {
+		        if (ply)
+		            ply.stopVideo();
+		    }
+		    // Queries
+		    function YT_Query_Volume()
+            {
+		        if (ply)
+		            return ply.getVolume();
+		        return 0;
+		    }
+		    function YT_Query_IsMuted()
+		    {
+		        if (ply)
+		            return ply.isMuted();
+		        return false;
+		    }
+		    function YT_Query_Duration()
+		    {
+		        if (ply)
+		            return ply.getDuration();
+		        return 0.0;
+		    }
+		    function YT_Query_CurrentPosition()
+		    {
+		        if (ply)
+		            return ply.getCurrentTime();
+                else
+		            return 0.0;
+		    }
+		    function YT_Query_State()
+		    {
+		        if (ply)
+		            return ply.getPlayerState();
+		        else
+		            return 0;
+		    }
+		</script>
+	</head>
+<body>
+	<div id="ytplayer">
+        <p>You need to install Adobe Flash Player to view YouTube videos!</p>
+    </div>
+    <script type="text/javascript">
+        var params = { allowScriptAccess: "always" };
+
+        swfobject.embedSWF(
+
+		    "http://www.youtube.com/apiplayer?enablejsapi=1&playerapiid=ytplayer", "ytplayer", "100%", "100%", "8", null, null, params);
+
+    </script>
+</body>
+</html>
