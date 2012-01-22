@@ -21,9 +21,14 @@ Features:
 > Multiple media-computers can be installed, requiring only unique identifiers; this increases networked efficiency whilst providing centralized control and distribution. This feature
 may also be suitable for commercial applications.
 > Terminals can automatically connect to a central node.
+> Ability to play/view:
+-- Images
+-- Video
+-- Audio
+-- YouTube
 
 To-do/current issues:
-> Implement a YouTube interface.
+> BBC iPlayer interface is not finished, cannot reverse-engineer the web-player.
 > Implement backward-compatible web features if the user lacks HTML5.
 > We could add a policy system, which overrides locally specified settings - like the GPO in Active Directory; this could also be used to deliver interfaces.
 > Menu on the server-side for TV-remote/media-remote users.
