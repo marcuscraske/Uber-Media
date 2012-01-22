@@ -1,4 +1,15 @@
-﻿using System;
+﻿/*
+ * License:     Creative Commons Attribution-ShareAlike 3.0 unported
+ * File:        Interface.cs
+ * Author(s):   limpygnome
+ * 
+ * Provides a virtual interface for playing media items, inherited by actual interfaces.
+ * 
+ * Improvements/bugs:
+ *          -   none.
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
@@ -7,6 +18,7 @@ namespace UberMediaServer.Interfaces
 {
     public class Interface
     {
+        #region "Events"
         public delegate void _Error(string message);
         public delegate void _MediaStart();
         public delegate void _MediaPause(bool nowPaused);
@@ -17,7 +29,9 @@ namespace UberMediaServer.Interfaces
         public virtual event _MediaPause MediaPause;
         public virtual event _MediaEnd MediaEnd;
         public virtual event _MediaPositionChange MediaPositionChange;
+        #endregion
 
+        #region "Enums"
         public enum States // Any updates need to be copied to the website in Default.aspx.c
         {
             Playing = 1,
@@ -28,13 +42,20 @@ namespace UberMediaServer.Interfaces
             WaitingForInput = 11,
             Idle = 13,
         }
+        #endregion
+
+        #region "Variables"
+        public Main formMain;
+        #endregion
+
+        #region "Methods - virtual"
         /// <summary>
         /// Initializes the new interface.
         /// </summary>
         /// <param name="main">The form/window used for display.</param>
         /// <param name="path">The physical path of the media to play.</param>
         /// <param name="vitemid">The virtual item ID in the database.</param>
-        public Interface(Form main, string path, string vitemid) {}
+        public Interface(Main main, string path, string vitemid) { formMain = main; }
         /// <summary>
         /// Gets the state of the interface.
         /// </summary>
@@ -44,7 +65,7 @@ namespace UberMediaServer.Interfaces
         /// Causes the interface to start playing the current media.
         /// </summary>
         /// <returns></returns>
-        public virtual void Play() {}
+        public virtual void Play() { }
         /// <summary>
         /// Checks if the media is paused or sets if the media is paused.
         /// </summary>
@@ -86,5 +107,6 @@ namespace UberMediaServer.Interfaces
         /// Causes the interface to be disposed.
         /// </summary>
         public virtual void Dispose() { }
+        #endregion
     }
 }

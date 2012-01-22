@@ -1,4 +1,16 @@
-﻿using System;
+﻿/*
+ * License:     Creative Commons Attribution-ShareAlike 3.0 unported
+ * File:        Main.cs
+ * Author(s):   limpygnome
+ * 
+ * Responsible for displaying media to the end-user on the physical machine through a borderless
+ * window; this is also responsible for processing terminal commands and loading configuration.
+ * 
+ * Improvements/bugs:
+ *          -   none.
+ */
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -22,7 +34,7 @@ namespace UberMediaServer
         XmlDocument settings;
         Connector db = null;
         Thread workerProcessor = null;
-        NowPlaying np = null;
+        public NowPlaying np = null;
         #endregion
 
         #region "Form - Init"
@@ -37,6 +49,8 @@ namespace UberMediaServer
         /// <param name="e"></param>
         private void Main_Shown(object sender, EventArgs e)
         {
+            SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+            SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
             if (!File.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Settings.xml"))
             {
                 ConfigGenerator cg = new ConfigGenerator();
@@ -51,10 +65,19 @@ namespace UberMediaServer
                 np.Width = Width;
                 // Load configuration
                 settings = new XmlDocument();
+                string rawxml;
                 try
                 {
-                    string rawxml = File.ReadAllText("Settings.xml");
+                    rawxml = File.ReadAllText("Settings.xml");
                     settings.LoadXml(rawxml);
+                }
+                catch
+                {
+                    SetErrorMessage("Could not load configuration!");
+                    return;
+                }
+                try
+                {
                     // Establish terminal settings
                     terminalKey = settings["settings"]["terminal"]["key"].InnerText;
                     // Establish database settings
@@ -101,6 +124,11 @@ namespace UberMediaServer
                 Refocus();
                 Cursor.Hide();
                 np.DisplayMessage("Welcome!");
+                // Debug area - add interface testing around here, should be safe
+                //Interfaces.video_youtube vy = new Interfaces.video_youtube(this, "01IaKb6DmTw", "");
+                //_currentInterface = vy;
+                //HookInterfaceEvent_End();
+                //
             }
             catch (Exception ex)
             {
@@ -120,7 +148,7 @@ namespace UberMediaServer
             {
                 try
                 {
-                    // Ensure the database connection is still open, just in-case it failed
+                    // Ensure the database connection is still open, just in-case it failed e.g. wifi disconnection or something
                     m.db.CheckConnectionIsReady();
                     // Update current position in information pane
                     try
@@ -128,16 +156,16 @@ namespace UberMediaServer
                         if (m._currentInterface != null) m.np.UpdatePosition(m._currentInterface.Position, m._currentInterface.Duration);
                         else m.np.UpdatePositionEnd();
                     }
-                    catch { }
+                    catch { System.Diagnostics.Debug.WriteLine("Failed to get position and duration!"); }
                     // Update the database with the terminals status
                     try
                     {
                         if (m._currentInterface != null)
-                            m.db.Query_Execute("UPDATE terminals SET status_state='" + Utils.Escape(((int)m._currentInterface.State()).ToString()) + "', status_volume='" + Utils.Escape(m._currentInterface.Volume.ToString()) + "', status_volume_muted='" + Utils.Escape(m._currentInterface.IsMuted() ? "1" : "0") + "', status_vitemid='" + Utils.Escape(m.vitemid) + "', status_position='" + Utils.Escape(m._currentInterface.Position.ToString()) + "', status_duration='" + Utils.Escape(m._currentInterface.Duration.ToString()) + "', status_updated=NOW() WHERE tkey='" + terminalKey + "'");
+                            m.db.Query_Execute("UPDATE terminals SET status_state='" + Utils.Escape(((int)(m._currentInterface.State())).ToString()) + "', status_volume='" + Utils.Escape(m._currentInterface.Volume.ToString()) + "', status_volume_muted='" + Utils.Escape(m._currentInterface.IsMuted() ? "1" : "0") + "', status_vitemid='" + Utils.Escape(m.vitemid) + "', status_position='" + Utils.Escape(m._currentInterface.Position.ToString()) + "', status_duration='" + Utils.Escape(m._currentInterface.Duration.ToString()) + "', status_updated=NOW() WHERE tkey='" + terminalKey + "'");
                         else
                             m.db.Query_Execute("UPDATE terminals SET status_state='13', status_volume='0', status_volume_muted='1', status_vitemid='', status_position='0', status_duration='0', status_updated=NOW() WHERE tkey='" + terminalKey + "'");
                     }
-                    catch { }
+                    catch(Exception ex) { System.Diagnostics.Debug.WriteLine("Failed to update terminal information: " + ex.Message + " - " + ex.StackTrace + "!"); }
                     // Fetch the next command
                     data = m.db.Query_Read(preQuery + "SELECT tb.* FROM terminal_buffer AS tb, terminals AS t WHERE " + (m._currentInterface == null || m._currentInterface.State() == Interfaces.Interface.States.Idle ? "" :  "queue='0' AND ") + "tb.terminalid=t.terminalid AND t.tkey='" + terminalKey + "' ORDER BY tb.cid ASC LIMIT 1");
                     preQuery = String.Empty; // Reset pre-query
@@ -425,7 +453,6 @@ namespace UberMediaServer
             {
                 if (_currentInterface != null)
                 {
-                    System.Diagnostics.Debug.WriteLine(_currentInterface.State());
                     if (_currentInterface.State() == Interfaces.Interface.States.Playing)
                     { _currentInterface.Pause(); np.DisplayMessage("Paused."); }
                     else
@@ -542,6 +569,7 @@ namespace UberMediaServer
             try
             {
                 ResultRow query = data[0];
+                System.Diagnostics.Debug.WriteLine("Playing new item: " + query["path"] + " : " + query["interface"]);
                 _currentInterface = (Interfaces.Interface)System.Reflection.Assembly.GetExecutingAssembly().CreateInstance("UberMediaServer.Interfaces." + query["interface"], false, System.Reflection.BindingFlags.CreateInstance, null,
                     new object[] { this, query["path"], vitemid }, null, null);
                 HookInterfaceEvent_End();

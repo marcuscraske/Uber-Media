@@ -1,4 +1,18 @@
-﻿// Derives from:
+﻿/*
+ * License:     Creative Commons Attribution-ShareAlike 3.0 unported
+ * File:        App_Code/KeepAlive.cs
+ * Author(s):   limpygnome, Paul Wilson
+ * 
+ * This keeps the application pool running until manually terminated, which gets around the
+ * issue of the application pool being shutdown after a user typically not visiting the site
+ * for 15 mins.
+ * 
+ * Improvements/bugs:
+ *          -   none.
+ */
+
+/* Original header: */
+// Derives from:
 // http://authors.aspalliance.com/PaulWilson/Articles/?id=12
 //
 // This keeps the site active since the app-pool is automatically closed when no users are present at the site;

@@ -1,8 +1,14 @@
 ﻿/*
- * Creative Commons Attribution-ShareAlike 3.0 unported
- * Default.aspx.cs
+ * License:     Creative Commons Attribution-ShareAlike 3.0 unported
+ * File:        Default.aspx.cs
+ * Author(s):   limpygnome
  * 
- * This page is responsible for nearly the entire site.
+ * Responsible for most of the site functions; most of the site is URL-rewritten to this
+ * page with the first directory (e.g. /page) invoking the function Page__page to carry-out
+ * site operation. Everything from admin and browsing functionality is on this page.
+ * 
+ * Improvements/bugs:
+ *          -   none.
  */
 using System;
 using System.Collections;
@@ -112,6 +118,14 @@ public partial class _Default : System.Web.UI.Page
         PageElements["CONTENT_RIGHT"] = "Dumped HTML templates from database to:<br />" + AppDomain.CurrentDomain.BaseDirectory + "/Install/" + UberMedia.Core.versionMajor + "." + UberMedia.Core.versionMinor + "." + UberMedia.Core.versionBuild + "/Templates";
     }
 #endif
+    // Dev
+    public void Page__devdump()
+    {
+        UberMedia.Installer.HtmlTemplatesDump(Server.MapPath("/Install/1.0.0/Templates"), Connector);
+        Response.Write("HTML templates written.");
+        Response.End();
+    }
+    // Main
     public void Page__404()
     {
         PageElements["CONTENT_RIGHT"] = UberMedia.Core.Cache_HtmlTemplates["404"];
@@ -123,10 +137,10 @@ public partial class _Default : System.Web.UI.Page
         foreach (ResultRow folder in Connector.Query_Read("SELECT title, pfolderid FROM physical_folders ORDER BY title ASC")) folders += "<a href=\"%URL%/browse/" + folder["pfolderid"] + "\"><img src=\"%URL%/Content/Images/folder.png\" alt=\"Folder\" />" + folder["title"] + "</a>";
         // Build list of new items
         string i_new = "";
-        foreach (ResultRow file in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY vi.date_added DESC LIMIT 6")) i_new += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["thumbnail"].Equals("1") ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"));
+        foreach (ResultRow file in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY vi.date_added DESC LIMIT 6")) i_new += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["thumbnail"].Length > 0 ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"));
         // Build list of random items
         string i_rand = "";
-        foreach (ResultRow file in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY RAND() DESC LIMIT 6")) i_rand += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["thumbnail"].Equals("1") ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"));
+        foreach (ResultRow file in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY RAND() DESC LIMIT 6")) i_rand += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["thumbnail"].Length > 0 ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"));
         PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["home_sidebar"].Replace("%FOLDERS%", folders.Length == 0 ? "None." : folders).Replace("%URL%", ResolveUrl(""));
         PageElements["CONTENT_RIGHT"] = UberMedia.Core.Cache_HtmlTemplates["home"].Replace("%NEWEST%", i_new).Replace("%RANDOM%", i_rand);
         SelectNavItem("HOME");
@@ -185,35 +199,38 @@ public partial class _Default : System.Web.UI.Page
                 content += "This main folder has " + data[0]["c_files"] + " files and " + data[0]["c_folders"] + " folders indexed.";
             }
         }
-        // Check if the user has specified an action
-        if (Request.QueryString["action"] != null)
+        // Get the requested action
+        switch (Request.QueryString["action"])
         {
-            switch (Request.QueryString["action"])
-            {
-                case "queue_all":
-                    if (Session["mediacomputer"] != null) // Ensure a media computer is selected
-                    {
-                        // Grab all of the items
-                        Result items = Connector.Query_Read("SELECT vi.vitemid FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent='0'") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC"));
-                        // Generate massive statement to add them to the terminal buffer
-                        StringWriter statement = new StringWriter();
-                        foreach (ResultRow item in items)
-                            statement.Write(terminalBufferEntry("media", (string)Session["mediacomputer"], item["vitemid"], true));
-                        // Execute statement
-                        Connector.Query_Execute(statement.ToString());
-                    }
-                    // Redirect the user back
-                    Response.Redirect(ResolveUrl(current_url + current_params + current_tag));
-                    break;
-            }
+            case "queue_all":
+                // Queue all the files in this folder
+                if (Session["mediacomputer"] != null) // Ensure a media computer is selected
+                {
+                    // Grab all of the items
+                    Result items = Connector.Query_Read("SELECT vi.vitemid FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent='0'") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC"));
+                    // Generate massive statement to add them to the terminal buffer
+                    StringWriter statement = new StringWriter();
+                    foreach (ResultRow item in items)
+                        statement.Write(terminalBufferEntry("media", (string)Session["mediacomputer"], item["vitemid"], true));
+                    // Execute statement
+                    Connector.Query_Execute(statement.ToString());
+                }
+                // Redirect the user back
+                Response.Redirect(ResolveUrl(current_url + current_params + current_tag));
+                break;
+            case "add_youtube":
+                // Add a YouTube item
+                break;
+            default:
+                // List files
+                Result files = Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent='0'") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC") + " LIMIT " + ((items_per_page * page) - items_per_page) + ", " + items_per_page.ToString());
+                content += "<h2>Files " + Browse_CreateNavigationBar(Request.QueryString["1"] ?? "", Request.QueryString["2"] ?? "") + "</h2>";
+                if (files.Rows.Count != 0) foreach (ResultRow file in files) content += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["thumbnail"].Length > 0 ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"));
+                else content += "<p>No items - check the sidebar for sub-folders on the left!</p>";
+                break;
         }
         // Query files and folders
         Result folders = Connector.Query_Read("SELECT vi.* FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "WHERE vi.type_uid = '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent='0'") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC"));
-        Result files = Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent='0'") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC") + " LIMIT " + ((items_per_page * page) - items_per_page) + ", " + items_per_page.ToString());
-        // List files
-        content += "<h2>Files " + Browse_CreateNavigationBar(Request.QueryString["1"] ?? "", Request.QueryString["2"] ?? "") + "</h2>";
-        if (files.Rows.Count != 0) foreach (ResultRow file in files) content += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["thumbnail"].Equals("1") ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"));
-        else content += "<p>No items - check the sidebar for sub-folders on the left!</p>";
         // Build sidebar
         string sidebar = "<h2>Main Folders</h2>";
         // -- Build a list of all the main drives
@@ -226,7 +243,9 @@ public partial class _Default : System.Web.UI.Page
                 .Replace("%ICON%", ResolveUrl("/Content/Images/folder.png"));
         // -- Build a list of options for the current items
         sidebar += "<h2>Options</h2>";
+        sidebar += "<a href=\"" + current_url + "\"><img src=\"<!--URL-->/Content/Images/view.png\" alt=\"View Items\" title=\"View Items\" />View Items</a>";
         sidebar += "<a href=\"" + current_url + "&action=queue_all\"><img src=\"<!--URL-->/Content/Images/play_queue.png\" alt=\"Queue All Items\" title=\"Queue All Items\" />Queue All Items</a>";
+        sidebar += "<a href=\"" + current_url + "&action=add_youtube\"><img src=\"<!--URL-->/Content/Images/youtube.png\" alt=\"Add YouTube\" title=\"Add YouTube\" />Add YouTube</a>";
         // -- Display the sub-folders for this folder
         sidebar += "<h2>Sub-folders</h2>";
         if (folders.Rows.Count == 0) sidebar += "None.";
@@ -310,7 +329,7 @@ public partial class _Default : System.Web.UI.Page
             case "rebuild":
                 if (Request.Form["confirm"] != null)
                 {
-                    UberMedia.ThumbnailGeneratorService.AddToQueue(data[0]["path"], AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails/" + data[0]["vitemid"] + ".png");
+                    UberMedia.ThumbnailGeneratorService.AddToQueue(data[0]["path"], AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails/" + data[0]["vitemid"] + ".png", data[0]["thumbnail"]);
                     Response.Redirect(ResolveUrl("/item/" + vitemid));
                 }
                 else
@@ -401,7 +420,7 @@ public partial class _Default : System.Web.UI.Page
                 }
                 // Build page content
                 content += UberMedia.Core.Cache_HtmlTemplates["item_page"]
-                    .Replace("%THUMBNAIL%", data[0]["thumbnail"].Equals("1") ? ResolveUrl("/Content/Thumbnails/" + data[0]["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"))
+                    .Replace("%THUMBNAIL%", data[0]["thumbnail"].Length > 0 ? ResolveUrl("/Content/Thumbnails/" + data[0]["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"))
                     .Replace("%TITLE%", HttpUtility.HtmlEncode(data[0]["title"]))
                     .Replace("%DESCRIPTION%", data[0]["description"].Length > 0 ? HttpUtility.HtmlEncode(data[0]["description"]) : "(no description)")
                     .Replace("%VIEWS%", data[0]["views"]).Replace("%DATE_ADDED%", data[0]["date_added"])
@@ -443,7 +462,7 @@ public partial class _Default : System.Web.UI.Page
             Result results = Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.title LIKE '%" + query + "%' ORDER BY FIELD(vi.type_uid, '100') DESC, vi.title ASC LIMIT 100");
             if (results.Rows.Count == 0) Response.Write("No items were found matching your criteria...");
             else
-                foreach (ResultRow file in results) Response.Write(UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", file["type_uid"].Equals("100") ? ResolveUrl("/browse/" + file["pfolderid"] + "/" + file["vitemid"]) : ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["type_uid"].Equals("100") ? ResolveUrl("/Content/Images/thumbnail_folder.png") : file["thumbnail"].Equals("1") ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png")));
+                foreach (ResultRow file in results) Response.Write(UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", file["type_uid"].Equals("100") ? ResolveUrl("/browse/" + file["pfolderid"] + "/" + file["vitemid"]) : ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["type_uid"].Equals("100") ? ResolveUrl("/Content/Images/thumbnail_folder.png") : file["thumbnail"].Length > 0 ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png")));
         }
         Response.End();
     }
@@ -539,8 +558,8 @@ public partial class _Default : System.Web.UI.Page
                     foreach (ResultRow drive in Connector.Query_Read("SELECT pfolderid, physicalpath FROM physical_folders ORDER BY pfolderid ASC"))
                         DrivePaths.Add(drive["pfolderid"], drive["physicalpath"]);
                     // Queue items
-                    foreach (ResultRow item in Connector.Query_Read("SELECT vitemid, pfolderid, phy_path FROM virtual_items WHERE type_uid != '100' ORDER BY vitemid ASC"))
-                        UberMedia.ThumbnailGeneratorService.AddToQueue(DrivePaths[item["pfolderid"]] + item["phy_path"], AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails/" + item["vitemid"] + ".png");
+                    foreach (ResultRow item in Connector.Query_Read("SELECT vi.vitemid, vi.pfolderid, vi.phy_path, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' AND it.thumbnail != '' ORDER BY vitemid ASC"))
+                        UberMedia.ThumbnailGeneratorService.AddToQueue(DrivePaths[item["pfolderid"]] + item["phy_path"], AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails/" + item["vitemid"] + ".png", item["thumbnail"]);
                     // Redirect user
                     Response.Redirect("/admin");
                 }
@@ -657,6 +676,18 @@ public partial class _Default : System.Web.UI.Page
                 // Build the content
                 switch (Request.QueryString["3"])
                 {
+                    case "rebuild_thumbnails":
+                        // Get all of the items for this folder
+                        Result items = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.vitemid, it.thumbnail FROM (virtual_items AS vi, physical_folders AS pf, item_types AS it) WHERE it.uid=vi.type_uid AND it.system='0' AND vi.pfolderid=pf.pfolderid AND pf.pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'");
+                        // Delete any pre-existing thumbnails
+                        foreach (ResultRow item in items)
+                            File.Delete(Server.MapPath("/Content/Thumbnails/" + item["vitemid"] + ".png"));
+                        // Requeue all the thumbnails
+                        foreach (ResultRow item in items)
+                            UberMedia.ThumbnailGeneratorService.AddToQueue(item["path"], Server.MapPath("/Content/Thumbnails/" + item["vitemid"] + ".png"), item["thumbnail"]);
+                        // Back to folder main page
+                        Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
+                        break;
                     case "index":
                         UberMedia.Indexer.IndexDrive(data[0]["pfolderid"], data[0]["physicalpath"], data[0]["allow_web_synopsis"].Equals("1"));
                         Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));

@@ -1,4 +1,15 @@
-﻿using System;
+﻿/*
+ * License:     Creative Commons Attribution-ShareAlike 3.0 unported
+ * File:        App_Code/Installer.cs
+ * Author(s):   limpygnome
+ * 
+ * Contains functions for the installation and upgrade process of the web application.
+ * 
+ * Improvements/bugs:
+ *          -   none.
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Web;
 using System.IO;
@@ -9,7 +20,6 @@ namespace UberMedia
 {
     public class Installer
     {
-
         /// <summary>
         /// Returns an error message; a successful installation will return string.Empty, as well as start-up the Core.
         /// </summary>

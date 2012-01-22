@@ -1,7 +1,16 @@
 ﻿<%@ Application Language="C#" %>
-
 <script runat="server">
-
+//
+// License:     Creative Commons Attribution-ShareAlike 3.0 unported
+// File:        Global.asax
+// Author(s):   limpygnome
+// 
+// Responsible for starting and disposing the core of the site, as well as rewriting requested
+// responses.
+// 
+// Improvements/bugs:
+//          -   none.
+//
     void Application_Start(object sender, EventArgs e) 
     {
         UberMedia.Core.Core_Start();

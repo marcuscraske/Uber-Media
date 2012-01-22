@@ -1,4 +1,16 @@
-﻿using System;
+﻿/*
+ * License:     Creative Commons Attribution-ShareAlike 3.0 unported
+ * File:        NowPlaying.cs
+ * Author(s):   limpygnome
+ * 
+ * A user-interface for informing the user of messages such as the current item playing or the
+ * change in the state of the terminal e.g. volume.
+ * 
+ * Improvements/bugs:
+ *          -   none.
+ */
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -54,6 +66,7 @@ namespace UberMediaServer
         }
         private void NowPlaying_Paint(object sender, PaintEventArgs e)
         {
+            if (Opacity == 0) return;
             // Draw gradient overlay
             Rectangle area = new Rectangle(0, 0, Width, Height);
             LinearGradientBrush brush_grad = new LinearGradientBrush(area, Color.FromArgb(100, 255, 255, 255), Color.Transparent, 90f);

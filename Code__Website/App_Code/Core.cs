@@ -1,4 +1,37 @@
-﻿using System;
+﻿/*
+ * License:     Creative Commons Attribution-ShareAlike 3.0 unported
+ * File:        App_Code/Core.cs
+ * Author(s):   limpygnome
+ * 
+ * Contains multiple classes responsible for core functions of the web application:
+ * - Core
+ *      Responsible for loading settings and executing background services
+ *      such as drive indexing and thumbnail generation.
+ *      
+ *  - ThreadIndexerAttribs
+ *      Contains variables to be passed to an indexer thread.
+ *      
+ *  - Indexer
+ *      Responsible for running in the background and indexing each drive/folder
+ *      added by the user; the files in the drives are virtually indexed in the database
+ *      if their extension matches the type of file to be indexed in the folder (specified
+ *      by the user). The indexer may also invoke the thumbnail generation service to generate
+ *      thumbnails of media.
+ *      
+ *  - ThumbnailGeneratorService
+ *      Responsible for generating thumbnails of media; this uses reflection to
+ *      generate thumbnails for different types of media formats.
+ *      
+ *  - FilmInformation
+ *      Responsible for grabbing information about media based on their title's from third-party
+ *      sources. Currently this utilizes IMDB and RottenTomatoes.
+ * 
+ * Improvements/bugs:
+ *          -   The downloaded IMDB database could be cached in an e.g. SQLite file for faster
+ *              and more efficient access of data.
+ */
+
+using System;
 using System.Collections.Generic;
 using System.Web;
 using UberLib.Connector;
@@ -12,6 +45,8 @@ using System.Net;
 using System.Xml;
 using ICSharpCode.SharpZipLib.GZip;
 using ICSharpCode.SharpZipLib.Core;
+using System.Reflection;
+using System.Drawing;
 
 namespace UberMedia
 {
@@ -231,7 +266,8 @@ namespace UberMedia
             tia.pfolderid = Utils.Escape(tia.pfolderid);
             // Build extensions->typeid map and a list of processible (thumbnail-wise) items
             Dictionary<string, string> ExtensionsMap = new Dictionary<string, string>();
-            List<string> ThumbnailExts = new List<string>();
+            // Builds thumbnail extensions -> thumbnail handler/processor
+            Dictionary<string, string> ThumbnailExts = new Dictionary<string, string>();
             string[] t;
             foreach (ResultRow type in tia.Connector.Query_Read("SELECT it.uid, it.extensions, it.thumbnail FROM physical_folder_types AS pf LEFT OUTER JOIN item_types AS it ON it.typeid=pf.typeid WHERE pf.pfolderid='" + tia.pfolderid + "'"))
             {
@@ -239,7 +275,7 @@ namespace UberMedia
                 t = type["extensions"].Split(',');
                 foreach (string s in t) if (s.Length > 0 && !ExtensionsMap.ContainsKey(s))
                     {
-                        if (type["thumbnail"].Equals("1")) ThumbnailExts.Add(s.ToLower());
+                        if (type["thumbnail"].Length > 0) ThumbnailExts.Add(s.ToLower(), type["thumbnail"]);
                         ExtensionsMap.Add(s.ToLower(), type["uid"]);
                     }
             }
@@ -262,17 +298,16 @@ namespace UberMedia
             foreach (string file in Directory.GetFiles(tia.base_path, "*", SearchOption.AllDirectories))
             {
                 if (Terminate) return;
-                filename = file.Substring(file.LastIndexOf('\\') + 1);
-                ext = filename.LastIndexOf('.') != -1 ? filename.Substring(filename.LastIndexOf('.')) : "";
-                title = ext.Length > 0 ? filename.Remove(filename.Length - (ext.Length), (ext.Length)) : filename;
+                filename = file.Replace("/", "\\").Substring(file.LastIndexOf('\\') + 1);
+                ext = filename.LastIndexOf('.') != -1 ? filename.Substring(filename.LastIndexOf('.') + 1).ToLower() : "";
+                title = ext.Length > 0 ? filename.Remove(filename.Length - (ext.Length + 1), (ext.Length + 1)) : filename;
                 if (tia.allow_web_synopsis)
                     desc = FilmInformation.FilmSynopsis(title, tia.Connector);
                 else desc = "";
-                if (ext.Length > 0) ext = ext.Remove(0, 1).ToLower(); // Remove dot - most efficient approach
                 if (ext.Length > 0 && ExtensionsMap.ContainsKey(ext) && tia.Connector.Query_Count("SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + tia.pfolderid + "' AND type_uid != '100' AND phy_path='" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "'") == 0)
                 {
                     string vitemid = tia.Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, type_uid, title, description, phy_path, parent, date_added) VALUES('" + tia.pfolderid + "', '" + Utils.Escape(ExtensionsMap[ext]) + "', '" + Utils.Escape(title) + "', '" + Utils.Escape(desc) + "', '" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "', '" + Utils.Escape(GetParentVITEMID(tia.pfolderid, file.Remove(0, tia.base_path.Length), ref Cache, tia.Connector)) + "', NOW()); SELECT LAST_INSERT_ID();").ToString();
-                    if (ThumbnailExts.Contains(ext)) ThumbnailGeneratorService.AddToQueue(file, AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails/" + vitemid.ToString() + ".png");
+                    if (ThumbnailExts.ContainsKey(ext)) ThumbnailGeneratorService.AddToQueue(file, AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails/" + vitemid.ToString() + ".png", ThumbnailExts[ext]);
                 }
             }
             UpdateStatus(tia.pfolderid, "Verifying index integrity");
@@ -334,7 +369,7 @@ namespace UberMedia
         public static string Status = "Uninitialised";
         private static Thread DelegatorThread = null;
         public static List<Thread> Threads = new List<Thread>();
-        public static List<string[]> Queue = new List<string[]>(); // Path of media, output path
+        public static List<string[]> Queue = new List<string[]>(); // Path of media, output path, handler
 
         public static void Delegator_Start()
         {
@@ -363,8 +398,8 @@ namespace UberMedia
             }
             ShutdownOverride = true;
             foreach (Thread th in Threads) th.Abort();
-            lock(ffmpegs)
-                try { foreach (Process p in ffmpegs) p.Kill(); } catch { }
+            lock(processes)
+                try { foreach (Process p in processes) p.Kill(); } catch { }
             Threads.Clear();
             ShutdownOverride = false;
             Status = "Delegator and pool terminated";
@@ -398,22 +433,34 @@ namespace UberMedia
                 Status = "Successfully looped at " + DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
             }
         }
-
-        public static void AddToQueue(string path_media, string path_output)
+        public static void AddToQueue(string path_media, string path_output, string handler)
         {
-            lock (Queue) Queue.Add(new string[]{ path_media, path_output});
+            lock (Queue) Queue.Add(new string[]{ path_media, path_output, handler});
         }
-        public static List<Process> ffmpegs = new List<Process>(); // Stores the ffmpegs in case they arent terminated
+        /// <summary>
+        /// Responsible for any processors executed by the thumbnail service; this is to ensure the service can be suddenly shutdown.
+        /// </summary>
+        public static List<Process> processes = new List<Process>();
         private static void ThreadMethod(object o)
         {
             string[] data = (string[])o;
+            try
+            {
+                typeof(ThumbnailGeneratorService).GetMethod("ThumbnailProcessor__" + data[2], System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                    .Invoke(null, new object[] { data[0], data[1] });
+            }
+            catch { }
+        }
+        public static void ThumbnailProcessor__ffmpeg(string path, string thumbnail_path)
+        {
+            
             Process p = new Process();
             p.StartInfo.FileName = "ffmpeg.exe";
             p.StartInfo.WorkingDirectory = Core.basePath + @"\bin";
-            p.StartInfo.Arguments = "-itsoffset -" + Core.Cache_Settings["thumbnail_screenshot_media_time"].ToString() + "  -i \"" + data[0] + "\" -vcodec mjpeg -vframes 1 -an -f rawvideo -s " + Core.Cache_Settings["thumbnail_width"].ToString() + "x" + Core.Cache_Settings["thumbnail_height"].ToString() + " -y \"" + data[1] + "\"";
+            p.StartInfo.Arguments = "-itsoffset -" + Core.Cache_Settings["thumbnail_screenshot_media_time"].ToString() + "  -i \"" + path + "\" -vcodec mjpeg -vframes 1 -an -f rawvideo -s " + Core.Cache_Settings["thumbnail_width"] + "x" + Core.Cache_Settings["thumbnail_height"] + " -y \"" + thumbnail_path + "\"";
             p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
             p.Start();
-            ffmpegs.Add(p);
+            processes.Add(p);
             try
             {
 
@@ -423,8 +470,72 @@ namespace UberMedia
                 }
                 p.Kill();
             }
-            catch(Exception ex) {}
-            ffmpegs.Remove(p);
+            catch (Exception ex) { }
+            processes.Remove(p);
+        }
+        public static void ThumbnailProcessor__youtube(string path, string thumbnail_path)
+        {
+            try
+            {
+                // Get the ID
+                string vid = File.ReadAllText(path);
+                // Download thumbnail from YouTube
+                HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://img.youtube.com/vi/" + vid + "/1.jpg");
+                HttpWebResponse resp = (HttpWebResponse)req.GetResponse();
+                if (resp.ContentLength == 0) return;
+                // Resize and draw the thumbnail
+                Bitmap img = (Bitmap)Bitmap.FromStream(resp.GetResponseStream());
+                Bitmap thumbnail = new Bitmap(int.Parse(Core.Cache_Settings["thumbnail_width"]), int.Parse(Core.Cache_Settings["thumbnail_height"]));
+                Graphics g = Graphics.FromImage(thumbnail);
+                g.FillRectangle(new SolidBrush(Color.DarkGray), 0, 0, thumbnail.Width, thumbnail.Height);
+                double fitToThumbnailRatio = (img.Width > img.Height ? (double)thumbnail.Width / (double)img.Width : (double)thumbnail.Height / (double)img.Height);
+                Rectangle drawArea = new Rectangle();
+                drawArea.Width = (int)(fitToThumbnailRatio * (double)img.Width);
+                drawArea.Height = (int)(fitToThumbnailRatio * (double)img.Height);
+                drawArea.X = (int)(((double)thumbnail.Width - (double)drawArea.Width) / 2);
+                drawArea.Y = (int)(((double)thumbnail.Height - (double)drawArea.Height) / 2);
+                g.DrawImage(img, drawArea);
+                g.Dispose();
+                thumbnail.Save(thumbnail_path, System.Drawing.Imaging.ImageFormat.Png);
+                thumbnail.Dispose();
+                img.Dispose();
+                img = null;
+                thumbnail = null;
+                g = null;
+                resp.Close();
+                resp = null;
+                req = null;
+            }
+            catch
+            {
+            }
+        }
+        public static void ThumbnailProcessor__image(string path, string thumbnail_path)
+        {
+            try
+            {
+                Bitmap img = new Bitmap(path);
+                Bitmap thumbnail = new Bitmap(int.Parse(Core.Cache_Settings["thumbnail_width"]), int.Parse(Core.Cache_Settings["thumbnail_height"]));
+                Graphics g = Graphics.FromImage(thumbnail);
+                g.FillRectangle(new SolidBrush(Color.DarkGray), 0, 0, thumbnail.Width, thumbnail.Height);
+                double fitToThumbnailRatio = (img.Width > img.Height ? (double)thumbnail.Width / (double)img.Width : (double)thumbnail.Height / (double)img.Height);
+                Rectangle drawArea = new Rectangle();
+                drawArea.Width = (int)(fitToThumbnailRatio * (double)img.Width);
+                drawArea.Height = (int)(fitToThumbnailRatio * (double)img.Height);
+                drawArea.X = (int)(((double)thumbnail.Width - (double)drawArea.Width) / 2);
+                drawArea.Y = (int)(((double)thumbnail.Height - (double)drawArea.Height) / 2);
+                g.DrawImage(img, drawArea);
+                g.Dispose();
+                thumbnail.Save(thumbnail_path, System.Drawing.Imaging.ImageFormat.Png);
+                thumbnail.Dispose();
+                img.Dispose();
+                img = null;
+                thumbnail = null;
+                g = null;
+            }
+            catch
+            {
+            }
         }
     }
     /// <summary>

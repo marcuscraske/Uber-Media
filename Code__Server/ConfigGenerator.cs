@@ -1,4 +1,15 @@
-﻿using System;
+﻿/*
+ * License:     Creative Commons Attribution-ShareAlike 3.0 unported
+ * File:        ConfigGenerator.cs
+ * Author(s):   limpygnome
+ * 
+ * A user-interface for setting-up the terminal.
+ * 
+ * Improvements/bugs:
+ *          -   none.
+ */
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -42,11 +53,13 @@ namespace UberMediaServer
         private void ConfigGenerator_Load(object sender, EventArgs e)
         {
             // Check if the portable web server exists - else disable the option
-            if(!File.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Website/Webserver"))
+            if(!Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Website/Webserver"))
                 startupWebserver.Enabled = false;
             // Same for the database server
-            if (!File.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Website/Database"))
+            if (!Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Website/Database"))
                 startupDatabase.Enabled = false;
+            else if (MessageBox.Show("Embedded database detected, make sure you have configured the website before installing this terminal!\n\nYou can configure the website by:\n1. Launching the database (desktop > Uber Media - Database)\n2.Launching the website (desktop > Uber Media - Webserver)\n3. Visit http://localhost in your browser\n\nYou will need to have the database also running when installing the terminal.", "Warning", MessageBoxButtons.OKCancel) == System.Windows.Forms.DialogResult.Cancel)
+                Close();
             // Fill-in the host with the current IP for this computer
             IPHostEntry iphe = Dns.GetHostEntry(Dns.GetHostName());
             if (iphe.AddressList.Length > 0)
@@ -199,25 +212,37 @@ namespace UberMediaServer
             xw.Close();
             File.WriteAllText(AppDomain.CurrentDomain.BaseDirectory + "/Settings.xml", sw.ToString());
             // Settings are valid, now to handle startup options
-            if (startupDatabase.Checked || startupLogon.Checked || startupServer.Checked || startupWebserver.Checked)
+            try
             {
-                RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
-                if (startupServer.Checked)
-                    reg.SetValue("Uber Media - Server", Application.ExecutablePath);
-                if (startupDatabase.Checked)
-                    reg.SetValue("Uber Media - Database", AppDomain.CurrentDomain.BaseDirectory + "\\Website\\Database\\bin\\mysqld.exe");
-                if (startupWebserver.Checked)
-                    reg.SetValue("Uber Media - Webserver", AppDomain.CurrentDomain.BaseDirectory + "\\Website\\Webserver\\UltiDevCassinWebServer2a.exe /run \"" + AppDomain.CurrentDomain.BaseDirectory + "\\Website" + "\" \"Default.aspx\" \"" + startupWebserverPort.Text + "\" nobrowser");
-                if (startupLogon.Checked)
+                if (startupDatabase.Checked || startupLogon.Checked || startupServer.Checked || startupWebserver.Checked)
                 {
+                    RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
+                    if (reg == null)
+                        throw new Exception("Cannot access Run subkey for automatic startup of application!");
+                    if (startupServer.Checked)
+                        reg.SetValue("Uber Media - Server", Application.ExecutablePath);
+                    if (startupDatabase.Checked)
+                        reg.SetValue("Uber Media - Database", AppDomain.CurrentDomain.BaseDirectory + "\\Website\\Database\\bin\\mysqld.exe");
+                    if (startupWebserver.Checked)
+                        reg.SetValue("Uber Media - Webserver", AppDomain.CurrentDomain.BaseDirectory + "\\Website\\Webserver\\UltiDevCassinWebServer2a.exe /run \"" + AppDomain.CurrentDomain.BaseDirectory + "\\Website" + "\" \"Default.aspx\" \"" + startupWebserverPort.Text + "\" nobrowser");
                     reg.Close();
-                    reg = Registry.LocalMachine.OpenSubKey(@"\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon", true);
-                    reg.SetValue("DefaultUserName", Environment.UserName);
-                    reg.SetValue("DefaultDomainName", Environment.UserDomainName);
-                    reg.SetValue("DefaultPassword", startupLogonPassword.Text);
-                    reg.SetValue("AutoAdminLogon", "1");
-                    reg.Close();
+                    if (startupLogon.Checked)
+                    {
+                        reg = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon", true);
+                        if (reg == null)
+                            throw new Exception("Cannot access Winlogon registry subkey for automatic logon!");
+                        reg.SetValue("DefaultUserName", Environment.UserName);
+                        reg.SetValue("DefaultDomainName", Environment.UserDomainName ?? "");
+                        reg.SetValue("DefaultPassword", startupLogonPassword.Text);
+                        reg.SetValue("AutoAdminLogon", "1");
+                        reg.Close();
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                if (MessageBox.Show("An error occurred setting startup settings - the rest has successfully installed; would you like to undo the applied settings?\n\nError (for developers and technical users):\n****************************************************************\n" + ex.Message + "\n\nStack-trace:\n" + ex.StackTrace + "\n\nSource:\n" + ex.Source, "Error", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
+                    File.Delete(AppDomain.CurrentDomain.BaseDirectory + "/Settings.xml");
             }
             // End the application
             Close();

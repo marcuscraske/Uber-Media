@@ -100,8 +100,10 @@
       <DependentUpon>ConfigGenerator.cs</DependentUpon>
     </Compile>
     <Compile Include="Interface.cs" />
-    <Compile Include="Interfaces\video_dx.cs" />
-    <Compile Include="Interfaces\video_wmp.cs" />
+    <Compile Include="Interfaces\DirectX 9 AVP\video_dx.cs" />
+    <Compile Include="Interfaces\Images\images.cs" />
+    <Compile Include="Interfaces\WinMediaPlayer\video_wmp.cs" />
+    <Compile Include="Interfaces\YouTube\youtube.cs" />
     <Compile Include="Main.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -185,6 +187,15 @@
       <Project>{F61563BA-E114-4526-9803-A314DB50190D}</Project>
       <Name>Connector</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Interfaces\BBC iPlayer\BBCiPlayer.htm" />
+    <Content Include="Interfaces\YouTube\swfobject.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Interfaces\YouTube\YouTube.htm">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
