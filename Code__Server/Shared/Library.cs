@@ -1,4 +1,17 @@
-﻿using System;
+﻿/*
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /Shared/Library.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
+ * 
+ * A library of shared methods.
+ */
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Net;
