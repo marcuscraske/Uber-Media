@@ -1,14 +1,16 @@
 ﻿/*
- * License:     Creative Commons Attribution-ShareAlike 3.0 unported
- * File:        Interfaces/YouTube/video_vlc.cs
- * Author(s):   limpygnome
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /Interfaces/YouTube/video_vlc.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
  * 
  * Provides an interface for playing general audio and video media through VLC.
- * 
- * Improvements/bugs:
- *          -   none
  */
-
 using System;
 using System.Collections.Generic;
 using System.Text;

@@ -115,9 +115,7 @@
     <Compile Include="Exceptions\LibraryConnectionFailure.cs" />
     <Compile Include="Interface.cs" />
     <Compile Include="Interfaces\VLC\video_vlc.cs" />
-    <Compile Include="Interfaces\_prototypesANDold\DirectX 9 AVP\video_dx.cs" />
     <Compile Include="Interfaces\Images\images.cs" />
-    <Compile Include="Interfaces\_prototypesANDold\WinMediaPlayer\video_wmp.cs" />
     <Compile Include="Interfaces\YouTube\youtube.cs" />
     <Compile Include="Main.cs">
       <SubType>Form</SubType>
@@ -192,7 +190,6 @@
     <Content Include="Interfaces\YouTube\FlashPlayer.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Interfaces\_prototypesANDold\BBC iPlayer\BBCiPlayer.htm" />
     <Content Include="Interfaces\YouTube\swfobject.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

@@ -1,14 +1,16 @@
 ﻿/*
- * License:     Creative Commons Attribution-ShareAlike 3.0 unported
- * File:        ConfigGenerator.cs
- * Author(s):   limpygnome
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
  * 
- * A user-interface for setting-up the terminal.
+ * Project:                 Uber Media
+ * File:                    /ConfigGenerator.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
  * 
- * Improvements/bugs:
- *          -   none.
+ *A user-interface for setting-up the terminal.
  */
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

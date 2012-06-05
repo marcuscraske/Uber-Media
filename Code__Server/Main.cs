@@ -1,15 +1,17 @@
 ﻿/*
- * License:     Creative Commons Attribution-ShareAlike 3.0 unported
- * File:        Main.cs
- * Author(s):   limpygnome
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /Main.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
  * 
  * Responsible for displaying media to the end-user on the physical machine through a borderless
  * window; this is also responsible for processing terminal commands and loading configuration.
- * 
- * Improvements/bugs:
- *          -   none.
  */
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

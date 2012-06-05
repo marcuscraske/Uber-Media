@@ -1,15 +1,17 @@
 ﻿/*
- * License:     Creative Commons Attribution-ShareAlike 3.0 unported
- * File:        NowPlaying.cs
- * Author(s):   limpygnome
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /NowPlaying.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
  * 
  * A user-interface for informing the user of messages such as the current item playing or the
  * change in the state of the terminal e.g. volume.
- * 
- * Improvements/bugs:
- *          -   none.
  */
-
 using System;
 using System.Collections.Generic;
 using System.Data;

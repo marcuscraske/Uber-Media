@@ -1,7 +1,13 @@
 ﻿/*
- * License:     Creative Commons Attribution-ShareAlike 3.0 unported
- * File:        Exceptions\LibraryConnectionFailure.cs
- * Authors:     limpygnome              limpygnome@gmail.com
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /Exceptions/LibraryConnectionFailure.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
  * 
  * Thrown when data cannot be fetched from the media library.
  */

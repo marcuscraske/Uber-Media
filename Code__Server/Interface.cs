@@ -1,14 +1,16 @@
 ﻿/*
- * License:     Creative Commons Attribution-ShareAlike 3.0 unported
- * File:        Interface.cs
- * Author(s):   limpygnome
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /Interface.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
  * 
  * Provides a virtual interface for playing media items, inherited by actual interfaces.
- * 
- * Improvements/bugs:
- *          -   none.
  */
-
 using System;
 using System.Collections.Generic;
 using System.Text;

@@ -1,17 +1,16 @@
 ﻿/*
- * License:     Creative Commons Attribution-ShareAlike 3.0 unported
- * File:        Interfaces/YouTube/video_youtube.cs
- * Author(s):   limpygnome
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /Interfaces/YouTube/video_youtube.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
  * 
  * Provides an interface for playing YouTube.com (video-sharing site) media.
- * 
- * Improvements/bugs:
- *          -   If the video cannot be embedded, we could use an RTSP stream embedded in a web-page; for instance if we visit:
- *              http://m.youtube.com/watch?v=ylLzyHk54Z0
- *      
- *              The "Watch Video" link contains an RTSP URI, which could be played in an embedded page using an object element.
  */
-
 using System;
 using System.Collections.Generic;
 using System.Text;
