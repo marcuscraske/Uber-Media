@@ -22,10 +22,13 @@ namespace UberMediaServer.Interfaces
 {
     public class images : Interface
     {
-        Bitmap img;
-        ImageAnimator anim;
-        Rectangle drawRegion;
+        #region "Variables"
+        private Bitmap img;
+        private Rectangle drawRegion;
         public override event Interface._Error Error;
+        #endregion
+
+        #region "Methods - Constructors"
         public images(Main main, string path, string vitemid) : base(main, path, vitemid)
         {
             try
@@ -55,6 +58,9 @@ namespace UberMediaServer.Interfaces
                 Error("Could not load image!");
             }
         }
+        #endregion
+
+        #region "Methods - Events"
         void main_Paint(object sender, PaintEventArgs e)
         {
             ImageAnimator.UpdateFrames();
@@ -67,6 +73,9 @@ namespace UberMediaServer.Interfaces
                 formMain.Invalidate();
             });
         }
+        #endregion
+
+        #region "Methods - Overrides"
         public override void Dispose()
         {
             formMain.Invoke((MethodInvoker)delegate()
@@ -80,5 +89,6 @@ namespace UberMediaServer.Interfaces
                 img = null;
             }
         }
+        #endregion
     }
 }

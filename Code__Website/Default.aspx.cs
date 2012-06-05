@@ -15,10 +15,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Web;
 using System.Web.UI;
-using System.Web.UI.WebControls;
 using UberLib.Connector;
 using System.IO;
 using System.Xml;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Drawing;
 
 public partial class _Default : System.Web.UI.Page
 {
@@ -73,6 +75,15 @@ public partial class _Default : System.Web.UI.Page
             Response.Write("<h1>Core Failure</h1>");
             Response.Write("<p>Your media collection cannot be accessed because the core has failed to start, current state: " + UberMedia.Core.State.ToString() + "</p>");
             Response.Write("<p>Common issues could be database connectivity, corrupt configuration or/and bad settings!</p>");
+            Response.Write("<h2>Developers</h2>");
+            Response.Write("<h3>Primary Reason</h3>");
+            Response.Write("<p>" + UberMedia.Core.failureError.Message + "</p>");
+            Response.Write("<p>" + UberMedia.Core.failureError.StackTrace + "</p>");
+            Response.Write("<h3>Secondary Reason</h3>");
+            Response.Write("<p>" + (UberMedia.Core.failureError.InnerException != null ? UberMedia.Core.failureError.InnerException.StackTrace : "none") + "</p>");
+            Response.Write("<h3>Base Reason</h3>");
+            Response.Write("<p>" + UberMedia.Core.failureError.GetBaseException().Message + "</p>");
+            Response.Write("<p>" + UberMedia.Core.failureError.GetBaseException().StackTrace + "</p>");
             Response.End();
         }
 #if DEBUG
@@ -82,6 +93,7 @@ public partial class _Default : System.Web.UI.Page
         Connector = UberMedia.Core.Connector_Create(false);
         // Set some default page elements
         PageElements["URL"] = ResolveUrl("");
+        PageElements["FULL_URL"] = "http://" + Request.Url.Host + (Request.Url.Port != 80 ? ":" + Request.Url.Port : "");
         // Invoke method corresponding to requested page
         try
         {
@@ -111,25 +123,27 @@ public partial class _Default : System.Web.UI.Page
     #endregion
 
     #region "Methods - Pages"
-#if DEBUG
-    public void Page__debug()
-    {
-        UberMedia.Installer.HtmlTemplatesDump(AppDomain.CurrentDomain.BaseDirectory + "/Install/" + UberMedia.Core.versionMajor + "." + UberMedia.Core.versionMinor + "." + UberMedia.Core.versionBuild + "/Templates", Connector);
-        PageElements["CONTENT_RIGHT"] = "Dumped HTML templates from database to:<br />" + AppDomain.CurrentDomain.BaseDirectory + "/Install/" + UberMedia.Core.versionMajor + "." + UberMedia.Core.versionMinor + "." + UberMedia.Core.versionBuild + "/Templates";
-    }
-#endif
     // Dev
+    /// <summary>
+    /// Used for dumping the HTML templates from the database to the installation folder.
+    /// </summary>
     public void Page__devdump()
     {
-        UberMedia.Installer.HtmlTemplatesDump(Server.MapPath("/Install/1.0.0/Templates"), Connector);
+        UberMedia.Installer.HtmlTemplatesDump(Server.MapPath("/Install/" + UberMedia.Core.versionMajor + "." + UberMedia.Core.versionMinor + "." + UberMedia.Core.versionBuild + "/Templates"), Connector);
         Response.Write("HTML templates written.");
         Response.End();
     }
     // Main
+    /// <summary>
+    /// If a resource cannot be found, the following page is invoked to inform the user.
+    /// </summary>
     public void Page__404()
     {
         PageElements["CONTENT_RIGHT"] = UberMedia.Core.Cache_HtmlTemplates["404"];
     }
+    /// <summary>
+    /// Homepage - displays links to the virtual folders, the latest items added and random items in all virtual folders
+    /// </summary>
     public void Page__home()
     {
         // Build list of folders/drives for the sidebar
@@ -137,14 +151,17 @@ public partial class _Default : System.Web.UI.Page
         foreach (ResultRow folder in Connector.Query_Read("SELECT title, pfolderid FROM physical_folders ORDER BY title ASC")) folders += "<a href=\"%URL%/browse/" + folder["pfolderid"] + "\"><img src=\"%URL%/Content/Images/folder.png\" alt=\"Folder\" />" + folder["title"] + "</a>";
         // Build list of new items
         string i_new = "";
-        foreach (ResultRow file in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY vi.date_added DESC LIMIT 6")) i_new += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["thumbnail"].Length > 0 ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"));
+        foreach (ResultRow file in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY vi.date_added DESC LIMIT 6")) i_new += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%VITEMID%", file["vitemid"]);
         // Build list of random items
         string i_rand = "";
-        foreach (ResultRow file in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY RAND() DESC LIMIT 6")) i_rand += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["thumbnail"].Length > 0 ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"));
+        foreach (ResultRow file in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY RAND() DESC LIMIT 6")) i_rand += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%VITEMID%", file["vitemid"]);
         PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["home_sidebar"].Replace("%FOLDERS%", folders.Length == 0 ? "None." : folders).Replace("%URL%", ResolveUrl(""));
         PageElements["CONTENT_RIGHT"] = UberMedia.Core.Cache_HtmlTemplates["home"].Replace("%NEWEST%", i_new).Replace("%RANDOM%", i_rand);
         SelectNavItem("HOME");
     }
+    /// <summary>
+    /// Used to browse the virtual library to view virtual items.
+    /// </summary>
     public void Page__browse()
     {
         // URL struct:
@@ -165,40 +182,7 @@ public partial class _Default : System.Web.UI.Page
         string current_params = "&sort=" + (Request.QueryString["sort"] ?? "") + "&sd=" + (sort_asc ? "asc" : "desc");
         string current_tag = "&tag=" + qtag;
         // Build content area
-        string content = "<h2>Tags</h2>";
-        // Build tags
-        Result tags = Connector.Query_Read("SELECT t.tagid, t.title FROM tags AS t, tag_items AS ti, virtual_items AS vi WHERE ti.tagid=t.tagid" + (Request.QueryString["1"] != null ? " AND ti.vitemid=vi.vitemid AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND (vi.vitemid='" + Utils.Escape(Request.QueryString["2"]) + "' OR vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "')" : " AND vi.parent='0' ") : "") + " GROUP BY ti.tagid");
-        if (tags.Rows.Count == 0) content += "No items are tagged.";
-        else
-        {
-            foreach (ResultRow tag in tags)
-                content += "<a href=\"" + current_url + current_params + "&tag=" + tag["tagid"] + "\" class=\"TAG\">" + tag["title"] + "</a>";
-        }
-        // If viewing an actual folder, grab the desc etc - also checks the folder exists
-        if (Request.QueryString["1"] != null || Request.QueryString["2"] != null)
-        {
-            content += "<h2>Info</h2>";
-            if (Request.QueryString["2"] != null) // Display sub-folder information - may contain synopsis if e.g. a TV show
-            {
-                Result data = Connector.Query_Read("SELECT vi.description FROM virtual_items AS vi WHERE vi.vitemid='" + Utils.Escape(Request.QueryString["2"]) + "'");
-                if (data.Rows.Count == 0)
-                {
-                    Page__404();
-                    return;
-                }
-                content += data[0]["description"].Length > 0 ? data[0]["description"] : "(no description)";
-            }
-            else // Build info pane due to being a physical folder
-            {
-                Result data = Connector.Query_Read("SELECT pfolderid, (SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "' AND type_uid='100') AS c_folders, (SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "' AND type_uid != '100') AS c_files FROM physical_folders WHERE pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "';");
-                if (data.Rows.Count == 0)
-                {
-                    Page__404();
-                    return;
-                }
-                content += "This main folder has " + data[0]["c_files"] + " files and " + data[0]["c_folders"] + " folders indexed.";
-            }
-        }
+        StringBuilder content = new StringBuilder();
         // Get the requested action
         switch (Request.QueryString["action"])
         {
@@ -209,9 +193,9 @@ public partial class _Default : System.Web.UI.Page
                     // Grab all of the items
                     Result items = Connector.Query_Read("SELECT vi.vitemid FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent='0'") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC"));
                     // Generate massive statement to add them to the terminal buffer
-                    StringWriter statement = new StringWriter();
+                    StringBuilder statement = new StringBuilder();
                     foreach (ResultRow item in items)
-                        statement.Write(terminalBufferEntry("media", (string)Session["mediacomputer"], item["vitemid"], true));
+                        statement.Append(terminalBufferEntry("media", (string)Session["mediacomputer"], item["vitemid"], true));
                     // Execute statement
                     Connector.Query_Execute(statement.ToString());
                 }
@@ -219,65 +203,150 @@ public partial class _Default : System.Web.UI.Page
                 Response.Redirect(ResolveUrl(current_url + current_params + current_tag));
                 break;
             case "add_youtube":
-                // Add a YouTube item
+                if (Request.QueryString["1"] == null) // Check we're in a drive - else we cannot add YouTubes
+                    content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_youtube_na"]);
+                else
+                {
+                    // Add a YouTube item
+                    string error = null;
+                    string youtubeURL = Request.Form["youtube_url"];
+                    string title = Request.Form["youtube_title"];
+                    // Check if any data has been posted, if so handle the data
+                    if (youtubeURL != null && title != null)
+                    {
+                        string youtubeVID;
+                        // Validate
+                        if (title.Length < PHYSICAL_FOLDER_TITLE_MIN || title.Length > PHYSICAL_FOLDER_TITLE_MAX) // Check the title length
+                            error = "Title must be " + PHYSICAL_FOLDER_TITLE_MIN + " to " + PHYSICAL_FOLDER_TITLE_MAX + " characters in length!";
+                        else if ((youtubeVID = parseYouTubeURL(youtubeURL)) == null) // Parse the ID and check it has been found
+                            error = "Could not parse YouTube URL/URI!";
+                        else if (Connector.Query_Count("SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "' AND parent='" + Utils.Escape(Request.QueryString["2"] ?? "0") + "' AND title LIKE '%" + Utils.Escape(title) + "%'") != 0) // Check no virtual item with the same title exists within the same folder - since the extension will be the same and hence the physical file will be the same
+                            error = "An item with the same name already exists within the same folder!";
+                        else
+                        {
+                            string phyPath = Connector.Query_Scalar("SELECT physicalpath FROM physical_folders WHERE pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'").ToString();
+                            string subPath;
+                            if (Request.QueryString["2"] != null) // Check if we're in a sub-folder - if so, grab the sub-folder's relative path
+                                subPath = Connector.Query_Scalar("SELECT phy_path FROM virtual_items WHERE vitemid='" + Utils.Escape(Request.QueryString["2"]) + "'").ToString();
+                            else
+                                subPath = string.Empty;
+                            // Create the physical file in-case the database is lost
+                            File.WriteAllText(phyPath + subPath + "\\" + title + ".yt", youtubeVID);
+                            // Create the virtual item to represent the file
+                            Connector.Query_Execute("INSERT INTO virtual_items (pfolderid, parent, type_uid, title, phy_path, date_added) VALUES('" + Utils.Escape(Request.QueryString["1"]) + "', '" + Utils.Escape(Request.QueryString["2"] ?? string.Empty) + "', (SELECT uid FROM item_types WHERE title='YouTube'), '" + Utils.Escape(title) + "', '" + Utils.Escape(subPath + "\\" + title + ".yt") + "', NOW())");
+                            // Redirect back
+                            Response.Redirect(current_url + current_params);
+                        }
+                    }
+                    content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_youtube"]
+                        .Replace("%IURL%", current_url + current_params + "&action=" + Request.QueryString["action"])
+                        .Replace("%YOUTUBE_URL%", youtubeURL ?? string.Empty)
+                        .Replace("%YOUTUBE_TITLE%", title ?? string.Empty))
+                        .Replace("%ERROR_STYLE%", error != null ? "display: block; visibility: visible;" : string.Empty)
+                        .Replace("%ERROR_MESSAGE%", Server.HtmlEncode(error) ?? string.Empty);
+                }
                 break;
             default:
+                // Build tags section
+                content.Append("<h2>Tags</h2>");
+                Result tags = Connector.Query_Read("SELECT t.tagid, t.title FROM tags AS t, tag_items AS ti, virtual_items AS vi WHERE ti.tagid=t.tagid" + (Request.QueryString["1"] != null ? " AND ti.vitemid=vi.vitemid AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND (vi.vitemid='" + Utils.Escape(Request.QueryString["2"]) + "' OR vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "')" : " AND vi.parent='0' ") : "") + " GROUP BY ti.tagid");
+                if (tags.Rows.Count == 0) content.Append("No items are tagged.");
+                else
+                {
+                    foreach (ResultRow tag in tags)
+                        content.Append("<a href=\"" + current_url + current_params + "&tag=" + tag["tagid"] + "\" class=\"TAG\">" + tag["title"] + "</a>");
+                }
+                // If viewing an actual folder, grab the desc etc - also checks the folder exists
+                if (Request.QueryString["1"] != null || Request.QueryString["2"] != null)
+                {
+                    content.Append("<h2>Info</h2>");
+                    if (Request.QueryString["2"] != null) // Display sub-folder information - may contain synopsis if e.g. a TV show
+                    {
+                        Result data = Connector.Query_Read("SELECT vi.description FROM virtual_items AS vi WHERE vi.vitemid='" + Utils.Escape(Request.QueryString["2"]) + "'");
+                        if (data.Rows.Count == 0)
+                        {
+                            Page__404();
+                            return;
+                        }
+                        content.Append(data[0]["description"].Length > 0 ? data[0]["description"] : "(no description)");
+                    }
+                    else // Build info pane due to being a physical folder
+                    {
+                        Result data = Connector.Query_Read("SELECT pfolderid, (SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "' AND type_uid='100') AS c_folders, (SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "' AND type_uid != '100') AS c_files FROM physical_folders WHERE pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "';");
+                        if (data.Rows.Count == 0)
+                        {
+                            Page__404();
+                            return;
+                        }
+                        content.Append("This main folder has " + data[0]["c_files"] + " files and " + data[0]["c_folders"] + " folders indexed.");
+                    }
+                }
                 // List files
                 Result files = Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent='0'") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC") + " LIMIT " + ((items_per_page * page) - items_per_page) + ", " + items_per_page.ToString());
-                content += "<h2>Files " + Browse_CreateNavigationBar(Request.QueryString["1"] ?? "", Request.QueryString["2"] ?? "") + "</h2>";
-                if (files.Rows.Count != 0) foreach (ResultRow file in files) content += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["thumbnail"].Length > 0 ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"));
-                else content += "<p>No items - check the sidebar for sub-folders on the left!</p>";
+                content.Append("<h2>Files " + Browse_CreateNavigationBar(Request.QueryString["1"] ?? "", Request.QueryString["2"] ?? "") + "</h2>");
+                if (files.Rows.Count != 0) foreach (ResultRow file in files) content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%VITEMID%", file["vitemid"]));
+                else content.Append("<p>No items - check the sidebar for sub-folders on the left!</p>");
+                // Attach footer
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_footer"]
+                    .Replace("%PAGE%", page.ToString())
+                    .Replace("%BUTTONS%",
+                                            (page > 1 ? UberMedia.Core.Cache_HtmlTemplates["browse_footer_previous"].Replace("%URL%", current_url + current_params + current_tag + "&p=" + (page - 1)) : "") +
+                                            (page <= int.MaxValue ? UberMedia.Core.Cache_HtmlTemplates["browse_footer_next"].Replace("%URL%", current_url + current_params + current_tag + "&p=" + (page + 1)) : "")
+                            ));
                 break;
         }
         // Query files and folders
         Result folders = Connector.Query_Read("SELECT vi.* FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "WHERE vi.type_uid = '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent='0'") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC"));
         // Build sidebar
-        string sidebar = "<h2>Main Folders</h2>";
+        StringBuilder sidebar = new StringBuilder();
+        sidebar.Append("<h2>Main Folders</h2>");
         // -- Build a list of all the main drives
-        sidebar += UberMedia.Core.Cache_HtmlTemplates["browse_side_folder"].Replace("%URL%", ResolveUrl("")).Replace("%CLASS%", "").Replace("%IURL%", ResolveUrl("/browse")).Replace("%TITLE%", "All").Replace("%ICON%", ResolveUrl("/Content/images/folders.png"));
+        sidebar.Append(UberMedia.Core.Cache_HtmlTemplates["browse_side_folder"].Replace("%URL%", ResolveUrl("")).Replace("%CLASS%", "").Replace("%IURL%", ResolveUrl("/browse")).Replace("%TITLE%", "All").Replace("%ICON%", ResolveUrl("/Content/images/folders.png")));
         foreach (ResultRow drive in Connector.Query_Read("SELECT pfolderid, title FROM physical_folders ORDER BY title ASC"))
-            sidebar += UberMedia.Core.Cache_HtmlTemplates["browse_side_folder"]
+            sidebar.Append(UberMedia.Core.Cache_HtmlTemplates["browse_side_folder"]
                 .Replace("%IURL%", ResolveUrl("/browse/" + drive["pfolderid"] + "?" + current_params))
                 .Replace("%CLASS%", drive["pfolderid"].Equals(Request.QueryString["1"]) ? "selected" : "")
                 .Replace("%TITLE%", drive["title"])
-                .Replace("%ICON%", ResolveUrl("/Content/Images/folder.png"));
+                .Replace("%ICON%", ResolveUrl("/Content/Images/folder.png")));
         // -- Build a list of options for the current items
-        sidebar += "<h2>Options</h2>";
-        sidebar += "<a href=\"" + current_url + "\"><img src=\"<!--URL-->/Content/Images/view.png\" alt=\"View Items\" title=\"View Items\" />View Items</a>";
-        sidebar += "<a href=\"" + current_url + "&action=queue_all\"><img src=\"<!--URL-->/Content/Images/play_queue.png\" alt=\"Queue All Items\" title=\"Queue All Items\" />Queue All Items</a>";
-        sidebar += "<a href=\"" + current_url + "&action=add_youtube\"><img src=\"<!--URL-->/Content/Images/youtube.png\" alt=\"Add YouTube\" title=\"Add YouTube\" />Add YouTube</a>";
+        sidebar.Append("<h2>Options</h2>");
+        sidebar.Append("<a href=\"" + current_url + "\"><img src=\"<!--URL-->/Content/Images/view.png\" alt=\"View Items\" title=\"View Items\" />View Items</a>");
+        sidebar.Append("<a href=\"" + current_url + "&action=queue_all\"><img src=\"<!--URL-->/Content/Images/play_queue.png\" alt=\"Queue All Items\" title=\"Queue All Items\" />Queue All Items</a>");
+        sidebar.Append("<a href=\"" + current_url + "&action=add_youtube\"><img src=\"<!--URL-->/Content/Images/youtube.png\" alt=\"Add YouTube\" title=\"Add YouTube\" />Add YouTube</a>");
         // -- Display the sub-folders for this folder
-        sidebar += "<h2>Sub-folders</h2>";
-        if (folders.Rows.Count == 0) sidebar += "None.";
+        sidebar.Append("<h2>Sub-folders</h2>");
+        if (folders.Rows.Count == 0) sidebar.Append("None.");
         else
             foreach(ResultRow folder in folders)
-                sidebar += UberMedia.Core.Cache_HtmlTemplates["browse_side_folder"]
+                sidebar.Append(UberMedia.Core.Cache_HtmlTemplates["browse_side_folder"]
                     .Replace("%CLASS%", "")
                     .Replace("%IURL%", ResolveUrl("/browse/" + folder["pfolderid"] + "/" + folder["vitemid"] + "?" + current_params))
                     .Replace("%TITLE%", folder["title"].Length > 22 ? folder["title"].Substring(0, 22) + "..." : folder["title"])
-                    .Replace("%ICON%", ResolveUrl("/Content/Images/folder.png"));
-        // Attach footer
-        content += UberMedia.Core.Cache_HtmlTemplates["browse_footer"]
-            .Replace("%PAGE%", page.ToString())
-            .Replace("%BUTTONS%",
-                                    (page > 1 ? UberMedia.Core.Cache_HtmlTemplates["browse_footer_previous"].Replace("%URL%", current_url + current_params + current_tag  + "&p=" + (page - 1)) : "") +
-                                    (page <= int.MaxValue ? UberMedia.Core.Cache_HtmlTemplates["browse_footer_next"].Replace("%URL%", current_url + current_params + current_tag + "&p=" + (page + 1)) : "")
-                    );
+                    .Replace("%ICON%", ResolveUrl("/Content/Images/folder.png")));
         // Finalize page
-        PageElements["CONTENT_LEFT"] = sidebar;
-        PageElements["CONTENT_RIGHT"] = content;
+        PageElements["CONTENT_LEFT"] = sidebar.ToString();
+        PageElements["CONTENT_RIGHT"] = content.ToString();
         if (!sort_asc && sort == "vi.date_added") SelectNavItem("NEWEST");
         else if (!sort_asc && sort == "vi.views") SelectNavItem("POPULAR");
         else SelectNavItem("BROWSE");
     }
+    /// <summary>
+    /// Redirects to the browse system, showing the newest items added to the library.
+    /// </summary>
     public void Page__newest()
     {
         Response.Redirect(ResolveUrl("/browse?sort=date_added&sd=desc"));
     }
+    /// <summary>
+    /// Redirects to the browse system, showing the most popular items in the library.
+    /// </summary>
     public void Page__popular()
     {
         Response.Redirect(ResolveUrl("/browse?sort=views&sd=desc"));
     }
+    /// <summary>
+    /// Views a media item in the library; this also includes streaming, management and queueing features.
+    /// </summary>
     public void Page__item()
     {
         string vitemid = Request.QueryString["1"] ?? "";
@@ -329,7 +398,7 @@ public partial class _Default : System.Web.UI.Page
             case "rebuild":
                 if (Request.Form["confirm"] != null)
                 {
-                    UberMedia.ThumbnailGeneratorService.AddToQueue(data[0]["path"], AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails/" + data[0]["vitemid"] + ".png", data[0]["thumbnail"]);
+                    UberMedia.ThumbnailGeneratorService.AddToQueue(data[0]["path"], data[0]["vitemid"], data[0]["thumbnail"]);
                     Response.Redirect(ResolveUrl("/item/" + vitemid));
                 }
                 else
@@ -410,6 +479,100 @@ public partial class _Default : System.Web.UI.Page
                     Connector.Query_Execute("DELETE FROM tag_items WHERE tagid='" + Utils.Escape(t) + "' AND vitemid='" + Utils.Escape(data[0]["vitemid"]) + "';");
                 Response.Redirect(ResolveUrl("/item/" + data[0]["vitemid"]));
                 break;
+            case "stream.mp4":
+            case "stream.avi":
+            case "stream":
+                try
+                {
+                    // Majorly useful resource in writing this code:
+                    // http://forums.asp.net/t/1218116.aspx
+
+                    // Disable buffer and clear the response so far
+                    Response.Clear();
+                    Response.Buffer = false;
+                    // Set the content type
+                    string extension = Path.GetExtension(data[0]["path"]).ToLower();
+                    switch (extension)
+                    {
+                        case ".mp4": Response.ContentType = "video/mp4"; break;
+                        case ".avi": Response.ContentType = "video/avi"; break;
+                        case ".ogg": Response.ContentType = "video/ogg"; break;
+                        case ".mkv": Response.ContentType = "video/x-matroska"; break;
+                        case ".m2ts": Response.ContentType = "video/MP2T"; break;
+                        case ".m4v": Response.ContentType = "video/x-m4v"; break;
+                        case ".mpg": Response.ContentType = "video/mpeg"; break;
+                        case ".3gp": Response.ContentType = "video/3gpp"; break;
+                        default: Response.ContentType = "application/octet-stream"; break;
+                    }
+                    FileStream fs = new FileStream(data[0]["path"], FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    BinaryReader bin = new BinaryReader(fs);
+                    long startRead = 0;
+                    // Read the range of bytes requested
+                    if (Request.Headers["Range"] != null)
+                    {
+                        string[] range = Request.Headers["Range"].Split(new char[]{'=', '-'}); // RFC 2616 - section 14.35
+                        // Ensure there are at least two parts
+                        if (range.Length >= 2)
+                        {
+                            // Attempt to parse the requested bytes
+                            long.TryParse(range[1], out startRead);
+                            // Ensure its inclusive of 0 to size of file, else reset it to zero
+                            if (startRead < 0 || startRead >= fs.Length) startRead = 0;
+                            else
+                                // Write the range of bytes being sent - RFC 2616 - section 14.16
+                                Response.AddHeader("Content-Range", string.Format(" bytes {0}-{1}/{2}", startRead, fs.Length - 1, fs.Length));
+                        }
+                    }
+                    System.Diagnostics.Debug.WriteLine((Request.Headers["Range"] ?? "no range") + " - " + (Request.Headers["Range"] != null ? "bytes " + startRead + "-" + (fs.Length - 1) + "/" + fs.Length : "...") + " - " + startRead);
+                    // Specify the number of bytes being sent
+                    Response.AddHeader("Content-Length", (fs.Length - startRead).ToString());
+                    // Specify other headers
+                    string lastModified = File.GetLastWriteTime(data[0]["path"]).ToString("r");
+                    Response.AddHeader("Connection", "Keep-Alive");
+                    Response.AddHeader("Last-Modified", lastModified);
+                    Response.AddHeader("ETag", HttpUtility.UrlEncode(data[0]["path"], System.Text.Encoding.UTF8) + lastModified);
+                    Response.AddHeader("Accept-Ranges", "bytes");
+                    Response.StatusCode = 206;
+                    // Start the stream at the offset
+                    bin.BaseStream.Seek(startRead, SeekOrigin.Begin);
+                    // Write bytes whilst the user is connected in chunks of 1024 bytes
+                    int maxChunks = (int)Math.Ceiling((double)(fs.Length - startRead) / 10240);
+                    for (int i = 0; i < maxChunks && Response.IsClientConnected; i++)
+                    {
+                        Response.BinaryWrite(bin.ReadBytes(10240));
+                        Response.Flush();
+                    }
+
+                    bin.Close();
+                    fs.Close();
+                    Response.End();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("ERROR: " + ex.Message + "\n" + ex.StackTrace);
+                }
+                break;
+            case "watch":
+                switch (data[0]["uid_title"])
+                {
+                    case "video":
+                        break;
+                    case "audio":
+                        break;
+                    case "youtube":
+                        break;
+                }
+                switch (Request.QueryString["3"])
+                {
+                    case "vlc":
+                        content += UberMedia.Core.Cache_HtmlTemplates["item_player_vlc"];
+                        break;
+                    default:
+                        content += UberMedia.Core.Cache_HtmlTemplates["item_player"];
+                        break;
+                }
+                PageElements.Add("ITEMID", data[0]["vitemid"]);
+                break;
             default:
                 // Check if the user has tried to attach a tag
                 if (Request.Form["tag"] != null)
@@ -420,7 +583,7 @@ public partial class _Default : System.Web.UI.Page
                 }
                 // Build page content
                 content += UberMedia.Core.Cache_HtmlTemplates["item_page"]
-                    .Replace("%THUMBNAIL%", data[0]["thumbnail"].Length > 0 ? ResolveUrl("/Content/Thumbnails/" + data[0]["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png"))
+                    .Replace("%VITEMID%", data[0]["vitemid"])
                     .Replace("%TITLE%", HttpUtility.HtmlEncode(data[0]["title"]))
                     .Replace("%DESCRIPTION%", data[0]["description"].Length > 0 ? HttpUtility.HtmlEncode(data[0]["description"]) : "(no description)")
                     .Replace("%VIEWS%", data[0]["views"]).Replace("%DATE_ADDED%", data[0]["date_added"])
@@ -450,6 +613,9 @@ public partial class _Default : System.Web.UI.Page
         // Build options area
         PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["item_sidebar"].Replace("%URL%", ResolveUrl("")).Replace("%VITEMID%", vitemid);
     }
+    /// <summary>
+    /// Searches the media library and displays results of the inputted text by searching for titles of folder and media items which losely match.
+    /// </summary>
     public void Page__search()
     {
         string query = Request.QueryString["q"] != null ? Utils.Escape(Request.QueryString["q"].Replace("%", "")) : "";
@@ -462,11 +628,13 @@ public partial class _Default : System.Web.UI.Page
             Result results = Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.title LIKE '%" + query + "%' ORDER BY FIELD(vi.type_uid, '100') DESC, vi.title ASC LIMIT 100");
             if (results.Rows.Count == 0) Response.Write("No items were found matching your criteria...");
             else
-                foreach (ResultRow file in results) Response.Write(UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", file["type_uid"].Equals("100") ? ResolveUrl("/browse/" + file["pfolderid"] + "/" + file["vitemid"]) : ResolveUrl("/item/" + file["vitemid"])).Replace("%THUMBNAIL%", file["type_uid"].Equals("100") ? ResolveUrl("/Content/Images/thumbnail_folder.png") : file["thumbnail"].Length > 0 ? ResolveUrl("/Content/Thumbnails/" + file["vitemid"] + ".png") : ResolveUrl("/Content/Images/thumbnail.png")));
+                foreach (ResultRow file in results) Response.Write(UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", file["type_uid"].Equals("100") ? ResolveUrl("/browse/" + file["pfolderid"] + "/" + file["vitemid"]) : ResolveUrl("/item/" + file["vitemid"])).Replace("%VITEMID%", file["type_uid"] == "100" ? "folder" : file["vitemid"]).Replace("<!--URL-->", ResolveUrl("")));
         }
         Response.End();
     }
-    // Authentication system
+    /// <summary>
+    /// Admin management system; responsible for managing settings and core features of the media library.
+    /// </summary>
     public void Page__admin()
     {
         string subpg = Request.QueryString["1"] != null ? Request.QueryString["1"] : "home";
@@ -474,6 +642,10 @@ public partial class _Default : System.Web.UI.Page
 
         switch (subpg)
         {
+            case "startup":
+                UberMedia.Core.HtmlTemplates_Reload();
+                content = UberMedia.Core.Cache_HtmlTemplates["admin_startup"];
+                break;
             case "home":
                 // Info
                 content += "<h2>Info</h2>From here you can control your media library by restricting access, configuring settings and running tasks; below you can view the mechanical status of Uber Media.";
@@ -547,10 +719,8 @@ public partial class _Default : System.Web.UI.Page
                     // Wipe queue
                     lock (UberMedia.ThumbnailGeneratorService.Queue)
                         UberMedia.ThumbnailGeneratorService.Queue.Clear();
-                    // Wipe thumbnails folder
-                    if (System.IO.Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails")) System.IO.Directory.Delete(AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails", true);
-                    // Recreate thumbnails folder
-                    System.IO.Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails");
+                    // Reset all thumbnails
+                    Connector.Query_Execute("UPDATE virtual_items SET thumbnail_data=NULL;");
                     // Start thumbnail service
                     UberMedia.ThumbnailGeneratorService.Delegator_Start();
                     // Build map of physical folder id's to paths for requeueing
@@ -559,7 +729,7 @@ public partial class _Default : System.Web.UI.Page
                         DrivePaths.Add(drive["pfolderid"], drive["physicalpath"]);
                     // Queue items
                     foreach (ResultRow item in Connector.Query_Read("SELECT vi.vitemid, vi.pfolderid, vi.phy_path, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' AND it.thumbnail != '' ORDER BY vitemid ASC"))
-                        UberMedia.ThumbnailGeneratorService.AddToQueue(DrivePaths[item["pfolderid"]] + item["phy_path"], AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails/" + item["vitemid"] + ".png", item["thumbnail"]);
+                        UberMedia.ThumbnailGeneratorService.AddToQueue(DrivePaths[item["pfolderid"]] + item["phy_path"], item["vitemid"], item["thumbnail"]);
                     // Redirect user
                     Response.Redirect("/admin");
                 }
@@ -638,7 +808,7 @@ public partial class _Default : System.Web.UI.Page
                     else
                     {
                         // Add folder to db
-                        string pfolderid = Connector.Query_Scalar("INSERT INTO physical_folders (title, physicalpath, allow_web_synopsis) VALUES('" + Utils.Escape(title) + "', '" + Utils.Escape(path) +"', '" + (synopsis ? "1" : "0") + "'); SELECT LAST_INSERT_ID();").ToString();
+                        string pfolderid = Connector.Query_Scalar("INSERT INTO physical_folders (title, physicalpath, allow_web_synopsis) VALUES('" + Utils.Escape(title) + "', '" + Utils.Escape(path) + "', '" + (synopsis ? "1" : "0") + "'); SELECT LAST_INSERT_ID();").ToString();
                         Response.Redirect(ResolveUrl("/admin/folder/" + pfolderid));
                     }
                 }
@@ -666,7 +836,8 @@ public partial class _Default : System.Web.UI.Page
                     return;
                 }
                 // Grab the folders info
-                Result data = Connector.Query_Read("SELECT (SELECT COUNT('') FROM virtual_items WHERE pfolderid=p.pfolderid AND type_uid='100') AS total_folders, IFNULL(SUM(vi.views), 0) AS total_views, COUNT(vi.vitemid) AS total_items, p.* FROM physical_folders AS p LEFT OUTER JOIN virtual_items AS vi ON vi.pfolderid=p.pfolderid WHERE vi.type_uid != '100' AND  p.pfolderid='" + Utils.Escape(folderid) + "'");
+                Result data = Connector.Query_Read("SELECT (SELECT COUNT('') FROM virtual_items WHERE pfolderid=p.pfolderid AND type_uid='100') AS total_folders, IFNULL(SUM(vi.views), 0) AS total_views, COUNT(vi.vitemid) AS total_items, p.* FROM physical_folders AS p LEFT OUTER JOIN virtual_items AS vi ON (vi.pfolderid=p.pfolderid AND vi.type_uid != '100') WHERE p.pfolderid='" + Utils.Escape(folderid) + "'");
+                
                 // Redirect if no data is returned
                 if (data.Rows.Count != 1)
                 {
@@ -677,14 +848,13 @@ public partial class _Default : System.Web.UI.Page
                 switch (Request.QueryString["3"])
                 {
                     case "rebuild_thumbnails":
+                        // Reset any pre-existing thumbnails
+                        Connector.Query_Execute("UPDATE virtual_items SET thumbnail_data=NULL WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'");
                         // Get all of the items for this folder
                         Result items = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.vitemid, it.thumbnail FROM (virtual_items AS vi, physical_folders AS pf, item_types AS it) WHERE it.uid=vi.type_uid AND it.system='0' AND vi.pfolderid=pf.pfolderid AND pf.pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'");
-                        // Delete any pre-existing thumbnails
-                        foreach (ResultRow item in items)
-                            File.Delete(Server.MapPath("/Content/Thumbnails/" + item["vitemid"] + ".png"));
                         // Requeue all the thumbnails
                         foreach (ResultRow item in items)
-                            UberMedia.ThumbnailGeneratorService.AddToQueue(item["path"], Server.MapPath("/Content/Thumbnails/" + item["vitemid"] + ".png"), item["thumbnail"]);
+                            UberMedia.ThumbnailGeneratorService.AddToQueue(item["path"], item["vitemid"], item["thumbnail"]);
                         // Back to folder main page
                         Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
                         break;
@@ -1031,22 +1201,9 @@ public partial class _Default : System.Web.UI.Page
         PageElements["CONTENT_RIGHT"] = content;
         SelectNavItem("CONTROL");
     }
-    public void Page__login()
-    {
-        PageElements["CONTENT_RIGHT"] = UberMedia.FilmInformation.FilmSynopsis("aliens", Connector);
-    }
-    public void Page__logout()
-    {
-    }
-    public void Page__myaccount()
-    {
-    }
-    public void Page__folder()
-    {
-    }
-    public void Page__modify_item()
-    {
-    }
+    /// <summary>
+    /// Changes the current media computer being managed.
+    /// </summary>
     public void Page__change()
     {
         // Validate the input
@@ -1057,6 +1214,156 @@ public partial class _Default : System.Web.UI.Page
             Session["mediacomputer"] = Request.QueryString["c"];
         Response.End();
     }
+    /// <summary>
+    /// Handles terminal communication.
+    /// </summary>
+    public void Page__terminal()
+    {
+        switch (Request.QueryString["1"])
+        {
+            case "register":
+                terminal_register();
+                break;
+            case "update":
+                terminal_status();
+                terminal_getcmd();
+                break;
+            case "getcmd":
+                terminal_getcmd();
+                break;
+            case "status":
+                terminal_status();
+                break;
+            case "media":
+                terminal_media();
+                break;
+            default:
+                Response.Write("ERROR:Unknown command specified!");
+                Response.End();
+                break;
+        }
+    }
+
+    public static byte[] thumbnailNotFound = null;
+    public void Page__thumbnail()
+    {
+        // Get the thumbnail data
+        byte[] data = null;
+        if (IsNumeric(Request.QueryString["1"]))
+        { // Attempt to get the data from the database
+            Result result = Connector.Query_Read("SELECT thumbnail_data FROM virtual_items WHERE vitemid='" + Utils.Escape(Request.QueryString["1"]) + "'");
+            if (result.Rows.Count == 1) data = result[0].GetByteArray("thumbnail_data");
+        }
+        if(data == null)
+        { // Display the not-found image from file or cache
+            if (thumbnailNotFound == null)
+            {
+                MemoryStream ms = new MemoryStream();
+                using (FileStream f = new FileStream(Server.MapPath("") + "/Content/Images/thumbnail.png", FileMode.Open, FileAccess.Read))
+                {
+                    using (Image img = Image.FromStream(f))
+                    {
+                        img.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    }
+                }
+                // Set the local byte array and dispose the stream
+                data = ms.ToArray();
+                ms.Dispose();
+                thumbnailNotFound = data;
+            }
+            else data = thumbnailNotFound;
+        }
+        // Set the content type to jpeg
+        Response.ContentType = "image/jpeg";
+        // Write to the response stream
+        Response.AddHeader("Content-Length", data.Length.ToString());
+        Response.BinaryWrite(data);
+        Response.End(); // End the response - nothing more to send
+    }
+    /// <summary>
+    /// Used to register a new media terminal.
+    /// </summary>
+    void terminal_register()
+    {
+        // Check we have been sent at least a title
+        string title = Request.QueryString["title"];
+        if (title != null)
+        {
+            // Check the title is valid
+            if (title.Length < TERMINAL_TITLE_MIN || title.Length > TERMINAL_TITLE_MAX)
+                Response.Write("ERROR:Title must be " + TERMINAL_TITLE_MIN + " to " + TERMINAL_TITLE_MAX + " chars in length!");
+            else
+                // Insert the title and return the key for the new terminal
+                Response.Write("SUCCESS:" + int.Parse(Connector.Query_Scalar("INSERT INTO terminals (title) VALUES('" + Utils.Escape(title) + "'); SELECT LAST_INSERT_ID();").ToString()));
+        }
+        else
+            Response.Write("ERROR:No title provided!");
+        // Stop any other HTML from being printed by ending the response
+        Response.End();
+    }
+    /// <summary>
+    /// Used to grab the next command for the terminal; this command is then immediately deleted.
+    /// </summary>
+    void terminal_getcmd()
+    {
+        string terminalid = Request.QueryString["tid"];
+        string queue = Request.QueryString["q"];
+        if (terminalid == null)
+            Response.Write("ERROR:No terminal identifier specified!");
+        else if (queue == null)
+            Response.Write("ERROR:No queue parameter provided!");
+        else if (queue != "0" && queue != "1")
+            Response.Write("ERROR:Queue parameter must be 1 or 0!");
+        else
+        {
+            Result res = Connector.Query_Read("SELECT * FROM terminal_buffer WHERE terminalid='" + Utils.Escape(terminalid) + "'" + (queue.Equals("0") ? " AND queue='0'" : string.Empty) + " ORDER BY cid ASC LIMIT 1");
+            if (res.Rows.Count == 1)
+            {
+                Response.Write(res[0]["command"] + ":" + res[0]["arguments"]);
+                Connector.Query_Execute("DELETE FROM terminal_buffer WHERE cid='" + Utils.Escape(res[0]["cid"]) + "'");
+            }
+        }
+        Response.End();
+    }
+    /// <summary>
+    /// Used to update the status of the terminal.
+    /// </summary>
+    void terminal_status()
+    {
+        string terminalid = Request.QueryString["tid"];
+        string state = Request.QueryString["state"];
+        string volume = Request.QueryString["volume"];
+        string muted = Request.QueryString["muted"];
+        string vitemid = Request.QueryString["vitemid"];
+        string pos = Request.QueryString["pos"];
+        string dur = Request.QueryString["dur"];
+        Connector.Query_Execute("UPDATE terminals SET status_state='" + Utils.Escape(state) + "', status_volume='" + Utils.Escape(volume) + "', status_volume_muted='" + Utils.Escape(muted) + "', status_vitemid='" + Utils.Escape(vitemid) + "', status_position='" + Utils.Escape(pos) + "', status_duration='" + Utils.Escape(dur) + "', status_updated=NOW() WHERE terminalid='" + Utils.Escape(terminalid) + "'");
+    }
+    /// <summary>
+    /// Used to increment the ratings for a piece of media and retrieve the data required to play something.
+    /// </summary>
+    void terminal_media()
+    {
+        string vitemid = Request.QueryString["vitemid"];
+        if (vitemid == null)
+            Response.Write("ERROR:No vitemid specified!");
+        else
+        {
+            Result item = Connector.Query_Read("SELECT it.interface, (CONCAT(pf.physicalpath, vi.phy_path)) AS path, vi.title FROM (virtual_items AS vi, physical_folders AS pf) LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE pf.pfolderid=vi.pfolderid AND vi.vitemid='" + Utils.Escape(vitemid) + "';");
+            if (item.Rows.Count == 1)
+            {
+                Response.Write("SUCCESS:" + item[0]["interface"] + ":" + item[0]["path"] + ":" + item[0]["title"]);
+                Connector.Query_Execute("UPDATE virtual_items SET views = views + 1 WHERE vitemid='" + Utils.Escape(vitemid) + "'");
+            }
+            else
+                Response.Write("ERROR:Virtual item not found!");
+        }
+        Response.End();
+    }
+    
+    /// <summary>
+    /// Used to control the current selected media computer.
+    /// </summary>
     public void Page__control()
     {
         if (Request.QueryString["cmd"] != null & Request.QueryString["mc"] != null)
@@ -1332,6 +1639,7 @@ public partial class _Default : System.Web.UI.Page
         // Ensure the mc/terminal is valid and responded at least a minute ago
         if (!onlineProtection || Connector.Query_Count("SELECT COUNT('') FROM terminals WHERE status_updated >= DATE_SUB(NOW(), INTERVAL 1 MINUTE) AND terminalid='" + Utils.Escape(terminalid) + "'") == 1)
         {
+            checkAutoIncrementSafety();
             Connector.Query_Execute("INSERT INTO terminal_buffer (cid, command, terminalid, arguments, queue) VALUES('" + DateTime.Now.ToString("yyyyMMddHHmmssffff") + terminalBufferRandom.Next(0, Int32.MaxValue) + "', '" + Utils.Escape(command) + "', '" + Utils.Escape(terminalid) + "', '" + Utils.Escape(arguments) + "', '" + (queue ? "1" : "0") + "')");
             return true;
         }
@@ -1348,7 +1656,17 @@ public partial class _Default : System.Web.UI.Page
     /// <returns></returns>
     string terminalBufferEntry(string command, string terminalid, string arguments, bool queue)
     {
+        checkAutoIncrementSafety();
         return "INSERT INTO terminal_buffer (cid, command, terminalid, arguments, queue) VALUES('" + DateTime.Now.ToString("yyyyMMddHHmmssffff") + terminalBufferRandom.Next(0, Int32.MaxValue) + "', '" + Utils.Escape(command) + "', '" + Utils.Escape(terminalid) + "', '" + Utils.Escape(arguments) + "', '" + (queue ? "1" : "0") + "');";
+    }
+    private const long TERMINAL_BUFFER_AUTOINCREMENT_LIMIT = long.MaxValue - 100000;
+    /// <summary>
+    /// Checks the auto-increment for the terminal buffer table has not been exceeded, else the value is reset the table is emptied.
+    /// </summary>
+    void checkAutoIncrementSafety()
+    {
+        if (long.Parse(Connector.Query_Scalar("SELECT Auto_increment FROM information_schema.tables WHERE table_name='terminal_buffer' AND table_schema = DATABASE();").ToString()) >= TERMINAL_BUFFER_AUTOINCREMENT_LIMIT)
+            Connector.Query_Execute("DELETE FROM terminal_buffer; ALTER TABLE terminal_buffer AUTO_INCREMENT=1;");
     }
     /// <summary>
     /// Throws a simple error message by setting the display style to block (so the element is visible to the user) and a message.
@@ -1365,6 +1683,18 @@ public partial class _Default : System.Web.UI.Page
         foreach (KeyValuePair<string, string> elm in PageElements)
             text = text.Replace("<!--" + elm.Key + "-->", elm.Value.Contains("<!--") ? ReplaceElements(elm.Value, treeNumber + 1, treeMax) : elm.Value);
         return text;
+    }
+    /// <summary>
+    /// Parses the provided URL and returns the extracted video ID. If no ID can be extracted, null is returned.
+    /// </summary>
+    /// <returns></returns>
+    string parseYouTubeURL(string url)
+    {
+        // -- Credit: http://stackoverflow.com/questions/2597080/regex-to-parse-youtube-yid
+        Match m = Regex.Match(url, "(?<=v=)[a-zA-Z0-9-_]+(?=&)|(?<=[0-9]/)[^&\n]+|(?<=v=)[^&\n]+");
+        if (m.Success)
+            return m.Groups[0].Value;
+        else return null;
     }
     #endregion
 }

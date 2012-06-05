@@ -30,17 +30,17 @@
         -moz-text-shadow: 0px 0px 5px #000; 
         text-shadow: 0px 0px 5px #000;
     }
-    .AREA_NAV .I
+    .AREA_NAV .I, .AREA_NAV .S
     {
         float: right;
-        width: 6em; height: 6em;
-        border-radius: 5em;
+        width: 7em; height: 2em;
+        border-radius: 0.5em 3em;
         background: #FFF;
         color: #360;
-        line-height: 6em;
+        line-height: 2em;
         text-align: center;
         font-size: smaller;
-        margin: 0em 2em 1em 0em;
+        margin: 1em 0em 0.5em 0em;
         -webkit-box-shadow: 0px 0px 5px #000; 
         -moz-box-shadow: 0px 0px 5px #000; 
         box-shadow: 0px 0px 5px #000;
@@ -93,6 +93,30 @@
         padding: 0.5em;
         margin: 0.5em;
     }
+    a
+    {
+        display: block;
+        border-radius: 5px;
+        background: #360;
+        padding: 0.5em 0.75em 0.5em 0.75em;
+        text-decoration: none;
+        color: #FFF;
+        margin-bottom: 0.5em;
+    }
+    a:hover
+    {
+        background: #CCC;
+        color: #333;
+    }
+    form .ROW
+    {
+        clear: both;
+    }
+    form .ROW div
+    {
+        width: 50%;
+        float: left;
+    }
     </style>
 </head>
 <body>
@@ -101,7 +125,7 @@
             <h1>Uber Media - Installer</h1>
             <div class="I" runat="server" id="C3">Finish</div>
             <div class="I" runat="server" id="C2">Install</div>
-            <div class="I" runat="server" id="C1">Config</div>
+            <div class="I" runat="server" id="C1">Database</div>
             <div class="clear"></div>
         </div>
         <div runat="server" id="AREA_CONTENT">

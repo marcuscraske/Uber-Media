@@ -19,21 +19,36 @@ using System.Text;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using System.IO;
+using Microsoft.Win32;
 
 namespace UberMediaServer.Interfaces
 {
     public class youtube : Interface
     {
-        States state = States.Loading;
-        Main mainForm;
-        WebBrowser browser = null;
-        string videoid = null;
+        #region "Class Variables"
+        public static bool checkedFlashInstall = false;
+        public static bool flashInstalled = false;
+        #endregion
+
+        #region "Variables"
+        private States state = States.Loading;
+        private Main mainForm;
+        private WebBrowser browser = null;
+        private string videoid = null;
+        #endregion
+
+        #region "Methods - Constructors"
         public youtube(Main main, string path, string vitemid) : base(main, path, vitemid)
         {
             mainForm = main;
-            // Pass the path variable, which contains the ID of the YouTube video
-            videoid = File.ReadAllText(path);
-            System.Diagnostics.Debug.WriteLine("Playing YouTube ID: '" + videoid + "'!");
+            // Check Adobe Flash is installed
+            if (!checkedFlashInstall)
+            {
+                flashInstalled = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Macromedia\FlashPlayer") != null;
+                checkedFlashInstall = true;
+                System.Diagnostics.Debug.WriteLine("Adobe Flash Player installed: " + flashInstalled);
+            }
+            // Create browser object
             main.Invoke((MethodInvoker)delegate()
             {
                 // Create and attach web browser to inner panel
@@ -43,10 +58,24 @@ namespace UberMediaServer.Interfaces
                 browser.ScriptErrorsSuppressed = true;
                 browser.Dock = DockStyle.Fill;
                 browser.DocumentTitleChanged += new EventHandler(browser_DocumentTitleChanged);
-                // Load YouTube player page
-                browser.Navigate("file://" + Application.StartupPath + "\\Interfaces\\YouTube\\YouTube.htm");
+                browser.ScrollBarsEnabled = false;
+                // Load YouTube player if flash is installed - else inform the user
+                if(flashInstalled)
+                    browser.Navigate("file://" + Application.StartupPath + "\\Interfaces\\YouTube\\YouTube.html");
+                else
+                    browser.Navigate("file://" + Application.StartupPath + "\\Interfaces\\YouTube\\FlashPlayer.html");
             });
+            // Pass the path variable, which contains the ID of the YouTube video
+            try
+            {
+                videoid = File.ReadAllText(path);
+            }
+            catch { }
+            System.Diagnostics.Debug.WriteLine("Playing YouTube ID: '" + videoid + "'!");
         }
+        #endregion
+
+        #region "Methods - Events"
         /// <summary>
         /// This method is hooked to an event-handler of the browser control; this will be used to communicate with the page without using
         /// a timer or additional threads.
@@ -55,11 +84,12 @@ namespace UberMediaServer.Interfaces
         /// <param name="e"></param>
         void browser_DocumentTitleChanged(object sender, EventArgs e)
         {
+            if (!flashInstalled) return; // Ignore the title change - it's not the YouTube player
             switch (browser.DocumentTitle)
             {
                 case "LOADING":
-                    System.Diagnostics.Debug.WriteLine(videoid);
                     browser.Document.InvokeScript("YT_Load", new object[] { videoid });
+                    Volume = mainForm.currentVolume; // Audio-fix
                     break;
                 case "PLAYING":
                     state = States.Playing;
@@ -77,7 +107,8 @@ namespace UberMediaServer.Interfaces
                     case "101":
                     case "150":
                         // Navigate to normal YouTube page since the video cannot be embedded
-                        mainForm.np.DisplayMessage("Video cannot be embedded, displaying YouTube page instead...");
+                        mainForm.np.displayMessage("Video cannot be embedded, displaying YouTube page instead...");
+                        browser.ScrollBarsEnabled = true;
                         browser.Navigate("http://www.youtube.com/watch?v=" + videoid + "&fmt=22&wide=1&feature=watch-now-button");
                         break;
                     default:
@@ -87,6 +118,9 @@ namespace UberMediaServer.Interfaces
                 }
             }
         }
+        #endregion
+
+        #region "Methods - Overrides"
         public override void Play()
         {
             mainForm.Invoke((MethodInvoker)delegate()
@@ -132,9 +166,13 @@ namespace UberMediaServer.Interfaces
         {
             return (bool)mainForm.Invoke((youtubeBool)delegate()
             {
-                if (browser != null)
-                    return (bool)browser.Document.InvokeScript("YT_Query_IsMuted");
-                else return true;
+                try
+                {
+                    if (browser != null)
+                        return (bool)browser.Document.InvokeScript("YT_Query_IsMuted");
+                    else return true;
+                }
+                catch { return true; }
             });
         }
         delegate double youtubeDouble();
@@ -146,10 +184,16 @@ namespace UberMediaServer.Interfaces
                 {
                     return (double)mainForm.Invoke((youtubeDouble)delegate()
                     {
-
-                        if (browser != null)
-                            return (double)browser.Document.InvokeScript("YT_Query_Duration");
-                        else return 0;
+                        try
+                        {
+                            if (browser != null)
+                                return (double)browser.Document.InvokeScript("YT_Query_Duration");
+                            else return 0;
+                        }
+                        catch
+                        {
+                            return 0;
+                        }
                     });
                 }
                 catch { return 0; }
@@ -167,9 +211,13 @@ namespace UberMediaServer.Interfaces
                 {
                     return (double)mainForm.Invoke((youtubeDouble)delegate()
                     {
-                        if (browser != null)
-                            return (double)browser.Document.InvokeScript("YT_Query_CurrentPosition");
-                        else return 0;
+                        try
+                        {
+                            if (browser != null)
+                                return (double)browser.Document.InvokeScript("YT_Query_CurrentPosition");
+                            else return 0;
+                        }
+                        catch { return 0; }
                     });
                 }
                 catch { return 0; }
@@ -221,5 +269,6 @@ namespace UberMediaServer.Interfaces
                 browser = null;
             });
         }
+        #endregion
     }
 }

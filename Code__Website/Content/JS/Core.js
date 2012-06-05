@@ -35,10 +35,6 @@ function ChangeMediaComputer(value)
         alert("Could not change selected media computer, check you have a connection to the website and the media computer still exists!");
     });
 }
-function ImageError(obj)
-{
-    obj.src = getBaseURL() + "/Content/Images/thumbnail.png";
-}
 // Credit: http://www.gotknowhow.com/articles/how-to-get-the-base-url-with-javascript
 function getBaseURL()
 {

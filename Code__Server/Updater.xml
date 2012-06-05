@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<update>
+  <!-- If set to zero, the updater will be disabled -->
+  <enabled>1</enabled>
+  <!-- The local file used for the icon -->
+  <icon>UberMediaServer.exe</icon>
+  <!-- The title of the application -->
+  <title>Uber Media - Terminal</title>
+  <!-- The local file executed afterwards -->
+  <executeFile>UberMediaServer.exe</executeFile>
+  <!-- The URL used for retrieving the data of the current version of the application (zip file) -->
+  <urlBinary>https://github.com/ubermeat/Uber-Media/raw/master/Binaries/Download_Terminal.zip</urlBinary>
+  <!-- The URL used for retrieving the current version of the application -->
+  <urlVersionCheck>https://raw.github.com/ubermeat/Uber-Media/master/VERSION_SERVER</urlVersionCheck>
+  <!-- The URL used for displaying the change-log -->
+  <urlChangelog>https://raw.github.com/ubermeat/Uber-Media/master/CHANGELOG_SERVER</urlChangelog>
+  <!-- The list of files which cannot be running when the application updates -->
+  <processFileNames>
+    <item>UberMediaServer.exe</item>
+  </processFileNames>
+  <!-- Excluded files - usually only the files used by the updater -->
+  <excludedFiles>
+    <item>Ionic.Zip.Reduced.dll</item>
+    <item>Updater.exe</item>
+  </excludedFiles>
+  <!-- Used to check of the application needs updating -->
+  <version>
+    <major>1</major>
+    <minor>0</minor>
+    <build>0</build>
+  </version>
+  <contact>
+    <website>http://www.ubermeat.co.uk</website>
+    <email>limpygnome@gmail.com</email>
+  </contact>
+</update>

@@ -18,8 +18,6 @@ using System.Text;
 using System.Windows.Forms;
 using System.IO;
 using System.Net;
-using UberLib.Connector;
-using UberLib.Connector.Connectors;
 using Microsoft.Win32;
 using System.Xml;
 
@@ -28,237 +26,140 @@ namespace UberMediaServer
     public partial class ConfigGenerator : Form
     {
         #region "Constants - Copied from website project"
-        const int TERMINAL_KEY_MIN = 3;
-        const int TERMINAL_KEY_MAX = 20;
+        const int URL_LENGTH_MIN = 8;
+        const int URL_LENGTH_MAX = 2000;
         const int TERMINAL_TITLE_MIN = 1;
         const int TERMINAL_TITLE_MAX = 28;
+        const int WINDOWS_PASSWORD_MAX = 127; // Based on http://exchangepedia.com/2007/01/what-is-the-real-maximum-password-length.html
         #endregion
 
         public ConfigGenerator()
         {
             InitializeComponent();
         }
-        private void ConfigGenerator_FormClosing(object sender, FormClosingEventArgs e)
+        private void buttContinue_MouseClick(object sender, MouseEventArgs e)
         {
-            groupBox1.Enabled = false;
-            groupBox2.Enabled = false;
-            groupBox3.Enabled = false;
-            MessageBox.Show("You wil need to restart the application...", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            Environment.Exit(0);
-        }
-        private void button2_Click(object sender, EventArgs e)
-        {
-            Close();
-        }
-        private void ConfigGenerator_Load(object sender, EventArgs e)
-        {
-            // Check if the portable web server exists - else disable the option
-            if(!Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Website/Webserver"))
-                startupWebserver.Enabled = false;
-            // Same for the database server
-            if (!Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Website/Database"))
-                startupDatabase.Enabled = false;
-            else if (MessageBox.Show("Embedded database detected, make sure you have configured the website before installing this terminal!\n\nYou can configure the website by:\n1. Launching the database (desktop > Uber Media - Database)\n2.Launching the website (desktop > Uber Media - Webserver)\n3. Visit http://localhost in your browser\n\nYou will need to have the database also running when installing the terminal.", "Warning", MessageBoxButtons.OKCancel) == System.Windows.Forms.DialogResult.Cancel)
-                Close();
-            // Fill-in the host with the current IP for this computer
-            IPHostEntry iphe = Dns.GetHostEntry(Dns.GetHostName());
-            if (iphe.AddressList.Length > 0)
-                for (int i = 0; i < iphe.AddressList.Length; i++)
-                {
-                    dbHost.Items.Add(iphe.AddressList[i].ToString());
-                    if (iphe.AddressList[i].AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                        dbHost.SelectedIndex = dbHost.Items.Count - 1;
-                }
-        }
-        private void button1_Click(object sender, EventArgs e)
-        {
-            // Validate the input
-            if (Uri.CheckHostName(dbHost.Text) == UriHostNameType.Unknown)
-            {
-                Msg("Invalid database host!");
-                return;
-            }
-            else if (!ValidPort(dbPort.Text))
-            {
-                Msg("Invalid database port!");
-                return;
-            }
-            else if (dbUser.Text.Length < 1 || dbUser.Text.Length > 16)
-            {
-                Msg("Invalid database username!");
-                return;
-            }
-            else if (!ValidPort(startupWebserverPort.Text))
-            {
-                Msg("Invalid web server port!");
-                return;
-            }
-            // Based on: http://exchangepedia.com/2007/01/what-is-the-real-maximum-password-length.html
-            else if (startupLogonPassword.Text.Length > 127)
-            {
-                Msg("Invalid automatic logon password!");
-                return;
-            }
-            else if (terminalKey.Text.Length < TERMINAL_KEY_MIN || terminalKey.Text.Length > TERMINAL_KEY_MAX)
-            {
-                Msg("Terminal key must be " + TERMINAL_KEY_MIN + " to " + TERMINAL_KEY_MAX + " characters in length!");
-                return;
-            }
-            else if (terminalTitle.Text.Length < TERMINAL_TITLE_MIN || terminalTitle.Text.Length > TERMINAL_TITLE_MAX)
-            {
-                Msg("Terminal title must be " + TERMINAL_TITLE_MIN + " to " + TERMINAL_TITLE_MAX + " characters in length!");
-                return;
-            }
+            string error = null;
+            
+            string terminalTitle = txtTerminalTitle.Text;
+            string website = txtWebsite.Text;
+            string windowsPassword = txtAutoLogonPassword.Text;
+            bool autoStart = cbAutoStartup.Checked;
+            bool autoLogon = cbAutoLogon.Checked;
+            // Format the fields
+            if(website.EndsWith("/")) website = website.Remove(website.Length - 1, 1);
+            // Validate the fields
+            if (terminalTitle.Length < TERMINAL_TITLE_MIN || terminalTitle.Length > TERMINAL_TITLE_MAX)
+                error = "Terminal title must be " + TERMINAL_TITLE_MIN + " to " + TERMINAL_TITLE_MIN + " characters in length!";
+            else if (website.Length < URL_LENGTH_MIN || website.Length > URL_LENGTH_MAX)
+                error = "Invalid URL!";
+            else if (windowsPassword.Length > WINDOWS_PASSWORD_MAX)
+                error = "Invalid Windows password!";
             else
             {
-                string key = terminalKey.Text; // Copied from the website admin panel
-                for (int i = 0; i < key.Length; i++)
+                // Attempt to register the terminal
+                try
                 {
-                    if (!(key[i] >= 'A' && key[i] <= 'Z') && !(key[i] >= 'a' && key[i] <= 'z') && !(key[i] >= '0' && key[i] <= '9'))
+                    string response = Library.fetchData(website + "/terminal/register?title=" + terminalTitle);
+                    if (response.StartsWith("ERROR:") && response.Length > 6)
+                        // Error thrown by the media library
+                        error = "Media library server threw the following error whilst registering:\r\n\r\n" + response.Substring(6);
+                    else if (response.StartsWith("SUCCESS:") && response.Length > 8)
                     {
-                        Msg("Invalid key - must be alpha-numeric (alphabet and number characters - no spaces etc!");
-                        return;
+                        // Successfully registered, parse and save the terminal ID
+                        int tid;
+                        if (!int.TryParse(response.Substring(8), out tid))
+                            error = "Invalid terminal identifier returned! Response from server:\r\n\r\n" + response;
+                        else
+                        {
+
+                            StringWriter sw = new StringWriter();
+                            XmlWriter xw = XmlWriter.Create(sw);
+                            // Start document
+                            xw.WriteStartDocument();
+                            xw.WriteStartElement("settings");
+
+                            // Connection info
+                            xw.WriteStartElement("connection");
+                            // -- Terminal identifier
+                            xw.WriteStartElement("id");
+                            xw.WriteCData(tid.ToString());
+                            xw.WriteEndElement();
+                            // -- URL of the media library
+                            xw.WriteStartElement("url");
+                            xw.WriteCData(website);
+                            xw.WriteEndElement();
+
+                            xw.WriteEndElement();
+                            // End document
+                            xw.WriteEndElement();
+                            xw.WriteEndDocument();
+                            xw.Close();
+                            // Write the config to file
+                            File.WriteAllText(AppDomain.CurrentDomain.BaseDirectory + "/Settings.xml", sw.ToString());
+                            // Check if to automatically start-up
+                            try
+                            {
+                                if (autoStart)
+                                {
+                                    RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
+                                    if (reg == null)
+                                        error = "Could not make this application automatically start-up!";
+                                    else
+                                    {
+                                        reg.SetValue("Uber Media - Server", Application.ExecutablePath);
+                                        reg.Close();
+                                    }
+                                }
+                            }
+                            catch(Exception ex)
+                            {
+                                error = "Error occurred trying to make the application auto-start:\r\n\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.GetBaseException().StackTrace;
+                            }
+                            // Check if to automatically logon
+                            try
+                            {
+                                if (autoLogon)
+                                {
+                                    RegistryKey reg = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon", true);
+                                    if (reg == null)
+                                        error = "Cannot access Winlogon registry subkey for automatic logon!";
+                                    else
+                                    {
+                                        reg.SetValue("DefaultUserName", Environment.UserName);
+                                        reg.SetValue("DefaultDomainName", Environment.UserDomainName ?? "");
+                                        reg.SetValue("DefaultPassword", txtAutoLogonPassword.Text);
+                                        reg.SetValue("AutoAdminLogon", "1");
+                                        reg.Close();
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                error = "Error occurred trying to make the application auto-logon:\r\n\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.GetBaseException().StackTrace;
+                            }
+                            if (error != null)
+                                MessageBox.Show(error, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            // Restart the application
+                            Application.Restart();
+                        }
                     }
+                    else
+                        // Unknown response
+                        error = "Unknown response from URL, most likely not a media library server or a server error occurred!\r\n\r\nReceived:\r\n" + response;
                 }
-            }
-            // Validate connectivity
-            MySQL mysql = null;
-            try
-            {
-                // Test if we can connect to the database source
-                mysql = new MySQL();
-                mysql.Settings_Host = dbHost.Text;
-                mysql.Settings_Port = int.Parse(dbPort.Text);
-                mysql.Settings_User = dbUser.Text;
-                mysql.Settings_Pass = dbPass.Text;
-                mysql.Settings_Database = dbDatabase.Text;
-                mysql.Connect();
-            }
-            catch(Exception ex)
-            {
-                Msg("Could not connect to the database - " + ex.Message + "!");
-                return;
-            }
-            try
-            {
-                // Test if we can access the database and pull the version
-                if (mysql.Query_Read("SELECT * FROM settings").Rows.Count == 0)
+                catch (Exception ex)
                 {
-                    Msg("Invalid database!");
-                    return;
-                }
-                // Test if the media computer is already added, if so we'll update the title
-                string autoJoin = (string)(mysql.Query_Scalar("SELECT value FROM settings WHERE keyid='terminals_automatic_register'") ?? string.Empty);
-                if (mysql.Query_Count("SELECT COUNT('') FROM terminals WHERE tkey='" + Utils.Escape(terminalKey.Text) + "'") == 1)
-                    mysql.Query_Execute("UPDATE terminals SET title='" + Utils.Escape(terminalTitle.Text) + "' WHERE tkey='" + Utils.Escape(terminalKey.Text) + "'"); // Update the title
-                else if (autoJoin.Equals("1")) // Doesnt exist, check we can automatically join
-                    mysql.Query_Execute("INSERT INTO terminals (title, tkey) VALUES('" + Utils.Escape(terminalTitle.Text) + "', '" + Utils.Escape(terminalKey.Text) + "')"); // Join
-                else
-                {
-                    Msg("This media computer has not been added to your media website/portal and automatic joining is disabled; please add the key and try again!");
-                    return;
+                    error = "Failed to register terminal, check the website of your media library is accessible from this terminal!\r\n\r\nError details:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.GetBaseException().StackTrace;
                 }
             }
-            catch
-            {
-                Msg("Invalid database!");
-                return;
-            }
-            // Write database configuration to file
-            StringWriter sw = new StringWriter();
-            XmlWriter xw = XmlWriter.Create(sw);
-            xw.WriteStartDocument();
-            xw.WriteStartElement("settings");
-
-            // -- Database
-            xw.WriteStartElement("database");
-
-            xw.WriteStartElement("type");
-            xw.WriteCData("mysql");
-            xw.WriteEndElement();
-
-            xw.WriteStartElement("host");
-            xw.WriteCData(dbHost.Text);
-            xw.WriteEndElement();
-
-            xw.WriteStartElement("port");
-            xw.WriteCData(dbPort.Text);
-            xw.WriteEndElement();
-
-            xw.WriteStartElement("user");
-            xw.WriteCData(dbUser.Text);
-            xw.WriteEndElement();
-
-            xw.WriteStartElement("pass");
-            xw.WriteCData(dbPass.Text);
-            xw.WriteEndElement();
-
-            xw.WriteStartElement("db");
-            xw.WriteCData(dbDatabase.Text);
-            xw.WriteEndElement();
-
-            xw.WriteEndElement();
-            // -- Terminal
-            xw.WriteStartElement("terminal");
-
-            xw.WriteStartElement("key");
-            xw.WriteCData(terminalKey.Text);
-            xw.WriteEndElement();
-
-            xw.WriteEndElement();
-                
-            xw.WriteEndElement();
-            xw.WriteEndDocument();
-            xw.Close();
-            File.WriteAllText(AppDomain.CurrentDomain.BaseDirectory + "/Settings.xml", sw.ToString());
-            // Settings are valid, now to handle startup options
-            try
-            {
-                if (startupDatabase.Checked || startupLogon.Checked || startupServer.Checked || startupWebserver.Checked)
-                {
-                    RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
-                    if (reg == null)
-                        throw new Exception("Cannot access Run subkey for automatic startup of application!");
-                    if (startupServer.Checked)
-                        reg.SetValue("Uber Media - Server", Application.ExecutablePath);
-                    if (startupDatabase.Checked)
-                        reg.SetValue("Uber Media - Database", AppDomain.CurrentDomain.BaseDirectory + "\\Website\\Database\\bin\\mysqld.exe");
-                    if (startupWebserver.Checked)
-                        reg.SetValue("Uber Media - Webserver", AppDomain.CurrentDomain.BaseDirectory + "\\Website\\Webserver\\UltiDevCassinWebServer2a.exe /run \"" + AppDomain.CurrentDomain.BaseDirectory + "\\Website" + "\" \"Default.aspx\" \"" + startupWebserverPort.Text + "\" nobrowser");
-                    reg.Close();
-                    if (startupLogon.Checked)
-                    {
-                        reg = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon", true);
-                        if (reg == null)
-                            throw new Exception("Cannot access Winlogon registry subkey for automatic logon!");
-                        reg.SetValue("DefaultUserName", Environment.UserName);
-                        reg.SetValue("DefaultDomainName", Environment.UserDomainName ?? "");
-                        reg.SetValue("DefaultPassword", startupLogonPassword.Text);
-                        reg.SetValue("AutoAdminLogon", "1");
-                        reg.Close();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                if (MessageBox.Show("An error occurred setting startup settings - the rest has successfully installed; would you like to undo the applied settings?\n\nError (for developers and technical users):\n****************************************************************\n" + ex.Message + "\n\nStack-trace:\n" + ex.StackTrace + "\n\nSource:\n" + ex.Source, "Error", MessageBoxButtons.YesNo) == System.Windows.Forms.DialogResult.Yes)
-                    File.Delete(AppDomain.CurrentDomain.BaseDirectory + "/Settings.xml");
-            }
-            // End the application
-            Close();
+            // Check if an error has occurred
+            if (error != null)
+                MessageBox.Show(error, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
-        void Msg(string text)
+        private void buttExit_MouseClick(object sender, MouseEventArgs e)
         {
-            MessageBox.Show(text, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-        bool ValidPort(string text)
-        {
-            try
-            {
-                int i = int.Parse(text);
-                return i >= 1 && i <= 49151;
-            }
-            catch { return false; }
+            Application.Exit();
         }
     }
 }

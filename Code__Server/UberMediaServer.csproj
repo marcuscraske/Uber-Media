@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>UberMediaServer</RootNamespace>
     <AssemblyName>UberMediaServer</AssemblyName>
-    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
@@ -28,6 +28,7 @@
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -81,9 +82,20 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.DirectX.AudioVideoPlayback, Version=1.0.2902.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>W:\Windows\assembly\GAC\Microsoft.DirectX.AudioVideoPlayback\1.0.2902.0__31bf3856ad364e35\Microsoft.DirectX.AudioVideoPlayback.dll</HintPath>
+    <Reference Include="Controls">
+      <HintPath>..\..\Uber Controls\UberControls\obj\Debug\Controls.dll</HintPath>
+    </Reference>
+    <Reference Include="Declarations">
+      <HintPath>.\Declarations.dll</HintPath>
+    </Reference>
+    <Reference Include="Implementation">
+      <HintPath>.\Implementation.dll</HintPath>
+    </Reference>
+    <Reference Include="LibVlcWrapper">
+      <HintPath>.\LibVlcWrapper.dll</HintPath>
+    </Reference>
+    <Reference Include="NLog">
+      <HintPath>.\NLog.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -99,10 +111,13 @@
     <Compile Include="ConfigGenerator.Designer.cs">
       <DependentUpon>ConfigGenerator.cs</DependentUpon>
     </Compile>
+    <Compile Include="Exceptions\PlayFailure.cs" />
+    <Compile Include="Exceptions\LibraryConnectionFailure.cs" />
     <Compile Include="Interface.cs" />
-    <Compile Include="Interfaces\DirectX 9 AVP\video_dx.cs" />
+    <Compile Include="Interfaces\VLC\video_vlc.cs" />
+    <Compile Include="Interfaces\_prototypesANDold\DirectX 9 AVP\video_dx.cs" />
     <Compile Include="Interfaces\Images\images.cs" />
-    <Compile Include="Interfaces\WinMediaPlayer\video_wmp.cs" />
+    <Compile Include="Interfaces\_prototypesANDold\WinMediaPlayer\video_wmp.cs" />
     <Compile Include="Interfaces\YouTube\youtube.cs" />
     <Compile Include="Main.cs">
       <SubType>Form</SubType>
@@ -118,6 +133,8 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Shared\Library.cs" />
+    <Compile Include="Shared\WebPacket.cs" />
     <EmbeddedResource Include="ConfigGenerator.resx">
       <DependentUpon>ConfigGenerator.cs</DependentUpon>
     </EmbeddedResource>
@@ -135,7 +152,9 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
+    <None Include="app.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -145,25 +164,6 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <COMReference Include="AxWMPLib">
-      <Guid>{6BF52A50-394A-11D3-B153-00C04F79FAA6}</Guid>
-      <VersionMajor>1</VersionMajor>
-      <VersionMinor>0</VersionMinor>
-      <Lcid>0</Lcid>
-      <WrapperTool>aximp</WrapperTool>
-      <Isolated>False</Isolated>
-    </COMReference>
-    <COMReference Include="WMPLib">
-      <Guid>{6BF52A50-394A-11D3-B153-00C04F79FAA6}</Guid>
-      <VersionMajor>1</VersionMajor>
-      <VersionMinor>0</VersionMinor>
-      <Lcid>0</Lcid>
-      <WrapperTool>tlbimp</WrapperTool>
-      <Isolated>False</Isolated>
-      <EmbedInteropTypes>True</EmbedInteropTypes>
-    </COMReference>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
@@ -183,21 +183,37 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Uber-Connector\Connector.csproj">
+    <ProjectReference Include="..\..\Uber Connector\Connector\Connector.csproj">
       <Project>{F61563BA-E114-4526-9803-A314DB50190D}</Project>
       <Name>Connector</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Interfaces\BBC iPlayer\BBCiPlayer.htm" />
+    <Content Include="Interfaces\YouTube\FlashPlayer.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Interfaces\_prototypesANDold\BBC iPlayer\BBCiPlayer.htm" />
     <Content Include="Interfaces\YouTube\swfobject.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Interfaces\YouTube\YouTube.htm">
+    <Content Include="Interfaces\YouTube\YouTube.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="libvlc.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="libvlccore.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Updater.xml" />
+    <None Include="Resources\cross.png" />
+    <None Include="Resources\tick.png" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PreBuildEvent>xcopy "$(ProjectDir)plugins" "$(TargetDir)plugins\" /s /q /y</PreBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

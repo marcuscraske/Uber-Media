@@ -12,161 +12,177 @@ public partial class Installer : System.Web.UI.Page
 {
     protected void Page_Load(object sender, EventArgs e)
     {
-        if (!File.Exists(Server.MapPath("/Config.xml")))
+        // Determine the stage of the installation
+        string content = "";
+        string title = "Undefined";
+        switch (Request.Form["page"] ?? Request.QueryString["1"])
         {
-            string error = "";
-            // Database settings
-            // -- Check if the user has specified settings
-            if (Request.Form["db_host"] != null && Request.Form["db_port"] != null && Request.Form["db_database"] != null && Request.Form["db_user"] != null && Request.Form["db_pass"] != null)
-            {
-                string db_host = Request.Form["db_host"];
-                string db_port = Request.Form["db_port"];
-                string db_database = Request.Form["db_database"];
-                string db_user = Request.Form["db_user"];
-                string db_pass = Request.Form["db_pass"];
-                // Validate input
-                if (!IsValidPort(db_port))
-                    error = "Invalid port!";
-                else if (Uri.CheckHostName(db_host) == UriHostNameType.Unknown)
-                    error = "Invalid host!";
-                else if (db_database.Length < 1 || db_database.Length > 122) // 122 - based on http://dev.mysql.com/doc/refman/5.0/en/mysql-cluster-limitations-database-objects.html
-                    error = "Invalid database!";
-                else if (db_user.Length < 1 || db_user.Length > 16) // 16 - based on http://dev.mysql.com/doc/refman/4.1/en/user-names.html
-                    error = "Invalid username!";
+            // User decides which database connector to use for storing data
+            default:
+                title = "Choose Database Type...";
+                content = File.ReadAllText(Server.MapPath("/Install/Template_dbselect.html")).Replace("%URL%", ResolveUrl(""));
+                C1.Attributes["class"] = "S";
+                break;
+            // User decides database settings
+            case "database":
+                title = "Database Settings";
+                switch (Request.Form["db_type"])
+                {
+                    // No db type specified
+                    default: Response.Redirect(ResolveUrl("/installer")); break;
+                    // MySQL
+                    case "mysql":
+                        database_MySQL(ref content);
+                        break;
+                    // SQLite
+                    case "sqlite":
+                        database_SQLite(ref content);
+                        break;
+                }
+                C1.Attributes["class"] = "S";
+                break;
+            // User decides install settings - currently not available, but added for the future
+            case "install":
+                title = "Installation";
+                C2.Attributes["class"] = "S";
+                // Create the connector
+                UberMedia.Core.CacheSettings_Reload(false);
+                Connector conn = UberMedia.Core.Connector_Create(false);
+                // Install the database
+                string error = UberMedia.Installer.Install(0, 0, 0, conn);
+                if (error != null)
+                    content = "<p>Failed to install library:</p><p>" + error + "</p><p><a href=\"" + ResolveUrl("") + "/installer/install\">Try again?</a></p>";
                 else
                 {
-                    int previousMajor = 0;
-                    int previousMinor = 0;
-                    int previousBuild = 0;
-                    // Attempt to establish a connection to the database
-                    MySQL Connector = new MySQL();
-                    try
-                    {
-                        Connector.Settings_Host = db_host;
-                        Connector.Settings_Port = int.Parse(db_port);
-                        Connector.Settings_User = db_user;
-                        Connector.Settings_Pass = db_pass;
-                        Connector.Settings_Database = db_database;
-                        Connector.Connect();
-                        // Check if a previous installation exists
-                        try
-                        {
-                            Result data = Connector.Query_Read("SELECT value FROM settings WHERE keyid='major' OR keyid='minor' OR keyid='build' ORDER BY keyid ASC");
-                            if (data.Rows.Count == 3)
-                            {
-                                previousBuild = int.Parse(data[0]["value"]);
-                                previousMajor = int.Parse(data[1]["value"]);
-                                previousMinor = int.Parse(data[2]["value"]);
-                            }
-                            else
-                                throw new Exception("unable to determine the version of the previous installation!");
-                        }
-                        catch
-                        {
-                        }
-                    }
-                    catch(Exception ex)
-                    {
-                        error = "Unable to establish a connection with the database server using the provided information - " + ex.Message + "!";
-                    }
-                    if(error.Length == 0)
-                    {
-                        // Write the new configuration to file
-                        XmlWriter xw = XmlWriter.Create(AppDomain.CurrentDomain.BaseDirectory + "/Config.xml");
-                        xw.WriteStartDocument();
-                        xw.WriteStartElement("settings");
-
-                        xw.WriteStartElement("db_host");
-                        xw.WriteCData(db_host);
-                        xw.WriteEndElement();
-
-                        xw.WriteStartElement("db_port");
-                        xw.WriteCData(db_port);
-                        xw.WriteEndElement();
-
-                        xw.WriteStartElement("db_database");
-                        xw.WriteCData(db_database);
-                        xw.WriteEndElement();
-
-                        xw.WriteStartElement("db_user");
-                        xw.WriteCData(db_user);
-                        xw.WriteEndElement();
-
-                        xw.WriteStartElement("db_pass");
-                        xw.WriteCData(db_pass);
-                        xw.WriteEndElement();
-
-                        xw.WriteEndElement();
-                        xw.WriteEndDocument();
-                        xw.Flush();
-                        xw.Close();
-                        xw = null;
-                        // Install the database
-                        UberMedia.Installer.Install(previousMajor, previousMinor, previousBuild, Connector);
-                        // Redirect to the finished page - no custom install review/settings page yet
-                        Response.Redirect(ResolveUrl("/installer"));
-                    }
+                    // Disconnect the connector
+                    conn.Disconnect();
+                    // Restart the core
+                    UberMedia.Core.Core_Start();
+                    // Redirect to the finished page
+                    Response.Redirect(ResolveUrl("/installer/finish"));
                 }
-            }
-            // -- Build content
-            AREA_CONTENT.InnerHtml =
-@"
-<h2>Config</h2>
-<div class=""ERROR"" style=""" + (error.Length != 0 ? "display: block; visibility: visible;" : "") + @""">" + HttpUtility.HtmlEncode(error) + @"</div>
-<form method=""post"" action=""" + ResolveUrl("/installer") + @""">
-<table>
-    <tr>
-        <th colspan=""2"">Database Connectivity</th>
-    </tr>
-    <tr>
-        <td>Host:</td>
-        <td><input type=""text"" name=""db_host"" value=""%DB_HOST%"" /></td>
-    </tr>
-    <tr>
-        <td>Port:</td>
-        <td><input type=""text"" name=""db_port"" value=""%DB_PORT%"" /></td>
-    </tr>
-    <tr>
-        <td>Database:</td>
-        <td><input type=""text"" name=""db_database"" value=""%DB_DATABASE%"" /></td>
-    </tr>
-    <tr>
-        <td>User:</td>
-        <td><input type=""text"" name=""db_user"" value=""%DB_USER%"" /></td>
-    </tr>
-    <tr>
-        <td>Pass:</td>
-        <td><input type=""password"" name=""db_pass"" /></td>
-    </tr>
-    <tr>
-        <th colspan=""2"">Finalize</th>
-    </tr>
-    <tr style=""text-align: right;"">
-        <td colspan=""2""><input type=""submit"" value=""Install"" /></td>
-    </tr>
-</table>
-</form>
-"
-            .Replace("%DB_HOST%", Request.Form["db_host"] ?? "")
-            .Replace("%DB_PORT%", Request.Form["db_port"] ?? "")
-            .Replace("%DB_DATABASE%", Request.Form["db_database"] ?? "")
-            .Replace("%DB_USER%", Request.Form["db_user"] ?? "");
-
-            C1.Attributes["class"] += " S";
+                break;
+            // All of the installation settings are written and the website is installed (once validated)
+            case "finish":
+                title = "Finished";
+                C3.Attributes["class"] = "S";
+                content = File.ReadAllText(Server.MapPath("/Install/Template_finished.html")).Replace("%URL%", ResolveUrl(""));
+                break;
         }
-        else if (Request.QueryString["p"] == "install")
-        {
-            // Database is configured and database installed, provide additional options
-        }
-        else
-        {
-            // Display the finished page
-            AREA_CONTENT.InnerHtml = @"
-<h2>Finish</h2>
-<p>Uber Media's central node is now ready to index your folders and delegate to media computers!</p><p>You will first need to <a href=""" + ResolveUrl("/admin/folders") + @""">add a folder</a>...</p>
-";
-        }
+        // Set page title and content
+        Title += " - " + title;
+        AREA_CONTENT.InnerHtml = "<h2>" + title + "</h2>" + content;
     }
+
+    void database_SQLite(ref string content)
+    {
+        // Create the sqlite connector
+        SQLite sconn = new SQLite();
+        sconn.ChangeDatabase(UberMedia.Core.basePath + "/local_database");
+        // Create the Config.xml file with the db settings
+        XmlWriter xw = XmlWriter.Create(AppDomain.CurrentDomain.BaseDirectory + "/Config.xml");
+        xw.WriteStartDocument();
+        xw.WriteStartElement("settings");
+
+        xw.WriteStartElement("db_type");
+        xw.WriteCData("sqlite");
+        xw.WriteEndElement();
+
+        xw.WriteEndElement();
+        xw.WriteEndDocument();
+        xw.Flush();
+        xw.Close();
+        // Disconnect the connector
+        sconn.Disconnect();
+        // Move onto the install stage
+        Response.Redirect(ResolveUrl("/installer/install"));
+    }
+    void database_MySQL(ref string content)
+    {
+        string connError = null;
+        string mysqlHost = Request.Form["host"] ?? "127.0.0.1";
+        string mysqlPort = Request.Form["port"] ?? "3306";
+        string mysqlDatabase = Request.Form["database"] ?? "ubermedia";
+        string mysqlUsername = Request.Form["username"] ?? "root";
+        string mysqlPassword = Request.Form["password"];
+        // Check if any settings have been posted, if so test and save them
+        if (mysqlHost != null && mysqlPort != null && mysqlDatabase != null && mysqlUsername != null && mysqlPassword != null)
+        {
+            // Test the connection
+            try
+            {
+                MySQL mysql = new MySQL();
+                mysql.Settings_Host = mysqlHost;
+                mysql.Settings_Port = int.Parse(mysqlPort);
+                mysql.Settings_Database = mysqlDatabase;
+                mysql.Settings_User = mysqlUsername;
+                mysql.Settings_Pass = mysqlPassword;
+                mysql.Connect();
+                mysql.Disconnect();
+            }
+            catch (FormatException)
+            {
+                connError = "Invalid port!";
+            }
+            catch (ConnectionFailureException ex)
+            {
+                connError = "Failed to connect! - " + (ex.InnerException != null ? ex.InnerException.Message : "unknown reason");
+            }
+            catch (Exception ex)
+            {
+                connError = "Unknown error occurred: " + ex.Message;
+            }
+            // Save the settings if valid
+            if (connError == null)
+            {
+                XmlWriter xw = XmlWriter.Create(AppDomain.CurrentDomain.BaseDirectory + "/Config.xml");
+                xw.WriteStartDocument();
+                xw.WriteStartElement("settings");
+
+                xw.WriteStartElement("db_type");
+                xw.WriteCData("mysql");
+                xw.WriteEndElement();
+
+                xw.WriteStartElement("db_host");
+                xw.WriteCData(mysqlHost);
+                xw.WriteEndElement();
+
+                xw.WriteStartElement("db_port");
+                xw.WriteCData(mysqlPort);
+                xw.WriteEndElement();
+
+                xw.WriteStartElement("db_database");
+                xw.WriteCData(mysqlDatabase);
+                xw.WriteEndElement();
+
+                xw.WriteStartElement("db_user");
+                xw.WriteCData(mysqlUsername);
+                xw.WriteEndElement();
+
+                xw.WriteStartElement("db_pass");
+                xw.WriteCData(mysqlPassword);
+                xw.WriteEndElement();
+
+                xw.WriteEndElement();
+                xw.WriteEndDocument();
+                xw.Flush();
+                xw.Close();
+                // Move onto the install stage
+                Response.Redirect(ResolveUrl("/installer/install"));
+            }
+        }
+
+        content = File.ReadAllText(Server.MapPath("/Install/Template_mysql.html"))
+            .Replace("%HOST%", mysqlHost ?? string.Empty)
+            .Replace("%PORT%", mysqlPort ?? string.Empty)
+            .Replace("%DATABASE%", mysqlDatabase ?? string.Empty)
+            .Replace("%USERNAME%", mysqlUsername ?? string.Empty)
+            .Replace("%PASSWORD%", mysqlPassword ?? string.Empty)
+            .Replace("%ERROR_STYLE%", connError != null ? "display: block; visibility: visible;" : string.Empty)
+            .Replace("%ERROR_MESSAGE%", connError ?? string.Empty)
+            .Replace("%URL%", ResolveUrl(""));
+    }
+
     bool IsValidPort(string value)
     {
         try

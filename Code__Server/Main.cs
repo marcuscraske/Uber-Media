@@ -18,23 +18,23 @@ using System.Drawing;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml;
-using UberLib.Connector;
-using UberLib.Connector.Connectors;
 using System.Threading;
 using System.IO;
+using System.Diagnostics;
 
 namespace UberMediaServer
 {
     public partial class Main : Form
     {
         #region "Variables"
-        Interfaces.Interface _currentInterface = null;
-        string vitemid = "";
-        string terminalKey = null;
-        XmlDocument settings;
-        Connector db = null;
-        Thread workerProcessor = null;
+        private Interfaces.Interface _currentInterface = null;
+        private string vitemid = string.Empty;
+        public string terminalID;
+        public string libraryURL;
+        private XmlDocument settings;
+        private Thread workerProcessor = null;
         public NowPlaying np = null;
+        public double currentVolume = 1.0f;
         #endregion
 
         #region "Form - Init"
@@ -60,7 +60,7 @@ namespace UberMediaServer
             try
             {
                 // Create information pane
-                np = new NowPlaying();
+                np = new NowPlaying(this);
                 np.Location = new Point(Location.X, Location.Y + Height - np.Height);
                 np.Width = Width;
                 // Load configuration
@@ -78,43 +78,13 @@ namespace UberMediaServer
                 }
                 try
                 {
-                    // Establish terminal settings
-                    terminalKey = settings["settings"]["terminal"]["key"].InnerText;
-                    // Establish database settings
-                    if (settings["settings"]["database"]["type"].InnerText == "mysql")
-                    {
-                        MySQL _db = new MySQL();
-                        _db.Settings_Host = settings["settings"]["database"]["host"].InnerText;
-                        _db.Settings_Port = int.Parse(settings["settings"]["database"]["port"].InnerText);
-                        _db.Settings_User = settings["settings"]["database"]["user"].InnerText;
-                        _db.Settings_Pass = settings["settings"]["database"]["pass"].InnerText;
-                        _db.Settings_Database = settings["settings"]["database"]["db"].InnerText;
-                        db = _db;
-                    }
+                    // Establish connection settings
+                    terminalID = settings["settings"]["connection"]["id"].InnerText;
+                    libraryURL = settings["settings"]["connection"]["url"].InnerText;
                 }
                 catch
                 {
                     SetErrorMessage("Invalid configuration!");
-                    return;
-                }
-                try
-                {
-                    // Connect to the database
-                    db.Connect();
-                }
-                catch
-                {
-                    SetErrorMessage("Could not connect to database server...");
-                    return;
-                }
-                // Check connection is working by polling commands table
-                try
-                {
-                    db.Query_Execute("SELECT * FROM terminal_buffer");
-                }
-                catch
-                {
-                    SetErrorMessage("Could not access database...");
                     return;
                 }
                 // Start work processor
@@ -123,12 +93,7 @@ namespace UberMediaServer
                 // Bring to front and hide cursor etc
                 Refocus();
                 Cursor.Hide();
-                np.DisplayMessage("Welcome!");
-                // Debug area - add interface testing around here, should be safe
-                //Interfaces.video_youtube vy = new Interfaces.video_youtube(this, "01IaKb6DmTw", "");
-                //_currentInterface = vy;
-                //HookInterfaceEvent_End();
-                //
+                np.displayMessage("Welcome!");
             }
             catch (Exception ex)
             {
@@ -140,40 +105,66 @@ namespace UberMediaServer
         public static void WorkProcessor(object obj)
         {
             Main m = (Main)obj;
-            Result data;
-            ResultRow command = null;
-            string preQuery = String.Empty;
-            string terminalKey = Utils.Escape(m.terminalKey);
+            StringBuilder url;
+            int splitterIndex;
+            string response = null;
+            string command = null;
+            string args = null;
             while (true)
             {
                 try
                 {
-                    // Ensure the database connection is still open, just in-case it failed e.g. wifi disconnection or something
-                    m.db.CheckConnectionIsReady();
                     // Update current position in information pane
                     try
                     {
-                        if (m._currentInterface != null) m.np.UpdatePosition(m._currentInterface.Position, m._currentInterface.Duration);
-                        else m.np.UpdatePositionEnd();
+                        if (m._currentInterface != null) m.np.updatePosition(m._currentInterface.Position, m._currentInterface.Duration);
+                        else m.np.updatePositionEnd();
                     }
                     catch { System.Diagnostics.Debug.WriteLine("Failed to get position and duration!"); }
-                    // Update the database with the terminals status
+                    // Build the URL for updating the status etc
+                    url = new StringBuilder();
+                    url.Append(m.libraryURL + "/terminal/update?")     // Append base URL
+                    // -- Append parameters of the request
+                        .Append("&tid=").Append(m.terminalID)
+                        .Append("&q=").Append(m._currentInterface == null || m._currentInterface.State() == Interfaces.Interface.States.Idle ? "1" : "0");
+                    if(m._currentInterface != null)
+                        url
+                        .Append("&state=").Append((int)m._currentInterface.State())
+                        .Append("&volume=").Append(m._currentInterface.Volume)
+                        .Append("&muted=").Append(m._currentInterface.IsMuted() ? "1" : "0")
+                        .Append("&vitemid=").Append(m.vitemid)
+                        .Append("&pos=").Append(m._currentInterface.Position)
+                        .Append("&dur=").Append(m._currentInterface.Duration);
+                    else
+                        url
+                        .Append("&state=").Append(13)
+                        .Append("&volume=").Append(0)
+                        .Append("&muted=").Append(1)
+                        .Append("&vitemid=")
+                        .Append("&pos=").Append(0)
+                        .Append("&dur=").Append(0);
+
+                    // Update the status of the terminal and get the latest command
                     try
                     {
-                        if (m._currentInterface != null)
-                            m.db.Query_Execute("UPDATE terminals SET status_state='" + Utils.Escape(((int)(m._currentInterface.State())).ToString()) + "', status_volume='" + Utils.Escape(m._currentInterface.Volume.ToString()) + "', status_volume_muted='" + Utils.Escape(m._currentInterface.IsMuted() ? "1" : "0") + "', status_vitemid='" + Utils.Escape(m.vitemid) + "', status_position='" + Utils.Escape(m._currentInterface.Position.ToString()) + "', status_duration='" + Utils.Escape(m._currentInterface.Duration.ToString()) + "', status_updated=NOW() WHERE tkey='" + terminalKey + "'");
-                        else
-                            m.db.Query_Execute("UPDATE terminals SET status_state='13', status_volume='0', status_volume_muted='1', status_vitemid='', status_position='0', status_duration='0', status_updated=NOW() WHERE tkey='" + terminalKey + "'");
+                        response = Library.fetchData(url.ToString());
                     }
-                    catch(Exception ex) { System.Diagnostics.Debug.WriteLine("Failed to update terminal information: " + ex.Message + " - " + ex.StackTrace + "!"); }
+                    catch(Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Failed to update: " + ex.Message + " - " + ex.StackTrace + " ## Base: " + ex.GetBaseException().Message + " - " + ex.GetBaseException().StackTrace);
+                        response = null;
+                    }
+                    // Process the response data
+                    if (response != null && (splitterIndex = response.IndexOf(':')) != -1 && splitterIndex < response.Length)
+                    {
+                        command = response.Substring(0, splitterIndex);
+                        args = response.Substring(splitterIndex + 1);
+                    }
                     // Fetch the next command
-                    data = m.db.Query_Read(preQuery + "SELECT tb.* FROM terminal_buffer AS tb, terminals AS t WHERE " + (m._currentInterface == null || m._currentInterface.State() == Interfaces.Interface.States.Idle ? "" :  "queue='0' AND ") + "tb.terminalid=t.terminalid AND t.tkey='" + terminalKey + "' ORDER BY tb.cid ASC LIMIT 1");
-                    preQuery = String.Empty; // Reset pre-query
-                    if (data.Rows.Count > 0)
+                    if (command != null && args != null)
                     {
                         // Process command
-                        command = data[0];
-                        switch (command["command"])
+                        switch (command)
                         {
                             // Shutdown this terminal
                             // <no args>
@@ -204,8 +195,12 @@ namespace UberMediaServer
                             // <volume from 0.0 to 1.0>
                             case "volume":
                                 double value = -1;
-                                double.TryParse(command["arguments"], out value);
-                                m.controlVolume(value);
+                                double.TryParse(args, out value);
+                                if (value != -1)
+                                {
+                                    m.controlVolume(value);
+                                    m.currentVolume = value;
+                                }
                                 break;
                             // Mutes the volume of the current media.
                             // <no args>
@@ -226,7 +221,7 @@ namespace UberMediaServer
                             // <seconds>
                             case "position":
                                 double value2 = -1;
-                                double.TryParse(command["arguments"], out value2);
+                                double.TryParse(args, out value2);
                                 m.controlPosition(value2);
                                 break;
                             // Plays the previous item in the playlist
@@ -252,15 +247,19 @@ namespace UberMediaServer
                             // Change media
                             // <vitemid>
                             case "media":
-                                m.controlMedia(command["arguments"]);
+                                m.controlMedia(args);
                                 break;
                             // API command
                             // <data>
                             case "api":
-                                m.controlAPI(command["arguments"]);
+                                m.controlAPI(args);
+                                break;
+                            // Restart the terminal
+                            case "restart":
+                                m.controlRestart();
                                 break;
                             // Unknown command - hault application and inform the user, could be critical!
-                            default: m.np.DisplayMessage("Received unknown command '" + command["command"] + "'!"); break;
+                            default: m.np.displayMessage("Received unknown command '" + command + "'!"); break;
                         }
                     }
                     // No command executed, sleep for 200 m/s
@@ -269,18 +268,14 @@ namespace UberMediaServer
                 catch (Exception ex)
                 {
 #if DEBUG
-                    m.np.DisplayMessage("Worker processor failure, check output!");
+                    m.np.displayMessage("Worker processor failure, check output!");
                     System.Diagnostics.Debug.WriteLine(ex.Message + ": " + ex.StackTrace);
 #endif
                 }
                 finally
                 {
-                    // Delete command - add this to a buffer to execute it next time we poll
-                    if (command != null)
-                    {
-                        preQuery = "DELETE FROM terminal_buffer WHERE cid='" + Utils.Escape(command["cid"]) + "';";
-                        command = null;
-                    }
+                    command = null;
+                    args = null;
                 }
             }
         }
@@ -291,7 +286,7 @@ namespace UberMediaServer
         /// </summary>
         public void HookInterfaceEvent_End()
         {
-            _currentInterface.MediaEnd += new Interfaces.Interface._MediaEnd(intf_MediaEnd);
+            if(_currentInterface != null) _currentInterface.MediaEnd += new Interfaces.Interface._MediaEnd(intf_MediaEnd);
         }
         /// <summary>
         /// This methid is invoked when an interface media ends.
@@ -299,7 +294,7 @@ namespace UberMediaServer
         void intf_MediaEnd()
         {
             // Clear the information pane now playing text
-            np.UpdateNowPlaying(null);
+            np.updateNowPlaying(null, null);
             // Play the next item
             controlItemNext();
         }
@@ -325,7 +320,7 @@ namespace UberMediaServer
             {
                 System.Diagnostics.Debug.WriteLine("ERROR: " + error);
                 DisposeCurrentInterface();
-                np.DisplayMessage(error);
+                np.displayMessage(error);
             }
             catch { }
         }
@@ -381,28 +376,28 @@ namespace UberMediaServer
                             break;
                         case APPCOMMAND_VOLUME_DOWN:
                             if (_currentInterface != null) _currentInterface.Volume = _currentInterface.Volume < 0.05 ? 0 : _currentInterface.Volume - 0.05;
-                            np.DisplayMessage("Volume: " + Math.Round(100 * _currentInterface.Volume, 0) + "%");
+                            np.displayMessage("Volume: " + Math.Round(100 * _currentInterface.Volume, 0) + "%");
                             break;
                         case APPCOMMAND_VOLUME_UP:
                             if (_currentInterface != null) _currentInterface.Volume = _currentInterface.Volume > 0.95 ? 1 : _currentInterface.Volume + 0.05;
-                            np.DisplayMessage("Volume: " + Math.Round(100 * _currentInterface.Volume, 0) + "%");
+                            np.displayMessage("Volume: " + Math.Round(100 * _currentInterface.Volume, 0) + "%");
                             break;
                         case APPCOMMAND_MEDIA_PLAY:
-                            if (_currentInterface != null) { _currentInterface.Play(); np.DisplayMessage("Playing..."); } break;
+                            if (_currentInterface != null) { _currentInterface.Play(); np.displayMessage("Playing..."); } break;
                         case APPCOMMAND_MEDIA_PAUSE:
-                            if (_currentInterface != null) { _currentInterface.Pause(); np.DisplayMessage("Paused."); } break;
+                            if (_currentInterface != null) { _currentInterface.Pause(); np.displayMessage("Paused."); } break;
                         case APPCOMMAND_VOLUME_MUTE:
                             if (_currentInterface != null)
-                                if (_currentInterface.IsMuted()) { _currentInterface.Unmute(); np.DisplayMessage("Volume: unmuted."); }
-                                else { _currentInterface.Mute(); np.DisplayMessage("Volume: muted."); }
+                                if (_currentInterface.IsMuted()) { _currentInterface.Unmute(); np.displayMessage("Volume: unmuted."); }
+                                else { _currentInterface.Mute(); np.displayMessage("Volume: muted."); }
                             break;
                     }
                     switch (m.LParam.ToInt32())
                     {
                         case SPECIAL_FASTFORWARD:
-                            if (_currentInterface != null) _currentInterface.Position += 5; np.Fade(); break;
+                            if (_currentInterface != null) _currentInterface.Position += 5; np.fade(); break;
                         case SPECIAL_REWIND:
-                            if (_currentInterface != null) _currentInterface.Position -= 5; np.Fade(); break;
+                            if (_currentInterface != null) _currentInterface.Position -= 5; np.fade(); break;
                     }
                     break;
             }
@@ -438,13 +433,13 @@ namespace UberMediaServer
         public void controlPlay()
         {
             try
-            { if (_currentInterface != null) _currentInterface.Play(); np.DisplayMessage("Playing..."); }
+            { if (_currentInterface != null) _currentInterface.Play(); np.displayMessage("Playing..."); }
             catch { }
         }
         public void controlPause()
         {
             try
-            { if (_currentInterface != null) _currentInterface.Pause(); np.DisplayMessage("Paused."); }
+            { if (_currentInterface != null) _currentInterface.Pause(); np.displayMessage("Paused."); }
             catch { }
         }
         public void controlPlayToggle()
@@ -454,9 +449,9 @@ namespace UberMediaServer
                 if (_currentInterface != null)
                 {
                     if (_currentInterface.State() == Interfaces.Interface.States.Playing)
-                    { _currentInterface.Pause(); np.DisplayMessage("Paused."); }
+                    { _currentInterface.Pause(); np.displayMessage("Paused."); }
                     else
-                    { _currentInterface.Play(); np.DisplayMessage("Playing..."); }
+                    { _currentInterface.Play(); np.displayMessage("Playing..."); }
                 }
             }
             catch { }
@@ -474,46 +469,54 @@ namespace UberMediaServer
         public void controlSkipBackward()
         {
             try
-            { if (_currentInterface != null) _currentInterface.Position -= 10; np.DisplayMessage("Skipping backwards..."); }
+            { if (_currentInterface != null) _currentInterface.Position -= 10; np.displayMessage("Skipping backwards..."); }
             catch { }
         }
         public void controlSkipForward()
         {
             try
-            { if (_currentInterface != null) _currentInterface.Position += 10; np.DisplayMessage("Skipping forwards..."); }
+            { if (_currentInterface != null) _currentInterface.Position += 10; np.displayMessage("Skipping forwards..."); }
             catch { }
         }
         public void controlStop()
         {
             try
-            { if (_currentInterface != null) _currentInterface.Stop(); np.DisplayMessage("Stopped."); }
+            { if (_currentInterface != null) _currentInterface.Stop(); np.displayMessage("Stopped."); }
             catch { }
         }
         public void controlShutdown()
         {
             // Dispose interface
             DisposeCurrentInterface();
-            // Delete all commands
-            try
-            { db.Query_Execute("DELETE FROM terminal_buffer WHERE EXISTS(SELECT terminalid FROM terminals WHERE tkey='" + terminalKey + "' AND terminalid=terminal_buffer.terminalid);"); db.Disconnect(); }
-            catch { }
             // Shutdown worker processor
             workerProcessor.Abort();
             workerProcessor = null;
             // Dispose and shutdown
-            np.DisplayMessage("Shutting down...");
+            np.displayMessage("Shutting down...");
             Thread.Sleep(2500);
 #if !DEBUG
                                 System.Diagnostics.Process.Start("shutdown", "-s -t 0");
 #endif
             Environment.Exit(0);
         }
+        public void controlRestart()
+        {
+            // Dispose interface
+            DisposeCurrentInterface();
+            // Shutdown worker processor
+            workerProcessor.Abort();
+            workerProcessor = null;
+            // Restart
+            np.displayMessage("Restarting terminal...");
+            Thread.Sleep(500);
+            Application.Restart();
+        }
         public void controlPosition(double seconds)
         {
             try
             {
                 if (seconds >= 0 && _currentInterface != null) _currentInterface.Position = seconds;
-                np.Fade(); // Show the pane
+                np.fade(); // Show the pane
             }
             catch { }
         }
@@ -524,7 +527,7 @@ namespace UberMediaServer
                 if (_currentInterface != null && value >= 0.0 && value <= 1.0)
                 {
                     _currentInterface.Volume = value;
-                    np.DisplayMessage("Volume: " + Math.Round(value * 100, 0) + "%");
+                    np.displayMessage("Volume: " + Math.Round(value * 100, 0) + "%");
                 }
             }
             catch { } 
@@ -532,13 +535,13 @@ namespace UberMediaServer
         public void controlVolumeMute()
         {
             try
-            { if (_currentInterface != null) _currentInterface.Mute(); np.DisplayMessage("Muted."); }
+            { if (_currentInterface != null) _currentInterface.Mute(); np.displayMessage("Muted."); }
             catch { }
         }
         public void controlVolumeUnmute()
         {
             try
-            { if (_currentInterface != null) _currentInterface.Unmute(); np.DisplayMessage("Unmuted..."); }
+            { if (_currentInterface != null) _currentInterface.Unmute(); np.displayMessage("Unmuted..."); }
             catch { }
         }
         public void controlVolumeMuteToggle()
@@ -565,21 +568,42 @@ namespace UberMediaServer
         {
             DisposeCurrentInterface();
             // Fetch the virtual item details
-            Result data = db.Query_Read("SELECT it.interface, (CONCAT(pf.physicalpath, vi.phy_path)) AS path, vi.title, vi.vitemid FROM (virtual_items AS vi, physical_folders AS pf) LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE pf.pfolderid=vi.pfolderid AND vi.vitemid='" + Utils.Escape(_vitemid) + "';");
+            string mediaTitle = null;
+            string mediaInterface = null;
+            string mediaPath = null;
+            string data = null;
             try
             {
-                ResultRow query = data[0];
-                System.Diagnostics.Debug.WriteLine("Playing new item: " + query["path"] + " : " + query["interface"]);
-                _currentInterface = (Interfaces.Interface)System.Reflection.Assembly.GetExecutingAssembly().CreateInstance("UberMediaServer.Interfaces." + query["interface"], false, System.Reflection.BindingFlags.CreateInstance, null,
-                    new object[] { this, query["path"], vitemid }, null, null);
+                data = Library.fetchData(libraryURL + "/terminal/media?vitemid=" + _vitemid);
+                WebPacket wp = new WebPacket(data);
+                if (wp.errorCode == WebPacket.ErrorCode.ERROR) throw new Exception("Web packet error '" + wp.errorMessage + "'!");
+                else if (wp.arguments.Count != 3)
+                    throw new LibraryConnectionFailure("Malformed argument count!");
+                else
+                {
+                    // -- Interface, Path, Title
+                    mediaTitle = wp.arguments[2];
+                    mediaPath = wp.arguments[1];
+                    mediaInterface = wp.arguments[0];
+                }
+            }
+            catch(Exception ex)
+            {
+                throw new LibraryConnectionFailure("Failed to retrieve media information: '" + ex.Message + "' - data: '" + data + "'!", ex);
+            }
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("Playing new item: " + mediaTitle + " : " + mediaInterface + " : " + mediaPath);
+                _currentInterface = (Interfaces.Interface)System.Reflection.Assembly.GetExecutingAssembly().CreateInstance("UberMediaServer.Interfaces." + mediaInterface, false, System.Reflection.BindingFlags.CreateInstance, null,
+                    new object[] { this, mediaPath, vitemid }, null, null);
                 HookInterfaceEvent_End();
+                // Set the volume
+                _currentInterface.Volume = currentVolume;
                 // Update information pane
-                np.DisplayMessage("Now playing:\t\t" + query["title"]);
-                np.UpdateNowPlaying(query["title"]);
-                vitemid = query["vitemid"];
+                np.displayMessage("Now playing:\t\t" + mediaTitle);
+                np.updateNowPlaying(mediaTitle, _vitemid);
+                vitemid = _vitemid;
                 Refocus();
-                // Update views
-                db.Query_Execute("UPDATE virtual_items SET views = views + 1 WHERE vitemid='" + Utils.Escape(data[0]["vitemid"]) + "';");
             }
             catch (Exception ex)
             {

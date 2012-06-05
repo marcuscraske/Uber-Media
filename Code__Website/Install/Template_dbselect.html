@@ -1,0 +1,12 @@
+﻿<form method="post" action="%URL%/installer">
+    <p>Select the type of database connector you want to utilize; if you are unsure what to select, choose SQLite:</p>
+    <p>
+        <input type="radio" name="db_type" value="mysql" />MySQL - you can use the included or choose a pre-existing server.
+    </p>
+    <p>
+        <input type="radio" name="db_type" value="sqlite" />SQLite - data is written to a file (recommended for small installations)
+    </p>
+
+    <input type="hidden" name="page" value="database" />
+    <input type="submit" value="Continue..." />
+</form>
