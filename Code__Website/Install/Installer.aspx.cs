@@ -49,7 +49,7 @@ public partial class Installer : System.Web.UI.Page
                 UberMedia.Core.CacheSettings_Reload(false);
                 Connector conn = UberMedia.Core.Connector_Create(false);
                 // Install the database
-                string error = UberMedia.Installer.Install(0, 0, 0, conn);
+                string error = UberMedia.Installer.Install(conn);
                 if (error != null)
                     content = "<p>Failed to install library:</p><p>" + error + "</p><p><a href=\"" + ResolveUrl("") + "/installer/install\">Try again?</a></p>";
                 else

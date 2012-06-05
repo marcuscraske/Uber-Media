@@ -24,21 +24,14 @@ namespace UberMedia
         /// Returns an error message; a successful installation will return string.Empty, as well as start-up the Core.
         /// </summary>
         /// <returns></returns>
-        public static string Install(int previousMajor, int previousMinor, int previousBuild, Connector Connector)
+        public static string Install(Connector Connector)
         {
-            if (previousMajor != 0)     // Upgrade an existing installation
-            {
-                // Currently not needed
-            }
-            else                        // New installation
-            {
-                // Install SQL
-                string error = SQLFile(AppDomain.CurrentDomain.BaseDirectory + "/Install/1.0.0/Install_" + Core.Cache_Settings["db_type"] + ".sql", Connector);
-                if (error.Length > 0) return "Install.sql - " + error;
-                // Install HTML templates
-                error = HtmlTemplatesInstall(AppDomain.CurrentDomain.BaseDirectory + "/Install/1.0.0/Templates", Connector);
-                if (error.Length > 0) return "HTML templates - " + error;
-            }
+            // Install SQL
+            string error = SQLFile(AppDomain.CurrentDomain.BaseDirectory + "/Install/Install_" + Core.Cache_Settings["db_type"] + ".sql", Connector);
+            if (error.Length > 0) return "Install.sql - " + error;
+            // Install HTML templates
+            error = HtmlTemplatesInstall(AppDomain.CurrentDomain.BaseDirectory + "/Install/Templates", Connector);
+            if (error.Length > 0) return "HTML templates - " + error;
             return null;
         }
         /// <summary>
