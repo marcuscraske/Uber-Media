@@ -1,16 +1,18 @@
 ﻿/*
- * License:     Creative Commons Attribution-ShareAlike 3.0 unported
- * File:        App_Code/KeepAlive.cs
- * Author(s):   limpygnome, Paul Wilson
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /App_Code/KeepAlive.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
  * 
  * This keeps the application pool running until manually terminated, which gets around the
  * issue of the application pool being shutdown after a user typically not visiting the site
  * for 15 mins.
- * 
- * Improvements/bugs:
- *          -   none.
  */
-
 /* Original header: */
 // Derives from:
 // http://authors.aspalliance.com/PaulWilson/Articles/?id=12
@@ -22,7 +24,6 @@
 //
 // Original author: Paul Wilson
 // http://www.wilsondotnet.com/
-
 using System;
 using System.IO;
 using System.Net;

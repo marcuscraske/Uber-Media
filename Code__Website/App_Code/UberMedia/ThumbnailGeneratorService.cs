@@ -1,4 +1,18 @@
-﻿using System;
+﻿/*
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /UberMedia/ThumbnailGeneratorService.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
+ * 
+ * Responsible for generating preview thumbnails for visual-based media; this uses
+ * reflection for handling of different media-types i.e. ffmpeg for video.
+ */
+using System;
 using System.Collections.Generic;
 using System.Web;
 using System.Drawing;

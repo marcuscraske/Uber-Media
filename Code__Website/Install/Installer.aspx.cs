@@ -1,4 +1,17 @@
-﻿using System;
+﻿/*
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /Install/Installer.aspx
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
+ * 
+ * Responsible for the initial setup of the media library.
+ */
+using System;
 using System.Collections.Generic;
 using System.Web;
 using System.Web.UI;
@@ -34,10 +47,6 @@ public partial class Installer : System.Web.UI.Page
                     case "mysql":
                         database_MySQL(ref content);
                         break;
-                    // SQLite
-                    case "sqlite":
-                        database_SQLite(ref content);
-                        break;
                 }
                 C1.Attributes["class"] = "S";
                 break;
@@ -72,30 +81,6 @@ public partial class Installer : System.Web.UI.Page
         // Set page title and content
         Title += " - " + title;
         AREA_CONTENT.InnerHtml = "<h2>" + title + "</h2>" + content;
-    }
-
-    void database_SQLite(ref string content)
-    {
-        // Create the sqlite connector
-        SQLite sconn = new SQLite();
-        sconn.ChangeDatabase(UberMedia.Core.basePath + "/local_database");
-        // Create the Config.xml file with the db settings
-        XmlWriter xw = XmlWriter.Create(AppDomain.CurrentDomain.BaseDirectory + "/Config.xml");
-        xw.WriteStartDocument();
-        xw.WriteStartElement("settings");
-
-        xw.WriteStartElement("db_type");
-        xw.WriteCData("sqlite");
-        xw.WriteEndElement();
-
-        xw.WriteEndElement();
-        xw.WriteEndDocument();
-        xw.Flush();
-        xw.Close();
-        // Disconnect the connector
-        sconn.Disconnect();
-        // Move onto the install stage
-        Response.Redirect(ResolveUrl("/installer/install"));
     }
     void database_MySQL(ref string content)
     {
@@ -181,15 +166,5 @@ public partial class Installer : System.Web.UI.Page
             .Replace("%ERROR_STYLE%", connError != null ? "display: block; visibility: visible;" : string.Empty)
             .Replace("%ERROR_MESSAGE%", connError ?? string.Empty)
             .Replace("%URL%", ResolveUrl(""));
-    }
-
-    bool IsValidPort(string value)
-    {
-        try
-        {
-            int i = int.Parse(value);
-            return i >= 1 && i <= 49151;
-        }
-        catch { return false; }
     }
 }

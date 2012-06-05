@@ -1,36 +1,17 @@
 ﻿/*
- * License:     Creative Commons Attribution-ShareAlike 3.0 unported
- * File:        App_Code/Core.cs
- * Author(s):   limpygnome
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
  * 
- * Contains multiple classes responsible for core functions of the web application:
- * - Core
- *      Responsible for loading settings and executing background services
- *      such as drive indexing and thumbnail generation.
- *      
- *  - ThreadIndexerAttribs
- *      Contains variables to be passed to an indexer thread.
- *      
- *  - Indexer
- *      Responsible for running in the background and indexing each drive/folder
- *      added by the user; the files in the drives are virtually indexed in the database
- *      if their extension matches the type of file to be indexed in the folder (specified
- *      by the user). The indexer may also invoke the thumbnail generation service to generate
- *      thumbnails of media.
- *      
- *  - ThumbnailGeneratorService
- *      Responsible for generating thumbnails of media; this uses reflection to
- *      generate thumbnails for different types of media formats.
- *      
- *  - FilmInformation
- *      Responsible for grabbing information about media based on their title's from third-party
- *      sources. Currently this utilizes IMDB and RottenTomatoes.
+ * Project:                 Uber Media
+ * File:                    /App_Code/Core.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
  * 
- * Improvements/bugs:
- *          -   The downloaded IMDB database could be cached in an e.g. SQLite file for faster
- *              and more efficient access of data.
+ * Contains code responsible for the start-up and shutdown of the website; this also
+ * contains core components for the rest of the website.
  */
-
 using System;
 using System.Collections.Generic;
 using System.Web;
@@ -52,18 +33,6 @@ namespace UberMedia
     /// </summary>
     public static class Core
     {
-        #region "Versioning"
-        /* The below variables are used by the installer and hence should not be tampered! Version methodology used:
-         * -- major - any major changes e.g. due to the platform or language, maybe a rebuild of major code.
-         * -- minor - any minor changes e.g. new features implemented.
-         * -- build - any e.g. bug-fixes applied, but no new features etc.
-         */
-
-        public const int versionMajor = 1;  // Remember to update SQL as well (settings table)!!!! This is hard-written to ensure the database data matches the version data etc etc
-        public const int versionMinor = 0;
-        public const int versionBuild = 0;
-        #endregion
-
         #region "Consts"
         /// <summary>
         /// For some reason using the e.g. VS web-server causes the base-dir to end with \; this variable is only used by affected areas.
@@ -83,7 +52,6 @@ namespace UberMedia
             NotRunning,
             Running,
             Error,
-            InvalidVersion,
         }
         #endregion
 
@@ -108,14 +76,6 @@ namespace UberMedia
             {
                 // Cache any settings and create the global-connector
                 CacheSettings_Reload(true);
-                // Check version matches hard-written version information
-                if (!Cache_Settings["major"].Equals(versionMajor.ToString()) ||
-                    !Cache_Settings["minor"].Equals(versionMinor.ToString()) ||
-                    !Cache_Settings["build"].Equals(versionBuild.ToString()))
-                {
-                    State = CoreState.InvalidVersion;
-                    return;
-                }
                 // Load HTML templates cache
                 HtmlTemplates_Reload();
                 // Start the thumbnail service

@@ -1,4 +1,19 @@
-﻿using System;
+﻿/*
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /UberMedia/FilmInformation.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
+ * 
+ * Responsible for retrieving information about media from third-party sources:
+ * > IMDB - films
+ * > RottenTomatoes - films
+ */
+using System;
 using System.Collections.Generic;
 using System.Web;
 using UberLib.Connector;
@@ -252,7 +267,6 @@ namespace UberMedia
         {
             text = text.ToLower(); // Make it lower-case
             string t = "";
-            char c;
             for (int i = 0; i < text.Length; i++)
                 if (allowed_chars.Contains(text[i].ToString())) t += text[i];
             return t;

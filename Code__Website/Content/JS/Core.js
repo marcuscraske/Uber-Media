@@ -1,4 +1,17 @@
-﻿function Ajax(url, method, success, failure)
+﻿/*
+* UBERMEAT FOSS
+* ****************************************************************************************
+* License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+*                          http://creativecommons.org/licenses/by-sa/3.0/
+* 
+* Project:                 Uber Media
+* File:                    /Content/JS/Core.js
+* Author(s):               limpygnome						limpygnome@gmail.com
+* To-do/bugs:              none
+* 
+* Shared JavaScript code used for the client-side of the website i.e. Ajax etc.
+*/
+function Ajax(url, method, success, failure)
 {
     var a;
     if (window.XMLHttpRequest) a = new XMLHttpRequest();

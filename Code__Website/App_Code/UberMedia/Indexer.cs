@@ -1,4 +1,21 @@
-﻿using System;
+﻿/*
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /UberMedia/Indexer.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
+ * 
+ *  Responsible for running in the background and indexing each drive/folder
+ *  added by the user; the files in the drives are virtually indexed in the database
+ *  if their extension matches the type of file to be indexed in the folder (specified
+ *  by the user). The indexer may also invoke the thumbnail generation service to generate
+ *  thumbnails of media.
+ */
+using System;
 using System.Collections.Generic;
 using System.Web;
 using UberLib.Connector;

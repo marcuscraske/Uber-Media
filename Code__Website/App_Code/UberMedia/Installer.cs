@@ -1,14 +1,16 @@
 ﻿/*
- * License:     Creative Commons Attribution-ShareAlike 3.0 unported
- * File:        App_Code/Installer.cs
- * Author(s):   limpygnome
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /UberMedia/Installer.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
  * 
  * Contains functions for the installation and upgrade process of the web application.
- * 
- * Improvements/bugs:
- *          -   none.
  */
-
 using System;
 using System.Collections.Generic;
 using System.Web;

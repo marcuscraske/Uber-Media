@@ -1,16 +1,19 @@
 ﻿<%@ Application Language="C#" %>
 <script runat="server">
-//
-// License:     Creative Commons Attribution-ShareAlike 3.0 unported
-// File:        Global.asax
-// Author(s):   limpygnome
-// 
-// Responsible for starting and disposing the core of the site, as well as rewriting requested
-// responses.
-// 
-// Improvements/bugs:
-//          -   none.
-//
+    //
+    // UBERMEAT FOSS
+    //*****************************************************************************************
+    // License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+    //                          http://creativecommons.org/licenses/by-sa/3.0/
+    // 
+    // Project:                 Uber Media
+    // File:                    /Global.asax
+    // Author(s):               limpygnome						limpygnome@gmail.com
+    // To-do/bugs:              none
+    // 
+    // Responsible for starting and disposing the core of the site, as well as rewriting requested
+    // responses.
+    //
     void Application_Start(object sender, EventArgs e) 
     {
         UberMedia.Core.Core_Start();

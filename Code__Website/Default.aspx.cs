@@ -1,14 +1,17 @@
 ﻿/*
- * License:     Creative Commons Attribution-ShareAlike 3.0 unported
- * File:        Default.aspx.cs
- * Author(s):   limpygnome
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /Default.aspx.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
  * 
  * Responsible for most of the site functions; most of the site is URL-rewritten to this
  * page with the first directory (e.g. /page) invoking the function Page__page to carry-out
  * site operation. Everything from admin and browsing functionality is on this page.
- * 
- * Improvements/bugs:
- *          -   none.
  */
 using System;
 using System.Collections;
@@ -44,8 +47,6 @@ public partial class _Default : System.Web.UI.Page
     const int PHYSICAL_FOLDER_PATH_MAX = 248;
     const int TAG_TITLE_MIN = 1;
     const int TAG_TITLE_MAX = 35;
-    const int TERMINAL_KEY_MIN = 3;
-    const int TERMINAL_KEY_MAX = 20;
     const int TERMINAL_TITLE_MIN = 1;
     const int TERMINAL_TITLE_MAX = 28;
     const int PAGE_REQUESTS_ITEMSPERPAGE = 5;
@@ -129,7 +130,7 @@ public partial class _Default : System.Web.UI.Page
     /// </summary>
     public void Page__devdump()
     {
-        UberMedia.Installer.HtmlTemplatesDump(Server.MapPath("/Install/" + UberMedia.Core.versionMajor + "." + UberMedia.Core.versionMinor + "." + UberMedia.Core.versionBuild + "/Templates"), Connector);
+        UberMedia.Installer.HtmlTemplatesDump(Server.MapPath("/Install/Templates"), Connector);
         Response.Write("HTML templates written.");
         Response.End();
     }
