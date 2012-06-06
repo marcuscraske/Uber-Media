@@ -111,7 +111,8 @@ namespace UberMedia
                 if (tia.Connector.Query_Count("SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + tia.pfolderid + "' AND type_uid='100' AND phy_path='" + Utils.Escape(directory.Remove(0, tia.base_path.Length)) + "'") == 0)
                 {
                     // Create the virtual folder
-                    tia.Connector.Query_Execute("INSERT INTO virtual_items (pfolderid, type_uid, title, phy_path, parent, date_added) VALUES('" + tia.pfolderid + "', '100', '" + Utils.Escape(Path.GetFileName(directory)) + "', '" + Utils.Escape(directory.Remove(0, tia.base_path.Length)) + "', '" + Utils.Escape(GetParentVITEMID(tia.pfolderid, directory.Remove(0, tia.base_path.Length), ref Cache, tia.Connector)) + "', NOW());");
+                    string parentFolder = GetParentVITEMID(tia.pfolderid, directory.Remove(0, tia.base_path.Length), ref Cache, tia.Connector);
+                    tia.Connector.Query_Execute("INSERT INTO virtual_items (pfolderid, type_uid, title, phy_path, parent, date_added) VALUES('" + tia.pfolderid + "', '100', '" + Utils.Escape(Path.GetFileName(directory)) + "', '" + Utils.Escape(directory.Remove(0, tia.base_path.Length)) + "', " + (parentFolder != null ? "'" + Utils.Escape(parentFolder) + "'" : "NULL") + ", NOW());");
                 }
             }
             // Index each file
@@ -128,7 +129,8 @@ namespace UberMedia
                 else desc = "";
                 if (ext.Length > 0 && ExtensionsMap.ContainsKey(ext) && tia.Connector.Query_Count("SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + tia.pfolderid + "' AND type_uid != '100' AND phy_path='" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "'") == 0)
                 {
-                    string vitemid = tia.Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, type_uid, title, description, phy_path, parent, date_added) VALUES('" + tia.pfolderid + "', '" + Utils.Escape(ExtensionsMap[ext]) + "', '" + Utils.Escape(title) + "', '" + Utils.Escape(desc) + "', '" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "', '" + Utils.Escape(GetParentVITEMID(tia.pfolderid, file.Remove(0, tia.base_path.Length), ref Cache, tia.Connector)) + "', NOW()); SELECT LAST_INSERT_ID();").ToString();
+                    string parentFolder = GetParentVITEMID(tia.pfolderid, file.Remove(0, tia.base_path.Length), ref Cache, tia.Connector);
+                    string vitemid = tia.Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, type_uid, title, description, phy_path, parent, date_added) VALUES('" + tia.pfolderid + "', '" + Utils.Escape(ExtensionsMap[ext]) + "', '" + Utils.Escape(title) + "', '" + Utils.Escape(desc) + "', '" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "', " + (parentFolder != null ? "'" + Utils.Escape(parentFolder) + "'" : "NULL") + ", NOW()); SELECT LAST_INSERT_ID();").ToString();
                     if (ThumbnailExts.ContainsKey(ext)) ThumbnailGeneratorService.AddToQueue(file, AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails/" + vitemid.ToString() + ".png", ThumbnailExts[ext]);
                 }
             }
@@ -151,7 +153,7 @@ namespace UberMedia
             if (Cache.ContainsKey(pathofmedium)) return Cache[pathofmedium];
             int lsep = pathofmedium.IndexOf('\\');
             int rsep = pathofmedium.LastIndexOf('\\');
-            if (lsep == rsep) return "0"; // Item is at the top
+            if (lsep == rsep) return null; // Item is at the top
             else
             {
                 string t = Connector.Query_Scalar("SELECT vitemid FROM virtual_items WHERE type_uid='100' AND pfolderid='" + Utils.Escape(pfolderid) + "' AND phy_path='" + Utils.Escape(pathofmedium.Substring(0, rsep)) + "'").ToString();

@@ -88,6 +88,7 @@ CREATE TABLE `virtual_items`
 	`pfolderid` INT NOT NULL,
 	FOREIGN KEY(`pfolderid`) REFERENCES `physical_folders`(`pfolderid`) ON DELETE CASCADE ON UPDATE CASCADE,
 	`parent` int DEFAULT NULL,
+	FOREIGN KEY(`parent`) REFERENCES `virtual_items`(`vitemid`) ON DELETE CASCADE ON UPDATE CASCADE,
 	`type_uid` int(1) DEFAULT NULL,
 	`title` text,
 	`cache_rating` int NOT NULL DEFAULT '0',

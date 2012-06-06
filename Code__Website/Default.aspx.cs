@@ -252,51 +252,78 @@ public partial class _Default : System.Web.UI.Page
                 }
                 break;
             case "add_folder":
-                string errorMSG = null;
-                string folderTitle = Request.Form["folder_title"];
-                // Check for postback
-                if (folderTitle != null)
+                if (Request.QueryString["1"] == null)
+                    Page__404();
+                else
                 {
-                    if (folderTitle.Length < PHYSICAL_FOLDER_TITLE_MIN || folderTitle.Length > PHYSICAL_FOLDER_TITLE_MAX)
-                        errorMSG = "Folder title must be " + PHYSICAL_FOLDER_TITLE_MIN + " to " + PHYSICAL_FOLDER_TITLE_MAX + " chars in length!";
-                    else if (!isAlphaNumericSpace(folderTitle))
-                        errorMSG = "Folder title must only consist of the following characters: 'A-z 0-9 * - _'!";
-                    else
+                    string errorMSG = null;
+                    string folderTitle = Request.Form["folder_title"];
+                    // Check for postback
+                    if (folderTitle != null)
                     {
-                        // Build the new physical path
-                        string phyPath = Connector.Query_Scalar("SELECT physicalpath FROM physical_folders WHERE pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'").ToString();
-                        string subPath;
-                        if (Request.QueryString["2"] != null) // Check if we're in a sub-folder - if so, grab the sub-folder's relative path
-                            subPath = Connector.Query_Scalar("SELECT phy_path FROM virtual_items WHERE vitemid='" + Utils.Escape(Request.QueryString["2"]) + "'").ToString();
-                        else
-                            subPath = string.Empty;
-                        // Check it doesn't already exist
-                        if (Directory.Exists(phyPath + subPath + "\\" + folderTitle))
-                            errorMSG = "A folder with the specified title '" + HttpUtility.HtmlEncode(folderTitle) + "' already exists!";
+                        if (folderTitle.Length < PHYSICAL_FOLDER_TITLE_MIN || folderTitle.Length > PHYSICAL_FOLDER_TITLE_MAX)
+                            errorMSG = "Folder title must be " + PHYSICAL_FOLDER_TITLE_MIN + " to " + PHYSICAL_FOLDER_TITLE_MAX + " chars in length!";
+                        else if (!isAlphaNumericSpace(folderTitle))
+                            errorMSG = "Folder title must only consist of the following characters: 'A-z 0-9 * - _'!";
                         else
                         {
-                            // Create the folder and virtual item
-                            Directory.CreateDirectory(phyPath + subPath + "\\" + folderTitle);
-                            string folderid = Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, parent, type_uid, title, phy_path) VALUES('" + Utils.Escape(Request.QueryString["1"]) + "', '" + (Request.QueryString["2"] ?? string.Empty) + "', '100', '" + Utils.Escape(folderTitle) + "', '\\" + Utils.Escape(subPath + "\\" + folderTitle) + "'); SELECT LAST_INSERT_ID();").ToString();
-                            // Redirect to the new folder
-                            Response.Redirect(ResolveUrl("/browse/" + Request.QueryString["1"] + "/" + folderid));
+                            // Build the new physical path
+                            string phyPath = Connector.Query_Scalar("SELECT physicalpath FROM physical_folders WHERE pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'").ToString();
+                            string subPath;
+                            if (Request.QueryString["2"] != null) // Check if we're in a sub-folder - if so, grab the sub-folder's relative path
+                                subPath = Connector.Query_Scalar("SELECT phy_path FROM virtual_items WHERE vitemid='" + Utils.Escape(Request.QueryString["2"]) + "'").ToString();
+                            else
+                                subPath = string.Empty;
+                            // Check it doesn't already exist
+                            if (Directory.Exists(phyPath + subPath + "\\" + folderTitle))
+                                errorMSG = "A folder with the specified title '" + HttpUtility.HtmlEncode(folderTitle) + "' already exists!";
+                            else
+                            {
+                                string physicalPath = subPath + "\\" + folderTitle;
+                                // Create the folder and virtual item
+                                string folderid = Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, parent, type_uid, title, phy_path) VALUES('" + Utils.Escape(Request.QueryString["1"]) + "', " + (Request.QueryString["2"] != null ? "'" + Utils.Escape(Request.QueryString["2"]) + "'" : "NULL") + ", '100', '" + Utils.Escape(folderTitle) + "', '" + Utils.Escape(physicalPath) + "'); SELECT LAST_INSERT_ID();").ToString();
+                                Directory.CreateDirectory(phyPath + subPath + "\\" + folderTitle);
+                                // Redirect to the new folder
+                                Response.Redirect(ResolveUrl("/browse/" + Request.QueryString["1"] + "/" + folderid));
+                            }
                         }
                     }
+                    content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_add_folder"]
+                        .Replace("%IURL%", current_url + current_params + "&amp;action=" + Request.QueryString["action"])
+                        .Replace("%FOLDER_TITLE%", Request.Form["folder_title"] ?? string.Empty)
+                        .Replace("%ERROR_STYLE%", errorMSG != null ? "visibility: visible; display: block;" : string.Empty)
+                        .Replace("%ERROR_MESSAGE%", errorMSG ?? string.Empty)
+                        );
                 }
-                content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_add_folder"]
-                    .Replace("%IURL%", current_url + current_params + "&amp;action=" + Request.QueryString["action"])
-                    .Replace("%FOLDER_TITLE%", Request.Form["folder_title"] ?? string.Empty)
-                    .Replace("%ERROR_STYLE%", errorMSG != null ? "visibility: visible; display: block;" : string.Empty)
-                    .Replace("%ERROR_MESSAGE%", errorMSG ?? string.Empty)
-                    );
                 break;
             case "delete_folder":
-                content.Append(
-                    UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                    .Replace("%ACTION_TITLE%", "")
-                    .Replace("%ACTION_URL%", "")
-                    .Replace("%ACTION_DESC%", "")
-                    );
+                if (Request.QueryString["2"] == null)
+                    Page__404();
+                else
+                {
+                    Result folderInfo = Connector.Query_Read("SELECT vi.*, CONCAT(pf.physicalpath, vi.phy_path) AS path FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.vitemid='" + Utils.Escape(Request.QueryString["2"]) + "'");
+                    if (folderInfo.Rows.Count != 1)
+                        Page__404();
+                    else
+                    {
+                        if (Request.Form["confirm"] != null)
+                        {
+                            // Delete the physical path
+                            Directory.Delete(folderInfo[0]["path"], true);
+                            // Delete the node
+                            Connector.Query_Execute("DELETE FROM virtual_items WHERE vitemid='" + Utils.Escape(folderInfo[0]["vitemid"]) + "'");
+                            // Redirect to the parent directory
+                            Response.Redirect(ResolveUrl("/browse/" + folderInfo[0]["pfolderid"] + "/" + folderInfo[0]["parent"]));
+                        }
+                        content.Append(
+                            UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                            .Replace("%ACTION_TITLE%", "Delete Folder")
+                            .Replace("%ACTION_URL%", current_url + current_params + "&amp;action=" + Request.QueryString["action"])
+                            .Replace("%ACTION_BACK%", current_url + current_params)
+                            .Replace("%ACTION_DESC%", "Are you sure you want to delete the following directory '" + HttpUtility.HtmlEncode(folderInfo[0]["title"]) + "'? This will also delete the following physical path and any files within it:<br /><br /><i>" + folderInfo[0]["path"] + "</i><br /><br />You should ensure no media is being played from this folder, else you may cause damage to your media library!")
+                            );
+                    }
+                }
                 break;
             default:
                 // Build tags section
@@ -334,7 +361,7 @@ public partial class _Default : System.Web.UI.Page
                     }
                 }
                 // List files
-                Result files = Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent='0'") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC") + " LIMIT " + ((items_per_page * page) - items_per_page) + ", " + items_per_page.ToString());
+                Result files = Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent IS NULL") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC") + " LIMIT " + ((items_per_page * page) - items_per_page) + ", " + items_per_page.ToString());
                 content.Append("<h2>Files " + Browse_CreateNavigationBar(Request.QueryString["1"] ?? "", Request.QueryString["2"] ?? "") + "</h2>");
                 if (files.Rows.Count != 0) foreach (ResultRow file in files) content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%VITEMID%", file["vitemid"]));
                 else content.Append("<p>No items - check the sidebar for sub-folders on the left!</p>");
@@ -348,7 +375,7 @@ public partial class _Default : System.Web.UI.Page
                 break;
         }
         // Query files and folders
-        Result folders = Connector.Query_Read("SELECT vi.* FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "WHERE vi.type_uid = '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent='0'") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC"));
+        Result folders = Connector.Query_Read("SELECT vi.* FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "WHERE vi.type_uid = '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" : string.Empty) + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent IS NULL") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC"));
         // Build sidebar
         StringBuilder sidebar = new StringBuilder();
         sidebar.Append("<h2>Main Folders</h2>");
@@ -390,8 +417,9 @@ public partial class _Default : System.Web.UI.Page
         else if (!sort_asc && sort == "vi.views") SelectNavItem("POPULAR");
         else SelectNavItem("BROWSE");
     }
-
-
+    /// <summary>
+    /// Used to play YouTube videos which require adverts, else we cannot embed the video.
+    /// </summary>
     public void Page__youtube()
     {
         if (Request.QueryString["1"] == null)
@@ -401,8 +429,8 @@ public partial class _Default : System.Web.UI.Page
         }
         else
         {
+            // The HTML below is also used by Ubermedia Server - they're the same with a different video player URL
             Response.Write(@"
-
 <!DOCTYPE HTML PUBLIC ""-//W3C//DTD HTML 4.0 Transitional//EN"">
 <html>
 <!--    Some of the code in this is unused due to originating from another project of mine, feel welcome
@@ -571,7 +599,6 @@ public partial class _Default : System.Web.UI.Page
     </script>
 </body>
 </html>
-
 ");
             Response.End();
         }
