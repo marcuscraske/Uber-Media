@@ -116,10 +116,10 @@ namespace UberMediaServer.Interfaces
                             case "101":
                             case "150":
                                 // Navigate to normal YouTube page since the video cannot be embedded
-                                mainForm.np.displayMessage("Video cannot be embedded, displaying YouTube page instead...");
+                                mainForm.np.displayMessage("Switching to advert player...");
                                 mainForm.cursorShow();
                                 browser.ScrollBarsEnabled = true;
-                                browser.Navigate("http://www.youtube.com/watch?v=" + videoid + "&fmt=22&wide=1&feature=watch-now-button");
+                                browser.Navigate(mainForm.libraryURL + "/youtube/" + videoid);
                                 break;
                             default:
                                 // Unknown error - inform the user
@@ -251,14 +251,21 @@ namespace UberMediaServer.Interfaces
                 {
                     return (double)mainForm.Invoke((youtubeDouble)delegate()
                     {
-                        if (browser != null)
+                        try
                         {
-                            object o = browser.Document.InvokeScript("YT_Query_Volume");
-                            if (o != null)
-                                return (int)o / 100.0;
+                            if (browser != null)
+                            {
+                                object o = browser.Document.InvokeScript("YT_Query_Volume");
+                                if (o != null)
+                                {
+                                    return (double)((int)o) / 100.0;
+                                }
+                                else return 0;
+                            }
                             else return 0;
                         }
-                        else return 0;
+                        catch
+                        { return 0; }
                     });
                 }
                 catch { return 0; }

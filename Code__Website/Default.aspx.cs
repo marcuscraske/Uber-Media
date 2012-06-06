@@ -244,12 +244,59 @@ public partial class _Default : System.Web.UI.Page
                         }
                     }
                     content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_youtube"]
-                        .Replace("%IURL%", current_url + current_params + "&action=" + Request.QueryString["action"])
+                        .Replace("%IURL%", current_url + current_params + "&amp;action=" + Request.QueryString["action"])
                         .Replace("%YOUTUBE_URL%", youtubeURL ?? string.Empty)
                         .Replace("%YOUTUBE_TITLE%", title ?? string.Empty))
                         .Replace("%ERROR_STYLE%", error != null ? "display: block; visibility: visible;" : string.Empty)
                         .Replace("%ERROR_MESSAGE%", Server.HtmlEncode(error) ?? string.Empty);
                 }
+                break;
+            case "add_folder":
+                string errorMSG = null;
+                string folderTitle = Request.Form["folder_title"];
+                // Check for postback
+                if (folderTitle != null)
+                {
+                    if (folderTitle.Length < PHYSICAL_FOLDER_TITLE_MIN || folderTitle.Length > PHYSICAL_FOLDER_TITLE_MAX)
+                        errorMSG = "Folder title must be " + PHYSICAL_FOLDER_TITLE_MIN + " to " + PHYSICAL_FOLDER_TITLE_MAX + " chars in length!";
+                    else if (!isAlphaNumericSpace(folderTitle))
+                        errorMSG = "Folder title must only consist of the following characters: 'A-z 0-9 * - _'!";
+                    else
+                    {
+                        // Build the new physical path
+                        string phyPath = Connector.Query_Scalar("SELECT physicalpath FROM physical_folders WHERE pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'").ToString();
+                        string subPath;
+                        if (Request.QueryString["2"] != null) // Check if we're in a sub-folder - if so, grab the sub-folder's relative path
+                            subPath = Connector.Query_Scalar("SELECT phy_path FROM virtual_items WHERE vitemid='" + Utils.Escape(Request.QueryString["2"]) + "'").ToString();
+                        else
+                            subPath = string.Empty;
+                        // Check it doesn't already exist
+                        if (Directory.Exists(phyPath + subPath + "\\" + folderTitle))
+                            errorMSG = "A folder with the specified title '" + HttpUtility.HtmlEncode(folderTitle) + "' already exists!";
+                        else
+                        {
+                            // Create the folder and virtual item
+                            Directory.CreateDirectory(phyPath + subPath + "\\" + folderTitle);
+                            string folderid = Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, parent, type_uid, title, phy_path) VALUES('" + Utils.Escape(Request.QueryString["1"]) + "', '" + (Request.QueryString["2"] ?? string.Empty) + "', '100', '" + Utils.Escape(folderTitle) + "', '\\" + Utils.Escape(subPath + "\\" + folderTitle) + "'); SELECT LAST_INSERT_ID();").ToString();
+                            // Redirect to the new folder
+                            Response.Redirect(ResolveUrl("/browse/" + Request.QueryString["1"] + "/" + folderid));
+                        }
+                    }
+                }
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_add_folder"]
+                    .Replace("%IURL%", current_url + current_params + "&amp;action=" + Request.QueryString["action"])
+                    .Replace("%FOLDER_TITLE%", Request.Form["folder_title"] ?? string.Empty)
+                    .Replace("%ERROR_STYLE%", errorMSG != null ? "visibility: visible; display: block;" : string.Empty)
+                    .Replace("%ERROR_MESSAGE%", errorMSG ?? string.Empty)
+                    );
+                break;
+            case "delete_folder":
+                content.Append(
+                    UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                    .Replace("%ACTION_TITLE%", "")
+                    .Replace("%ACTION_URL%", "")
+                    .Replace("%ACTION_DESC%", "")
+                    );
                 break;
             default:
                 // Build tags section
@@ -317,7 +364,15 @@ public partial class _Default : System.Web.UI.Page
         sidebar.Append("<h2>Options</h2>");
         sidebar.Append("<a href=\"" + current_url + "\"><img src=\"<!--URL-->/Content/Images/view.png\" alt=\"View Items\" title=\"View Items\" />View Items</a>");
         sidebar.Append("<a href=\"" + current_url + "&action=queue_all\"><img src=\"<!--URL-->/Content/Images/play_queue.png\" alt=\"Queue All Items\" title=\"Queue All Items\" />Queue All Items</a>");
-        sidebar.Append("<a href=\"" + current_url + "&action=add_youtube\"><img src=\"<!--URL-->/Content/Images/youtube.png\" alt=\"Add YouTube\" title=\"Add YouTube\" />Add YouTube</a>");
+        if (Request.QueryString["1"] != null)
+        { // For folder-specific options only
+            sidebar.Append("<a href=\"" + current_url + "&action=add_folder\"><img src=\"<!--URL-->/Content/Images/add_folder.png\" alt=\"Add Folder\" title=\"Add Folder\" />Add Folder</a>");
+            sidebar.Append("<a href=\"" + current_url + "&action=add_youtube\"><img src=\"<!--URL-->/Content/Images/youtube.png\" alt=\"Add YouTube\" title=\"Add YouTube\" />Add YouTube</a>");
+        }
+        if (Request.QueryString["2"] != null)
+        { // For sub-folder specific options only
+            sidebar.Append("<a href=\"" + current_url + "&action=delete_folder\"><img src=\"<!--URL-->/Content/Images/delete_folder.png\" alt=\"Delete Folder\" title=\"Delete Folder\" />Delete Folder</a>");
+        }
         // -- Display the sub-folders for this folder
         sidebar.Append("<h2>Sub-folders</h2>");
         if (folders.Rows.Count == 0) sidebar.Append("None.");
@@ -335,6 +390,193 @@ public partial class _Default : System.Web.UI.Page
         else if (!sort_asc && sort == "vi.views") SelectNavItem("POPULAR");
         else SelectNavItem("BROWSE");
     }
+
+
+    public void Page__youtube()
+    {
+        if (Request.QueryString["1"] == null)
+        {
+            Page__404();
+            return;
+        }
+        else
+        {
+            Response.Write(@"
+
+<!DOCTYPE HTML PUBLIC ""-//W3C//DTD HTML 4.0 Transitional//EN"">
+<html>
+<!--    Some of the code in this is unused due to originating from another project of mine, feel welcome
+        to clean it up - limpygnome
+-->
+	<head>
+         <style type=""text/css"">
+        body
+        {
+            margin: 0em;
+            background: #000;
+            overflow: hidden;
+        }
+        </style>
+        <script type=""text/javascript"" src=""" + ResolveUrl("Content/JS/swfobject.js") + @"""></script>
+		<title>IDLE</title>
+		<script type=""text/javascript"" language=""javascript"">
+		    var ply;
+		    function onYouTubePlayerReady()
+		    {
+		        ply = document.getElementById('ytplayer');
+		        ply.addEventListener(""onStateChange"", ""onytplayerStateChange"");
+		        ply.addEventListener(""onError"", ""onPlayerError"");
+		    }
+		    function onPlayerError(errorCode)
+		    {
+		        document.title = 'ERROR' + errorCode;
+		    }
+		    function onytplayerStateChange(newState)
+		    {
+		        switch (newState)
+		        {
+		            case -1:
+		                document.title = ""LOADING"";
+		                break;
+		            case 0:
+		                document.title = ""FINISHED"";
+		                break;
+		            case 1:
+		                document.title = ""PLAYING"";
+		                break;
+		            case 2:
+		                document.title = ""PAUSED"";
+		                break;
+		        }
+		    }
+		    // Core
+		    function YT_Load(url)
+		    {
+		        if (ply) ply.loadVideoById(url, 0);
+		    }
+		    function YT_Unload()
+		    {
+		        ply.stopVideo();
+		    }
+		    // Actions
+		    function YT_Action_Unstop()
+		    {
+		        ply.playVideo();
+		    }
+		    function YT_Action_ToggleStop()
+		    {
+		        if (ply)
+		            if (ply.getPlayerState == 1)
+		                ply.stopVideo();
+		            else
+		                ply.playVideo();
+		    }
+		    function YT_Action_TogglePause()
+		    {
+		        if (ply)
+		            if (ply.getPlayerState() == 1)
+		                ply.pauseVideo();
+		            else
+		                ply.playVideo();
+		    }
+		    function YT_Action_SetVolume(rate)
+		    {
+		        if (ply && rate >= 0 && rate <= 100)
+		            ply.setVolume(rate);
+		    }
+		    function YT_Action_Mute()
+		    {
+		        if (ply)
+		            ply.mute();
+		    }
+		    function YT_Action_Unmute()
+		    {
+		        if (ply)
+		            ply.unMute();
+		    }
+		    function YT_Action_ToggleMute()
+		    {
+		        if (ply)
+		            if (ply.isMuted())
+		                ply.unMute();
+		            else
+		                ply.mute();
+		    }
+		    function YT_Action_Play()
+		    {
+		        if (ply)
+		            ply.playVideo();
+		    }
+		    function YT_Action_Pause()
+		    {
+		        if (ply)
+		            ply.pauseVideo();
+		    }
+		    function YT_Action_Position(seconds)
+		    {
+		        if (ply)
+		            ply.seekTo(seconds, true);
+		    }
+		    function YT_Action_Stop()
+		    {
+		        if (ply)
+		            ply.stopVideo();
+		    }
+		    // Queries
+		    function YT_Query_Volume()
+            {
+		        if (ply)
+		            return ply.getVolume();
+		        return 0;
+		    }
+		    function YT_Query_IsMuted()
+		    {
+		        if (ply)
+		            return ply.isMuted();
+		        return false;
+		    }
+		    function YT_Query_Duration()
+		    {
+		        if (ply)
+		            return ply.getDuration();
+		        return 0.0;
+		    }
+		    function YT_Query_CurrentPosition()
+		    {
+		        if (ply)
+		            return ply.getCurrentTime();
+                else
+		            return 0.0;
+		    }
+		    function YT_Query_State()
+		    {
+		        if (ply)
+		            return ply.getPlayerState();
+		        else
+		            return 0;
+		    }
+		</script>
+	</head>
+<body>
+	<div id=""ytplayer"">
+        <p>You need to install Adobe Flash Player to view YouTube videos!</p>
+    </div>
+    <script type=""text/javascript"">
+        var params = { allowScriptAccess: ""always"" };
+
+        swfobject.embedSWF(
+
+		    ""http://www.youtube.com/v/" + Request.QueryString["1"] + @"?version=3&enablejsapi=1&autohide=1&autoplay=1&rel=0&showinfo=0&showsearch=0"", ""ytplayer"", ""100%"", ""100%"", ""8"", null, null, params);
+
+    </script>
+</body>
+</html>
+
+");
+            Response.End();
+        }
+    }
+
     /// <summary>
     /// Redirects to the browse system, showing the newest items added to the library.
     /// </summary>
@@ -1631,6 +1873,24 @@ public partial class _Default : System.Web.UI.Page
         if (m.Success)
             return m.Groups[0].Value;
         else return null;
+    }
+    /// <summary>
+    /// Validates the text is a valid folder title by checking each char is either:
+    /// > alphabetical
+    /// > numeric
+    /// > space
+    /// > * asterisk
+    /// > - hyphen
+    /// > _ under-scroll
+    /// </summary>
+    /// <param name="input"></param>
+    /// <returns></returns>
+    bool isAlphaNumericSpace(string input)
+    {
+        foreach (char c in input)
+            if (c != 32 && c != 45 && !(c >= 48 && c <= 57) && !(c >= 65 && c <= 90) && c != 95 && !(c >= 97 && c <= 122))
+                return false;
+        return true;
     }
     #endregion
 }

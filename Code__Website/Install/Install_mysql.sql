@@ -93,7 +93,6 @@ CREATE TABLE `virtual_items`
 	`cache_rating` int NOT NULL DEFAULT '0',
 	`description` text,
 	`phy_path` text,
-	`vir_path` text,
 	`views` INT NOT NULL DEFAULT '0',
 	`date_added` text,
 	`thumbnail_data` blob
