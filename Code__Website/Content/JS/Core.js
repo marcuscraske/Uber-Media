@@ -145,7 +145,7 @@ function buildPlaylistItem(cid, vitemid, title, mediacomputer)
 {
     return "<div class=\"PITEM\">" +
     "<a onclick=\"return controlsRemoveItem('" + mediacomputer + "', '" + cid + "')\" href=\"/control?mc=1&amp;cmd=remove&amp;manual=1&amp;cid=" + cid + "\" class=\"x\">X</a>" +
-    "<a href=\"/item/" + vitemid + "\" class=\"i\"><img src=\"" + getBaseURL() + "/Content/Thumbnails/" + vitemid + ".png\" onerror=\"ImageError(this);\" alt=\"" + title + "\'s thumbnail\" title=\"" + title + "\'s thumbnail\" /></a><div>" + title + "</div>" +
+    "<a href=\"/item/" + vitemid + "\" class=\"i\"><img src=\"" + getBaseURL() + "/thumbnail/" + vitemid + "\" alt=\"" + title + "\'s thumbnail\" title=\"" + title + "\'s thumbnail\" /></a><div>" + title + "</div>" +
     "</div>";
 }
 function controlsButton(mediacomputer, cmd)

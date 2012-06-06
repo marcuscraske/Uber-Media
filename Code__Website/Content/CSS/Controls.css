@@ -145,7 +145,6 @@ input[type=range]::-webkit-slider-thumb
     height: 4em;
     border: none;
     border-right: solid 0.1em #000;
-    background: url('../Images/thumbnail.png');
     background-size: 100%;
 }
 .PITEM a

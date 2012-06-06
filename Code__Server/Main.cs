@@ -94,7 +94,7 @@ namespace UberMediaServer
                 workerProcessor.Start(this);
                 // Bring to front and hide cursor etc
                 Refocus();
-                Cursor.Hide();
+                cursorHide();
                 np.displayMessage("Welcome!");
             }
             catch (Exception ex)
@@ -620,6 +620,14 @@ namespace UberMediaServer
         private void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
             Environment.Exit(0);
+        }
+        public void cursorShow()
+        {
+            Cursor.Show();
+        }
+        public void cursorHide()
+        {
+            Cursor.Hide();
         }
         #endregion
     }

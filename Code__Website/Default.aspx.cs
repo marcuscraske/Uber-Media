@@ -100,7 +100,7 @@ public partial class _Default : System.Web.UI.Page
         {
             this.GetType().InvokeMember("Page__" + Request.QueryString["page"], System.Reflection.BindingFlags.InvokeMethod, null, this, new object[] { });
         }
-        catch (MissingMethodException ex)
+        catch (MissingMethodException)
         {
             this.GetType().InvokeMember("Page__404", System.Reflection.BindingFlags.InvokeMethod, null, this, new object[] { });
         }
@@ -236,7 +236,9 @@ public partial class _Default : System.Web.UI.Page
                             // Create the physical file in-case the database is lost
                             File.WriteAllText(phyPath + subPath + "\\" + title + ".yt", youtubeVID);
                             // Create the virtual item to represent the file
-                            Connector.Query_Execute("INSERT INTO virtual_items (pfolderid, parent, type_uid, title, phy_path, date_added) VALUES('" + Utils.Escape(Request.QueryString["1"]) + "', '" + Utils.Escape(Request.QueryString["2"] ?? string.Empty) + "', (SELECT uid FROM item_types WHERE title='YouTube'), '" + Utils.Escape(title) + "', '" + Utils.Escape(subPath + "\\" + title + ".yt") + "', NOW())");
+                            string vitemid = Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, parent, type_uid, title, phy_path, date_added) VALUES('" + Utils.Escape(Request.QueryString["1"]) + "', '" + Utils.Escape(Request.QueryString["2"] ?? string.Empty) + "', '1300', '" + Utils.Escape(title) + "', '" + Utils.Escape(subPath + "\\" + title + ".yt") + "', NOW()); SELECT LAST_INSERT_ID();").ToString();
+                            // Add to the thumbnail generator
+                            UberMedia.ThumbnailGeneratorService.AddToQueue(phyPath + subPath + "\\" + title + ".yt", vitemid, "youtube");
                             // Redirect back
                             Response.Redirect(current_url + current_params);
                         }

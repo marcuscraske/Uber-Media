@@ -39,6 +39,10 @@ namespace UberMediaServer.Interfaces
         private string videoid = null;
         #endregion
 
+        #region "Events"
+        public override event Interface._MediaEnd MediaEnd;
+        #endregion
+
         #region "Methods - Constructors"
         public youtube(Main main, string path, string vitemid) : base(main, path, vitemid)
         {
@@ -99,25 +103,31 @@ namespace UberMediaServer.Interfaces
                 case "PAUSED":
                     state = States.Paused;
                     break;
-            }
-            // An error has occurred, decide what to do based on the error-code
-            if (browser.DocumentTitle.StartsWith("ERROR"))
-            {
-                string error_code = browser.DocumentTitle.Remove(0, 5);
-                switch (error_code)
-                {
-                    case "101":
-                    case "150":
-                        // Navigate to normal YouTube page since the video cannot be embedded
-                        mainForm.np.displayMessage("Video cannot be embedded, displaying YouTube page instead...");
-                        browser.ScrollBarsEnabled = true;
-                        browser.Navigate("http://www.youtube.com/watch?v=" + videoid + "&fmt=22&wide=1&feature=watch-now-button");
-                        break;
-                    default:
-                        // Unknown error - inform the user
-                        browser.DocumentText = "<h1>Unknown error occurred: " + error_code +"</h1>";
-                        break;
-                }
+                case "FINISHED":
+                    if (MediaEnd != null) MediaEnd();
+                    break;
+                default:
+                    // An error has occurred, decide what to do based on the error-code
+                    if (browser.DocumentTitle.StartsWith("ERROR"))
+                    {
+                        string error_code = browser.DocumentTitle.Remove(0, 5);
+                        switch (error_code)
+                        {
+                            case "101":
+                            case "150":
+                                // Navigate to normal YouTube page since the video cannot be embedded
+                                mainForm.np.displayMessage("Video cannot be embedded, displaying YouTube page instead...");
+                                mainForm.cursorShow();
+                                browser.ScrollBarsEnabled = true;
+                                browser.Navigate("http://www.youtube.com/watch?v=" + videoid + "&fmt=22&wide=1&feature=watch-now-button");
+                                break;
+                            default:
+                                // Unknown error - inform the user
+                                browser.DocumentText = "<h1>Unknown error occurred: " + error_code + "</h1>";
+                                break;
+                        }
+                    }
+                    break;
             }
         }
         #endregion
@@ -266,6 +276,7 @@ namespace UberMediaServer.Interfaces
         {
             mainForm.Invoke((MethodInvoker)delegate()
             {
+                mainForm.cursorHide();
                 mainForm.panel1.Controls.Remove(browser);
                 browser.Dispose();
                 browser = null;
