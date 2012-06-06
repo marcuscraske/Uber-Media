@@ -135,13 +135,6 @@ CREATE TABLE `terminal_buffer`
 );
 
 -- Populate default data ****************************************************************************************************************************************************************
--- Settings (CRITICAL)
-INSERT INTO `settings` (`category`, `keyid`, `value`, `description`) VALUES
-	('Version', 'major', '1', 'Critical, do not touch!'),
-	('Version', 'minor', '0', 'Critical, do not touch!'),
-	('Version', 'build', '0', 'Critical, do not touch!')
-;
-
 -- Item Types
 INSERT INTO `item_types` (`typeid`, `title`, `uid`, `extensions`, `thumbnail`, `interface`, `system`) VALUES
 	('1', 'Video', '1000', 'avi,mkv,mp4,wmv,m2ts,mpg', 'ffmpeg', 'video_vlc', '0'),

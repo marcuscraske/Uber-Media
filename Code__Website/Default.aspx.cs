@@ -109,14 +109,16 @@ public partial class _Default : System.Web.UI.Page
         foreach (ResultRow mediacomputer in Connector.Query_Read("SELECT title, terminalid FROM terminals ORDER BY title ASC"))
         {
             if (Session["mediacomputer"] == null) Session["mediacomputer"] = mediacomputer["terminalid"];
-            mediacomputers += "<option value=\"" + mediacomputer["terminalid"] + "\"" + (Session["mediacomputer"] != null && (string)Session["mediacomputer"] == mediacomputer["terminalid"] ? " selected" : "") + ">" + HttpUtility.HtmlEncode(mediacomputer["title"]) + "</option>";
+            mediacomputers += "<option value=\"" + mediacomputer["terminalid"] + "\"" + (Session["mediacomputer"] != null && (string)Session["mediacomputer"] == mediacomputer["terminalid"] ? @" selected=""selected""" : "") + ">" + HttpUtility.HtmlEncode(mediacomputer["title"]) + "</option>";
         }
         PageElements["MEDIACOMPUTERS"] = mediacomputers;
         PageElements["MEDIACOMPUTER"] = (string)(Session["mediacomputer"] ?? "");
-        // Load page template
-        string template = UberMedia.Core.Cache_HtmlTemplates["basepage"];
-        // Output page
-        Response.Write(ReplaceElements(template, 0, 3));
+
+        // Replace page elements and write the page
+        StringBuilder sb = new StringBuilder(UberMedia.Core.Cache_HtmlTemplates["basepage"]);
+        ReplaceElements(ref sb, 0, 3);
+        Response.Write(sb.ToString());
+
         // Dispose connector
         Connector.Disconnect();
         Connector = null;
@@ -302,7 +304,7 @@ public partial class _Default : System.Web.UI.Page
         StringBuilder sidebar = new StringBuilder();
         sidebar.Append("<h2>Main Folders</h2>");
         // -- Build a list of all the main drives
-        sidebar.Append(UberMedia.Core.Cache_HtmlTemplates["browse_side_folder"].Replace("%URL%", ResolveUrl("")).Replace("%CLASS%", "").Replace("%IURL%", ResolveUrl("/browse")).Replace("%TITLE%", "All").Replace("%ICON%", ResolveUrl("/Content/images/folders.png")));
+        sidebar.Append(UberMedia.Core.Cache_HtmlTemplates["browse_side_folder"].Replace("%URL%", ResolveUrl("")).Replace("%CLASS%", Request.QueryString["1"] == null ? "selected" : string.Empty).Replace("%IURL%", ResolveUrl("/browse")).Replace("%TITLE%", "All").Replace("%ICON%", ResolveUrl("/Content/images/folders.png")));
         foreach (ResultRow drive in Connector.Query_Read("SELECT pfolderid, title FROM physical_folders ORDER BY title ASC"))
             sidebar.Append(UberMedia.Core.Cache_HtmlTemplates["browse_side_folder"]
                 .Replace("%IURL%", ResolveUrl("/browse/" + drive["pfolderid"] + "?" + current_params))
@@ -990,7 +992,8 @@ public partial class _Default : System.Web.UI.Page
                     }
                     content += UberMedia.Core.Cache_HtmlTemplates["admin_settings_item"]
                         .Replace("%KEYID%", HttpUtility.HtmlEncode(setting["keyid"]))
-                        .Replace("%VALUE%", HttpUtility.HtmlEncode(setting["value"]));
+                        .Replace("%VALUE%", HttpUtility.HtmlEncode(setting["value"]))
+                        .Replace("%DESCRIPTION%", HttpUtility.HtmlEncode(setting["description"]));
                 }
                 content += UberMedia.Core.Cache_HtmlTemplates["admin_settings_footer"];
                 break;
@@ -998,30 +1001,6 @@ public partial class _Default : System.Web.UI.Page
                 switch (Request.QueryString["2"])
                 {
                     case null:
-                        // Check if the user has requested to add a terminal/key
-                        if (Request.Form["key"] != null && Request.Form["title"] != null)
-                        {
-                            string key = Request.Form["key"];
-                            string title = Request.Form["title"];
-                            if (key.Length < TERMINAL_KEY_MIN || key.Length > TERMINAL_KEY_MAX)
-                                ThrowError("Key must be " + TERMINAL_KEY_MIN + " to " + TERMINAL_KEY_MAX + " characters in length!");
-                            else if (title.Length < TERMINAL_TITLE_MIN || title.Length > TERMINAL_TITLE_MAX)
-                                ThrowError("Title must be " + TERMINAL_TITLE_MIN + " to " + TERMINAL_TITLE_MAX + " characters in length!");
-                            else
-                            {
-                                bool error = false;
-                                for (int i = 0; i < key.Length; i++)
-                                {
-                                    if (!(key[i] >= 'A' && key[i] <= 'Z') && !(key[i] >= 'a' && key[i] <= 'z') && !(key[i] >= '0' && key[i] <= '9'))
-                                    {
-                                        ThrowError("Invalid key - must be alpha-numeric (alphabet and number characters - no spaces etc!");
-                                        error = true;
-                                    }
-                                }
-                                if(!error)
-                                    Connector.Query_Execute("INSERT INTO terminals (title, tkey) VALUES('" + Utils.Escape(title) + "', '" + Utils.Escape(key) + "');");
-                            }
-                        }
                         // Build list of terminals for removal and config generation
                         string terminals = "";
                         string genTerminals = "";
@@ -1030,17 +1009,12 @@ public partial class _Default : System.Web.UI.Page
                             terminals += UberMedia.Core.Cache_HtmlTemplates["admin_terminals_item"]
                                 .Replace("%TERMINALID%", terminal["terminalid"])
                                 .Replace("%TITLE%", HttpUtility.HtmlEncode(terminal["title"]))
-                                .Replace("%KEY%", HttpUtility.HtmlEncode(terminal["tkey"]))
                                 .Replace("%UPDATED%", terminal["status_updated"].Length > 0 ? terminal["status_updated"] : "(never)");
                             genTerminals = "<option value=\"" + HttpUtility.HtmlEncode(terminal["terminalid"]) + "\">" + HttpUtility.HtmlEncode(terminal["title"]) + "</option>";
                         }
                         // Build content
                         content = UberMedia.Core.Cache_HtmlTemplates["admin_terminals"]
-                            .Replace("%TERMINALS%", terminals)
-                            .Replace("%GEN_TERMINALS%", genTerminals)
-                            .Replace("%KEY%", Request.Form["key"] ?? "")
-                            .Replace("%TITLE%", Request.Form["title"] ?? "");
-                        
+                            .Replace("%TERMINALS%", terminals);
                         break;
                     case "remove":
                         string t = Request.QueryString["t"];
@@ -1059,80 +1033,10 @@ public partial class _Default : System.Web.UI.Page
                         }
                         else
                             content = UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                                .Replace("%ACTION_TITLE%", "Confirm Deletion of Terminal Key")
-                                .Replace("%ACTION_DESC%", "Are you sure you want to delete the key '" + tdata[0]["title"] + "' (key: " + tdata[0]["tkey"] + ")?")
+                                .Replace("%ACTION_TITLE%", "Deletion of Terminal")
+                                .Replace("%ACTION_DESC%", "Are you sure you want to delete the terminal '" + tdata[0]["title"] + "' (TID: " + tdata[0]["terminalid"] + ")?")
                                 .Replace("%ACTION_URL%", "<!--URL-->/admin/terminals/remove?t=" + tdata[0]["terminalid"])
                                 .Replace("%ACTION_BACK%", "<!--URL-->/admin/terminals");
-                        break;
-                    case "generate":
-                        if (Request.QueryString["tid"] == null)
-                        {
-                            Page__404();
-                            return;
-                        }
-                        // Grab the terminals information - this also ensures it exists
-                        Result termdata = Connector.Query_Read("SELECT tkey FROM terminals WHERE terminalid='" + Utils.Escape(Request.QueryString["tid"]) + "'");
-                        if (termdata.Rows.Count != 1)
-                        {
-                            Page__404();
-                            return;
-                        }
-                        Response.ContentType = "text/xml";
-                        StringWriter sw = new StringWriter();
-                        XmlWriter writer = XmlWriter.Create(sw);
-                        // Build configuration file
-                        writer.WriteStartDocument();
-                        writer.WriteStartElement("settings");
-
-                        // -- Database settings
-                        writer.WriteStartElement("database");
-
-                        writer.WriteStartElement("type");
-                        writer.WriteCData("mysql");
-                        writer.WriteEndElement();
-
-                        writer.WriteStartElement("host");
-                        writer.WriteCData(UberMedia.Core.Cache_Settings["db_host"]);
-                        writer.WriteEndElement();
-
-                        writer.WriteStartElement("port");
-                        writer.WriteCData(UberMedia.Core.Cache_Settings["db_port"]);
-                        writer.WriteEndElement();
-
-                        writer.WriteStartElement("user");
-                        writer.WriteCData(UberMedia.Core.Cache_Settings["db_user"]);
-                        writer.WriteEndElement();
-
-                        writer.WriteStartElement("pass");
-                        writer.WriteCData(UberMedia.Core.Cache_Settings["db_pass"]);
-                        writer.WriteEndElement();
-
-                        writer.WriteStartElement("db");
-                        writer.WriteCData(UberMedia.Core.Cache_Settings["db_database"]);
-                        writer.WriteEndElement();
-
-                        writer.WriteEndElement();
-                        // -- Terminal settings
-                        writer.WriteStartElement("terminal");
-
-                        writer.WriteStartElement("key");
-                        writer.WriteCData(termdata[0]["tkey"]);
-                        writer.WriteEndElement();
-
-                        writer.WriteEndElement();
-
-                        writer.WriteEndElement();
-                        writer.WriteEndDocument();
-                        // Output config
-                        writer.Flush();
-                        writer.Close();
-                        sw.Flush();
-                        Response.AddHeader("content-disposition", "attachment;filename=Config.xml");
-                        Response.Write(sw.ToString());
-                        // Disposal and terminate response
-                        sw.Dispose();
-                        Connector.Disconnect();
-                        Response.End();
                         break;
                     default:
                         Page__404();
@@ -1678,12 +1582,14 @@ public partial class _Default : System.Web.UI.Page
         PageElements["ERR_STYLE"] = "display: block !important; visibility: visible !important;";
         PageElements["ERR_MSG"] = HttpUtility.HtmlEncode(message);
     }
-    string ReplaceElements(string text, int treeNumber, int treeMax)
+    public void ReplaceElements(ref StringBuilder text, int currTree, int treeMax)
     {
-        if (treeNumber > treeMax) return text;
-        foreach (KeyValuePair<string, string> elm in PageElements)
-            text = text.Replace("<!--" + elm.Key + "-->", elm.Value.Contains("<!--") ? ReplaceElements(elm.Value, treeNumber + 1, treeMax) : elm.Value);
-        return text;
+        foreach (Match m in Regex.Matches(text.ToString(), @"<!--(.*?)-->"))
+        {
+            text = text.Replace(m.Value, PageElements.ContainsKey(m.Groups[1].Value) ? PageElements[m.Groups[1].Value] : string.Empty);
+        }
+        currTree++;
+        if (currTree < treeMax) ReplaceElements(ref text, currTree, treeMax);
     }
     /// <summary>
     /// Parses the provided URL and returns the extracted video ID. If no ID can be extracted, null is returned.

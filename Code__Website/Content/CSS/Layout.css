@@ -365,30 +365,37 @@ a.BUTTON.M
     margin-right: 0.5em;
 }
 /* Table */
-.T
+.R /* Row */
 {
+    clear: both;
     width: 100%;
+    padding-bottom: 0.25em;
+    margin-bottom: 0.25em;
 }
-.T div
+.RD /* -- Row dotted */
+{
+    border-bottom: dotted 0.2em #CCC;
+}
+.R .C /* Cell of a row */
 {
     float: left;
     width: 50%;
 }
-.T div.P
+.R .C .P
 {
     padding: 0.5em;
 }
 /* Table - form items */
-.T input[type=reset]
+.R input[type=reset]
 {
     float: left;
 }
-.T textarea, .T input[type=text], select
+.R textarea, .R input[type=text], .R select
 {
     border: solid 0.1em #CCC;
     color: #360;
 }
-.T textarea:hover, .T input[type=text]:hover, .T textarea:focus, .T input[type=text]:focus, .T select:hover, .T select:focus
+.R textarea:hover, .R input[type=text]:hover, .R textarea:focus, .R input[type=text]:focus, .R select:hover, .R select:focus
 {
     border: solid 0.1em #333;
     background: #CCC;
