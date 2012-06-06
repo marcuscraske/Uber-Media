@@ -2,26 +2,26 @@
 <p>Below are the main media folders, which are each indexed and added to your media library.</p>
 <h2>Add Folder</h2>
 <form method="post" action="<!--URL-->/admin/folders">
-<div class="T">
-	<div>
+<div class="R">
+	<div  class="C">
 	Title:
 	</div>
-	<div>
+	<div  class="C">
 	<input type="text" name="title" value="%TITLE%" />
 	</div>
 	
-	<div>Physical path:</div>
-	<div>
+	<div  class="C">Physical path:</div>
+	<div  class="C">
 	<input type="text" name="path" value="%PATH%" />
 	</div>
 
-		<div>Allow web synopsis:</div>
-		<div>
+		<div  class="C">Allow web synopsis:</div>
+		<div  class="C">
 	<input type="checkbox" name="synopsis" value="1" %SYNOPSIS% /> This will retrieve media information from third-party sources for every item in this folder.
 	</div>
 	
-	<div>&nbsp;</div>
-	<div><input type="submit" value="Add" class="BUTTON" /></div>
+	<div  class="C">&nbsp;</div>
+	<div  class="C"><input type="submit" value="Add" class="BUTTON" /></div>
 </div>
 <div class="clear"></div>
 

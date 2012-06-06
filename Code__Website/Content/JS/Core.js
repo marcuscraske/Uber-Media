@@ -24,12 +24,15 @@ function Ajax(url, method, success, failure)
     a.open(method, url, true);
     a.send();
 }
+var searchCount = 0;
 function Search(input)
 {
+    var localSearchCount = ++searchCount;
     Ajax(getBaseURL() + "/search?q=" + encodeURI(input), "GET",
     function(a)
     {
-        document.getElementById("RIGHT").innerHTML = a.responseText;
+        if(localSearchCount == searchCount) // The response may be slower than another future response and hence this avoids overlapping
+            document.getElementById("RIGHT").innerHTML = a.responseText;
     },
     function(a)
     {

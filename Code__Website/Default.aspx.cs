@@ -408,7 +408,7 @@ public partial class _Default : System.Web.UI.Page
                 }
                 else
                     content += UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                        .Replace("%ACTION_TITLE%", "Confirm Thumbnail Rebuild")
+                        .Replace("%ACTION_TITLE%", "Thumbnail Rebuild")
                         .Replace("%ACTION_URL%", "<!--URL-->/item/" + data[0]["vitemid"] + "/rebuild")
                         .Replace("%ACTION_DESC%", "Are you sure you want to rebuild the thumbnail of this item?")
                         .Replace("%ACTION_BACK%", "<!--URL-->/item/" + data[0]["vitemid"]);
@@ -439,7 +439,7 @@ public partial class _Default : System.Web.UI.Page
                 }
                 else
                     content += UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                        .Replace("%ACTION_TITLE%", "Confirm Deletion")
+                        .Replace("%ACTION_TITLE%", "Deletion")
                         .Replace("%ACTION_URL%", "<!--URL-->/item/" + data[0]["vitemid"] + "/delete")
                         .Replace("%ACTION_DESC%", "Are you sure you want to delete this item?")
                         .Replace("%ACTION_BACK%", "<!--URL-->/item/" + data[0]["vitemid"]);
@@ -452,22 +452,9 @@ public partial class _Default : System.Web.UI.Page
                 }
                 else
                     content += UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                        .Replace("%ACTION_TITLE%", "Confirm Reset Views")
+                        .Replace("%ACTION_TITLE%", "Reset Views")
                         .Replace("%ACTION_URL%", "<!--URL-->/item/" + data[0]["vitemid"] + "/reset_views")
                         .Replace("%ACTION_DESC%", "Are you sure you want to reset the views of this item?")
-                        .Replace("%ACTION_BACK%", "<!--URL-->/item/" + data[0]["vitemid"]);
-                break;
-            case "reset_ratings":
-                if (Request.Form["confirm"] != null)
-                {
-                    Connector.Query_Execute("DELETE FROM vi_ratings WHERE vitemid='" + Utils.Escape(data[0]["vitemid"]) + "'; UPDATE virtual_items SET cache_rating='0' WHERE vitemid='" + Utils.Escape(data[0]["vitemid"]) + "';");
-                    Response.Redirect(ResolveUrl("/item/" + data[0]["vitemid"]));
-                }
-                else
-                    content += UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                        .Replace("%ACTION_TITLE%", "Confirm Reset Ratings")
-                        .Replace("%ACTION_URL%", "<!--URL-->/item/" + data[0]["vitemid"] + "/reset_ratings")
-                        .Replace("%ACTION_DESC%", "Are you sure you want to reset the ratings of this item?")
                         .Replace("%ACTION_BACK%", "<!--URL-->/item/" + data[0]["vitemid"]);
                 break;
             case "play_now":
@@ -558,25 +545,62 @@ public partial class _Default : System.Web.UI.Page
                 }
                 break;
             case "watch":
-                switch (data[0]["uid_title"])
+                // Check if the user has requested to force vlc usage
+                bool forceVLC = Request.Cookies["force_vlc"] != null && Request.Cookies["force_vlc"].Value.Equals("1");
+                if (Request.QueryString["force_vlc"] != null)
                 {
-                    case "video":
+                    if (Request.QueryString["force_vlc"].Equals("1"))
+                    {
+                        HttpCookie cookie = new HttpCookie("force_vlc");
+                        cookie.Value = "1";
+                        cookie.Expires = DateTime.MaxValue;
+                        Response.Cookies.Add(cookie); // OM NOM NOM NOM
+                        forceVLC = true;
+                    }
+                    else if(forceVLC)
+                    {
+                        Response.Cookies["force_vlc"].Expires = DateTime.MinValue;
+                        Response.Cookies["force_vlc"].Value = "0";
+                        Response.Cookies.Remove("force_vlc");
+                        forceVLC = false;
+                    }
+                }
+                // Grab the HTML responsible for displaying/playing/interacting the media with the end-user
+                switch (int.Parse(data[0]["type_uid"]))
+                {
+                    case 1000: // Video
+                        // Use VLC or HTML5 video
+                        if (forceVLC || (Request.QueryString["3"] != null && Request.QueryString["3"].Equals("vlc")))
+                            content += UberMedia.Core.Cache_HtmlTemplates["item_player_vlc"];
+                        else
+                            content += UberMedia.Core.Cache_HtmlTemplates["item_player_html5_video"];
                         break;
-                    case "audio":
+                    case 1200: // Audio
+                        // Use VLC or HTML5 audio
+                        if (forceVLC || (Request.QueryString["3"] != null && Request.QueryString["3"].Equals("vlc")))
+                            content += UberMedia.Core.Cache_HtmlTemplates["item_player_vlc"];
+                        else
+                            content += UberMedia.Core.Cache_HtmlTemplates["item_player_html5_audio"];
                         break;
-                    case "youtube":
+                    case 1300: // YouTube
+                        // Use YouTube embedded player
+                        content += UberMedia.Core.Cache_HtmlTemplates["item_player_youtube"];
+                        PageElements.Add("ITEM_YOUTUBE", File.ReadAllText(data[0]["path"]));
+                        break;
+                    case 1400: // Web-link
+                        // Display a hyper-link
+                        content += UberMedia.Core.Cache_HtmlTemplates["item_player_web"];
+                        PageElements.Add("ITEM_URL", File.ReadAllText(data[0]["path"]));
+                        break;
+                    case 1500: // Image
+                        content += UberMedia.Core.Cache_HtmlTemplates["item_player_image"];
+                        break;
+                    default: // Unknown
+                        content += UberMedia.Core.Cache_HtmlTemplates["item_player_unknown"];
                         break;
                 }
-                switch (Request.QueryString["3"])
-                {
-                    case "vlc":
-                        content += UberMedia.Core.Cache_HtmlTemplates["item_player_vlc"];
-                        break;
-                    default:
-                        content += UberMedia.Core.Cache_HtmlTemplates["item_player"];
-                        break;
-                }
-                PageElements.Add("ITEMID", data[0]["vitemid"]);
+                PageElements.Add("ITEM_VITEMID", data[0]["vitemid"]);
+                PageElements.Add("ITEM_TITLE", HttpUtility.HtmlEncode(data[0]["title"]));
                 break;
             default:
                 // Check if the user has tried to attach a tag
@@ -591,8 +615,11 @@ public partial class _Default : System.Web.UI.Page
                     .Replace("%VITEMID%", data[0]["vitemid"])
                     .Replace("%TITLE%", HttpUtility.HtmlEncode(data[0]["title"]))
                     .Replace("%DESCRIPTION%", data[0]["description"].Length > 0 ? HttpUtility.HtmlEncode(data[0]["description"]) : "(no description)")
-                    .Replace("%VIEWS%", data[0]["views"]).Replace("%DATE_ADDED%", data[0]["date_added"])
-                    .Replace("%RATING%", data[0]["cache_rating"]).Replace("%TYPE%", data[0]["type"])
+                    .Replace("%VIEWS%", data[0]["views"])
+                    .Replace("%DATE_ADDED%", data[0]["date_added"])
+                    .Replace("%RATING%", data[0]["cache_rating"])
+                    .Replace("%TYPE%", data[0]["type"])
+                    .Replace("%PATH%", data[0]["path"])
                     .Replace("%VITEMID%", data[0]["vitemid"]);
                 // Add tags
                 string cTags = "";
