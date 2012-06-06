@@ -58,6 +58,19 @@
 </div>
 <div class="R">
 	<div class="C3">
+		<img src="<!--URL-->/Content/Images/Credits/keepalive.png" alt="YouTube icon" />
+		Paul Wilson
+	</div>
+	<div class="C3">
+		Keep-Alive class
+	</div>
+	<div class="C3">
+		<a href="http://authors.aspalliance.com/PaulWilson/">http://authors.aspalliance.com/PaulWilson/</a>
+	</div>
+	<div class="clear"></div>
+</div>
+<div class="R">
+	<div class="C3">
 		<img src="<!--URL-->/Content/Images/Credits/icons.png" alt="YouTube icon" />
 		Fatcow Fresh-Farm Web Icons
 	</div>
