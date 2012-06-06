@@ -6,4 +6,6 @@
 <h2>Main Folders</h2>
 %FOLDERS%
 <h2>Links</h2>
-<a href="http://www.ubermeat.co.uk"><img src="%URL%/Content/Images/external.png" alt="External" />&Uuml;berMeat</a>]]></html></template>
+<a href="http://www.ubermeat.co.uk"><img src="%URL%/Content/Images/external.png" alt="External" />&Uuml;berMeat</a>
+<a href="https://github.com/ubermeat/Uber-Media"><img src="%URL%/Content/Images/external.png" alt="External" />&Uuml;ber Media on Github</a>
+<a href="<!--URL-->/credits"><img src="%URL%/Content/Images/credits.png" alt="External" />Credits</a>]]></html></template>

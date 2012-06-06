@@ -368,16 +368,23 @@ a.BUTTON.M
 {
     border-bottom: dotted 0.2em #CCC;
 }
-.R .C /* Cell of a row */
+.R .C, .R .C3 /* Cell of a row */
 {
     float: left;
+}
+.R .C /* Rpw with two cells */
+{
     width: 50%;
+}
+.R .C3 /* Row with three cells */
+{
+    width: 33%;
 }
 .R .C .P
 {
     padding: 0.5em;
 }
-.R .C img /* Cell icon */
+.R .C img, .R .C3 img /* Cell icon */
 {
     margin-right: 0.5em;
 }

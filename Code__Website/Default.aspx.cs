@@ -603,7 +603,6 @@ public partial class _Default : System.Web.UI.Page
             Response.End();
         }
     }
-
     /// <summary>
     /// Redirects to the browse system, showing the newest items added to the library.
     /// </summary>
@@ -1417,6 +1416,12 @@ public partial class _Default : System.Web.UI.Page
             Session["mediacomputer"] = Request.QueryString["c"];
         Response.End();
     }
+    public void Page__credits()
+    {
+        PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["credits_sidebar"];
+        PageElements["CONTENT_RIGHT"] = UberMedia.Core.Cache_HtmlTemplates["credits"];
+    }
+    // Terminal registration
     /// <summary>
     /// Handles terminal communication.
     /// </summary>
@@ -1446,7 +1451,6 @@ public partial class _Default : System.Web.UI.Page
                 break;
         }
     }
-
     public static byte[] thumbnailNotFound = null;
     public void Page__thumbnail()
     {
@@ -1563,7 +1567,7 @@ public partial class _Default : System.Web.UI.Page
         }
         Response.End();
     }
-    
+    // Control page
     /// <summary>
     /// Used to control the current selected media computer.
     /// </summary>
