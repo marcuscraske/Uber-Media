@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[The sidebar of the homepage.]]></description><html><![CDATA[<h2>Items</h2>
+<a href="%URL%/browse"><img src="%URL%/Content/Images/folders.png" alt="Browse" />Browse</a>
+<a href="%URL%/newest"><img src="%URL%/Content/Images/newest.png" alt="Newest" />Newest</a>
+<a href="%URL%/popular"><img src="%URL%/Content/Images/popular.png" alt="Popular" />Popular</a>
+<a href="<!--URL-->/admin"><img src="<!--URL-->/Content/Images/configure.png" alt="Admin" />Admin</a>
+<h2>Main Folders</h2>
+%FOLDERS%
+<h2>Links</h2>
+<a href="http://www.ubermeat.co.uk"><img src="%URL%/Content/Images/external.png" alt="External" />&Uuml;berMeat</a>
+<a href="https://github.com/ubermeat/Uber-Media"><img src="%URL%/Content/Images/external.png" alt="External" />&Uuml;ber Media on Github</a>
+<a href="<!--URL-->/credits"><img src="%URL%/Content/Images/credits.png" alt="External" />Credits</a>]]></html></template>

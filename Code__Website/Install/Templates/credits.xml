@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[A page of credits.]]></description><html><![CDATA[<h2>Credits</h2>
 <center>
-<img src="<!--URL-->/Content/Images/Credits/reptile.png" alt="Reptile" title="Reptile" />
+<img src="<!--URL-->/Content/Images/Credits/reptile.png" alt="Ubie - Reptile" title="Ubie - Reptile" />
 </center>
 <h3>Project Developers</h3>
 <div class="R">
@@ -79,6 +79,20 @@
 	</div>
 	<div class="C3">
 		<a href="http://www.fatcow.com/free-icons">http://www.fatcow.com/free-icons</a>
+	</div>
+	<div class="clear"></div>
+</div>
+<h3>Trivia &amp; Help</h3>
+<div class="R">
+	<div class="C3">
+		<img src="<!--URL-->/Content/Images/Credits/dev.png" alt="Dev icon" />
+		Provided the name 'Ubie' for the Uber Media creature (at the top of this page)
+	</div>
+	<div class="C3">
+		Chaz Brett
+	</div>
+	<div class="C3">
+		<a href="mailto:supercool360@hotmail.co.uk">supercool360@hotmail.co.uk</a>
 	</div>
 	<div class="clear"></div>
 </div>]]></html></template>

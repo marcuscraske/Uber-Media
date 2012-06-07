@@ -81,6 +81,9 @@
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Controls">
       <HintPath>..\..\Uber Controls\UberControls\obj\Debug\Controls.dll</HintPath>
@@ -187,6 +190,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="icon.ico" />
     <Content Include="Interfaces\YouTube\FlashPlayer.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

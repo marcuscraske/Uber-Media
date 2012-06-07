@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[The sidebar of the items page.]]></description><html><![CDATA[<h2>Options</h2>
+<a href="%URL%/item/%VITEMID%"><img src="%URL%/Content/Images/info.png" alt="View Details" />View Details</a>
+<a href="%URL%/item/%VITEMID%/modify"><img src="%URL%/Content/Images/modify.png" alt="Modify" />Modify</a>
+<a href="%URL%/item/%VITEMID%/rebuild"><img src="%URL%/Content/Images/rebuild_thumbnail.png" alt="Rebuild Thumbnail" />Rebuild Thumbnail</a>
+<a href="%URL%/item/%VITEMID%/delete"><img src="%URL%/Content/Images/delete.png" alt="Delete" />Delete</a>
+<a href="%URL%/item/%VITEMID%/reset_views"><img src="%URL%/Content/Images/reset_views.png" alt="Reset Views" />Reset Views</a>
+<h2>Media</h2>
+<a onclick="return itemPlay('%VITEMID%');" href="<!--URL-->/item/%VITEMID%/play_now"><img src="<!--URL-->/Content/Images/play_now.png" alt="Play Now" />Play Now</a>
+<a onclick="return itemQueue('%VITEMID%');" href="<!--URL-->/item/%VITEMID%/add_to_queue"><img src="<!--URL-->/Content/Images/play_queue.png" alt="Add to Queue" />Add to Queue</a>
+<a href="<!--URL-->/item/%VITEMID%/watch"><img src="<!--URL-->/Content/Images/play.png" alt="Add to Queue" />Watch via Browser</a>]]></html></template>

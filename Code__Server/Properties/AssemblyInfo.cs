@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Uber Media Server")]
+[assembly: AssemblyTitle("Terminal Server")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Ubermeat")]
-[assembly: AssemblyProduct("Uber Media Server")]
+[assembly: AssemblyProduct("Uber Media - Server")]
 [assembly: AssemblyCopyright("Creative Commons Attribution-ShareAlike 3.0 unported")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

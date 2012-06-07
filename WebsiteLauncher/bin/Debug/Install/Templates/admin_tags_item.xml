@@ -1,0 +1,1 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[A tag item on the admin tags page.]]></description><html><![CDATA[<a href="<!--URL-->/admin/tags/remove?t=%TAGID%" class="TAG">%TITLE%</a>]]></html></template>

@@ -1,0 +1,12 @@
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\bin\Debug\Launcher.exe
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\bin\Debug\Launcher.pdb
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\bin\Debug\Controls.dll
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\bin\Debug\Controls.pdb
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\obj\x86\Debug\ResolveAssemblyReference.cache
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\obj\x86\Debug\WebsiteLauncher.Launcher.resources
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\obj\x86\Debug\WebsiteLauncher.Settings.resources
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\obj\x86\Debug\WebsiteLauncher.Properties.Resources.resources
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\obj\x86\Debug\ResGen.read.1.tlog
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\obj\x86\Debug\ResGen.write.1.tlog
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\obj\x86\Debug\Launcher.exe
+X:\Dropbox\Dropbox\Projects\Github\Uber Media\WebsiteLauncher\obj\x86\Debug\Launcher.pdb
