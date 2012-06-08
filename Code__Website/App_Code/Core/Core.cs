@@ -129,10 +129,10 @@ namespace UberMedia
             }
             return null;
         }
-        public static void Log_External_Request(string reason, string url, Connector connector)
+        public static void Log_External_Request(string reason, string url)
         {
             GlobalConnector.CheckConnectionIsReady();
-            connector.Query_Execute("INSERT INTO external_requests (reason, url, datetime) VALUES('" + Utils.Escape(reason) + "', '" + Utils.Escape(url) + "', NOW());");
+            GlobalConnector.Query_Execute("INSERT INTO external_requests (reason, url, datetime) VALUES('" + Utils.Escape(reason) + "', '" + Utils.Escape(url) + "', NOW());");
         }
         public static void HtmlTemplates_Reload()
         {

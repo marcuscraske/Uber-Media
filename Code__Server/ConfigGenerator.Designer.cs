@@ -130,7 +130,7 @@
             // buttContinue
             // 
             this.buttContinue.BackColor = System.Drawing.Color.Transparent;
-            this.buttContinue.ButtonText = "Continue";
+            this.buttContinue.ButtonText = "Save";
             this.buttContinue.Cursor = System.Windows.Forms.Cursors.Hand;
             this.buttContinue.Location = new System.Drawing.Point(314, 370);
             this.buttContinue.Name = "buttContinue";

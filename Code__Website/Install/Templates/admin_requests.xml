@@ -6,7 +6,7 @@ Any external requests are listed below; external requests are made to e.g. retri
 
 <div class="R H">
 <div class="A">Reason</div>
-<div class="B">Date & Time</div>
+<div class="B">Date &amp; Time</div>
 <div class="C">URL</div>
 <div class="clear"></div>
 </div>

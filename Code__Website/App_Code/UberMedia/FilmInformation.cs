@@ -154,7 +154,7 @@ namespace UberMedia
                 string data = stream.ReadToEnd();
                 stream.Close();
                 resp.Close();
-                Core.Log_External_Request("Film data", url, Connector);
+                Core.Log_External_Request("Film data - Rotten Tomatoes", url);
                 JsonArray arr = (JsonArray)((JsonObject)JsonConvert.Import(data))["movies"];
                 int highest_index = -1;
                 bool valid;
@@ -289,6 +289,8 @@ namespace UberMedia
         {
             try
             {
+                // Log the download
+                Core.Log_External_Request("Film data - IMDB", _IMDB_DownloadDatabaseFile_URL);
                 _IMDB_Downloading = true;
                 // Check the cache directory exists
                 if (!Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Cache"))

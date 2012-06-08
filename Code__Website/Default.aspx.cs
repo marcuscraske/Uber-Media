@@ -182,8 +182,8 @@ public partial class _Default : System.Web.UI.Page
         string qtag = Request.QueryString["tag"] != null && IsNumeric(Request.QueryString["tag"]) ? Request.QueryString["tag"] : "";
         // Build current URL
         string current_url = ResolveUrl("/browse/" + (Request.QueryString["1"] != null ? Request.QueryString["1"] + (Request.QueryString["2"] != null ? "/" + Request.QueryString["2"] : "") : "") + "?");
-        string current_params = "&sort=" + (Request.QueryString["sort"] ?? "") + "&sd=" + (sort_asc ? "asc" : "desc");
-        string current_tag = "&tag=" + qtag;
+        string current_params = "&amp;sort=" + (Request.QueryString["sort"] ?? "") + "&amp;sd=" + (sort_asc ? "asc" : "desc");
+        string current_tag = "&amp;tag=" + qtag;
         // Build content area
         StringBuilder content = new StringBuilder();
         // Get the requested action
@@ -369,8 +369,8 @@ public partial class _Default : System.Web.UI.Page
                 content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_footer"]
                     .Replace("%PAGE%", page.ToString())
                     .Replace("%BUTTONS%",
-                                            (page > 1 ? UberMedia.Core.Cache_HtmlTemplates["browse_footer_previous"].Replace("%URL%", current_url + current_params + current_tag + "&p=" + (page - 1)) : "") +
-                                            (page <= int.MaxValue ? UberMedia.Core.Cache_HtmlTemplates["browse_footer_next"].Replace("%URL%", current_url + current_params + current_tag + "&p=" + (page + 1)) : "")
+                                            (page > 1 ? UberMedia.Core.Cache_HtmlTemplates["browse_footer_previous"].Replace("%URL%", current_url + current_params + current_tag + "&amp;p=" + (page - 1)) : "") +
+                                            (page <= int.MaxValue ? UberMedia.Core.Cache_HtmlTemplates["browse_footer_next"].Replace("%URL%", current_url + current_params + current_tag + "&amp;p=" + (page + 1)) : "")
                             ));
                 break;
         }
@@ -390,15 +390,15 @@ public partial class _Default : System.Web.UI.Page
         // -- Build a list of options for the current items
         sidebar.Append("<h2>Options</h2>");
         sidebar.Append("<a href=\"" + current_url + "\"><img src=\"<!--URL-->/Content/Images/view.png\" alt=\"View Items\" title=\"View Items\" />View Items</a>");
-        sidebar.Append("<a href=\"" + current_url + "&action=queue_all\"><img src=\"<!--URL-->/Content/Images/play_queue.png\" alt=\"Queue All Items\" title=\"Queue All Items\" />Queue All Items</a>");
+        sidebar.Append("<a href=\"" + current_url + "&amp;action=queue_all\"><img src=\"<!--URL-->/Content/Images/play_queue.png\" alt=\"Queue All Items\" title=\"Queue All Items\" />Queue All Items</a>");
         if (Request.QueryString["1"] != null)
         { // For folder-specific options only
-            sidebar.Append("<a href=\"" + current_url + "&action=add_folder\"><img src=\"<!--URL-->/Content/Images/add_folder.png\" alt=\"Add Folder\" title=\"Add Folder\" />Add Folder</a>");
-            sidebar.Append("<a href=\"" + current_url + "&action=add_youtube\"><img src=\"<!--URL-->/Content/Images/youtube.png\" alt=\"Add YouTube\" title=\"Add YouTube\" />Add YouTube</a>");
+            sidebar.Append("<a href=\"" + current_url + "&amp;action=add_folder\"><img src=\"<!--URL-->/Content/Images/add_folder.png\" alt=\"Add Folder\" title=\"Add Folder\" />Add Folder</a>");
+            sidebar.Append("<a href=\"" + current_url + "&amp;action=add_youtube\"><img src=\"<!--URL-->/Content/Images/youtube.png\" alt=\"Add YouTube\" title=\"Add YouTube\" />Add YouTube</a>");
         }
         if (Request.QueryString["2"] != null)
         { // For sub-folder specific options only
-            sidebar.Append("<a href=\"" + current_url + "&action=delete_folder\"><img src=\"<!--URL-->/Content/Images/delete_folder.png\" alt=\"Delete Folder\" title=\"Delete Folder\" />Delete Folder</a>");
+            sidebar.Append("<a href=\"" + current_url + "&amp;action=delete_folder\"><img src=\"<!--URL-->/Content/Images/delete_folder.png\" alt=\"Delete Folder\" title=\"Delete Folder\" />Delete Folder</a>");
         }
         // -- Display the sub-folders for this folder
         sidebar.Append("<h2>Sub-folders</h2>");
@@ -408,7 +408,7 @@ public partial class _Default : System.Web.UI.Page
                 sidebar.Append(UberMedia.Core.Cache_HtmlTemplates["browse_side_folder"]
                     .Replace("%CLASS%", "")
                     .Replace("%IURL%", ResolveUrl("/browse/" + folder["pfolderid"] + "/" + folder["vitemid"] + "?" + current_params))
-                    .Replace("%TITLE%", folder["title"].Length > 22 ? folder["title"].Substring(0, 22) + "..." : folder["title"])
+                    .Replace("%TITLE%", folder["title"].Length > 20 ? folder["title"].Substring(0, 20) + "..." : folder["title"])
                     .Replace("%ICON%", ResolveUrl("/Content/Images/folder.png")));
         // Finalize page
         PageElements["CONTENT_LEFT"] = sidebar.ToString();
@@ -634,7 +634,7 @@ public partial class _Default : System.Web.UI.Page
             Page__404();
             return;
         }
-        string content = "<h2>Viewing " + data[0]["title"] + " - " + Browse_CreateNavigationBar(data[0]["pfolderid"], data[0]["parent"]) + "</h2>";
+        StringBuilder content = new StringBuilder("<h2>Viewing " + HttpUtility.HtmlEncode(data[0]["title"]) + " - ").Append(Browse_CreateNavigationBar(data[0]["pfolderid"], data[0]["parent"])).Append("</h2>");
         switch (Request.QueryString["2"])
         {
             case "modify":
@@ -662,11 +662,12 @@ public partial class _Default : System.Web.UI.Page
                 foreach (ResultRow type in Connector.Query_Read("SELECT title, uid FROM item_types WHERE system='0' ORDER BY title ASC"))
                     types += "<option value=\"" + HttpUtility.HtmlEncode(type["uid"]) + "\"" + ((Request.Form["type_uid"] != null && type["uid"].Equals(Request.Form["type_uid"]) || (type["uid"].Equals(data[0]["type_uid"]))) ? " selected=\"selected\"" : "") + ">" + HttpUtility.HtmlEncode(type["title"]) +"</option>";
                 // Output content
-                content += UberMedia.Core.Cache_HtmlTemplates["item_modify"]
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["item_modify"]
                     .Replace("%VITEMID%", data[0]["vitemid"])
                     .Replace("%TITLE%", HttpUtility.HtmlEncode(Request.Form["title"] ?? data[0]["title"]))
                     .Replace("%TYPES%", types)
-                    .Replace("%DESCRIPTION%", HttpUtility.HtmlEncode(Request.Form["description"] ?? data[0]["description"]));
+                    .Replace("%DESCRIPTION%", HttpUtility.HtmlEncode(Request.Form["description"] ?? data[0]["description"]))
+                );
                 break;
             case "rebuild":
                 if (Request.Form["confirm"] != null)
@@ -675,11 +676,12 @@ public partial class _Default : System.Web.UI.Page
                     Response.Redirect(ResolveUrl("/item/" + vitemid));
                 }
                 else
-                    content += UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                    content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
                         .Replace("%ACTION_TITLE%", "Thumbnail Rebuild")
                         .Replace("%ACTION_URL%", "<!--URL-->/item/" + data[0]["vitemid"] + "/rebuild")
                         .Replace("%ACTION_DESC%", "Are you sure you want to rebuild the thumbnail of this item?")
-                        .Replace("%ACTION_BACK%", "<!--URL-->/item/" + data[0]["vitemid"]);
+                        .Replace("%ACTION_BACK%", "<!--URL-->/item/" + data[0]["vitemid"])
+                        );
                 break;
             case "delete":
                 if (Request.Form["confirm"] != null)
@@ -692,7 +694,7 @@ public partial class _Default : System.Web.UI.Page
                             if (File.Exists(Server.MapPath("/Content/Thumbnails/" + data[0]["vitemid"] + ".png")))
                                 File.Delete(Server.MapPath("/Content/Thumbnails/" + data[0]["vitemid"] + ".png"));
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         { throw new Exception("Could not delete thumbnail: " + ex.Message); }
                         // Delete file
                         File.Delete(data[0]["path"]);
@@ -700,30 +702,32 @@ public partial class _Default : System.Web.UI.Page
                         Connector.Query_Execute("DELETE FROM virtual_items WHERE vitemid='" + Utils.Escape(data[0]["vitemid"]) + "'; DELETE FROM terminal_buffer WHERE command='media' AND arguments='" + Utils.Escape(data[0]["vitemid"]) + "';");
                         Response.Redirect(ResolveUrl("/browse"));
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
-                        content += "<h2>Deletion Error</h2><p>Could not delete file, the following error occurred:</p><p>" + HttpUtility.HtmlEncode(ex.Message) + "</p>";
+                        content.Append("<h2>Deletion Error</h2><p>Could not delete file, the following error occurred:</p><p>").Append(HttpUtility.HtmlEncode(ex.Message)).Append("</p>");
                     }
                 }
                 else
-                    content += UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                    content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
                         .Replace("%ACTION_TITLE%", "Deletion")
                         .Replace("%ACTION_URL%", "<!--URL-->/item/" + data[0]["vitemid"] + "/delete")
                         .Replace("%ACTION_DESC%", "Are you sure you want to delete this item?")
-                        .Replace("%ACTION_BACK%", "<!--URL-->/item/" + data[0]["vitemid"]);
+                        .Replace("%ACTION_BACK%", "<!--URL-->/item/" + data[0]["vitemid"])
+                        );
                 break;
             case "reset_views":
-                if(Request.Form["confirm"] != null)
+                if (Request.Form["confirm"] != null)
                 {
                     Connector.Query_Execute("UPDATE virtual_items SET views='0' WHERE vitemid='" + Utils.Escape(data[0]["vitemid"]) + "'");
                     Response.Redirect(ResolveUrl("/item/" + data[0]["vitemid"]));
                 }
                 else
-                    content += UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                    content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
                         .Replace("%ACTION_TITLE%", "Reset Views")
                         .Replace("%ACTION_URL%", "<!--URL-->/item/" + data[0]["vitemid"] + "/reset_views")
                         .Replace("%ACTION_DESC%", "Are you sure you want to reset the views of this item?")
-                        .Replace("%ACTION_BACK%", "<!--URL-->/item/" + data[0]["vitemid"]);
+                        .Replace("%ACTION_BACK%", "<!--URL-->/item/" + data[0]["vitemid"])
+                        );
                 break;
             case "play_now":
                 if(Session["mediacomputer"] != null) terminalBufferEntry("media", (string)Session["mediacomputer"], data[0]["vitemid"], false, true, Connector);
@@ -839,32 +843,32 @@ public partial class _Default : System.Web.UI.Page
                     case 1000: // Video
                         // Use VLC or HTML5 video
                         if (forceVLC || (Request.QueryString["3"] != null && Request.QueryString["3"].Equals("vlc")))
-                            content += UberMedia.Core.Cache_HtmlTemplates["item_player_vlc"];
+                            content.Append(UberMedia.Core.Cache_HtmlTemplates["item_player_vlc"]);
                         else
-                            content += UberMedia.Core.Cache_HtmlTemplates["item_player_html5_video"];
+                            content.Append(UberMedia.Core.Cache_HtmlTemplates["item_player_html5_video"]);
                         break;
                     case 1200: // Audio
                         // Use VLC or HTML5 audio
                         if (forceVLC || (Request.QueryString["3"] != null && Request.QueryString["3"].Equals("vlc")))
-                            content += UberMedia.Core.Cache_HtmlTemplates["item_player_vlc"];
+                            content.Append(UberMedia.Core.Cache_HtmlTemplates["item_player_vlc"]);
                         else
-                            content += UberMedia.Core.Cache_HtmlTemplates["item_player_html5_audio"];
+                            content.Append(UberMedia.Core.Cache_HtmlTemplates["item_player_html5_audio"]);
                         break;
                     case 1300: // YouTube
                         // Use YouTube embedded player
-                        content += UberMedia.Core.Cache_HtmlTemplates["item_player_youtube"];
+                        content.Append(UberMedia.Core.Cache_HtmlTemplates["item_player_youtube"]);
                         PageElements.Add("ITEM_YOUTUBE", File.ReadAllText(data[0]["path"]));
                         break;
                     case 1400: // Web-link
                         // Display a hyper-link
-                        content += UberMedia.Core.Cache_HtmlTemplates["item_player_web"];
+                        content.Append(UberMedia.Core.Cache_HtmlTemplates["item_player_web"]);
                         PageElements.Add("ITEM_URL", File.ReadAllText(data[0]["path"]));
                         break;
                     case 1500: // Image
-                        content += UberMedia.Core.Cache_HtmlTemplates["item_player_image"];
+                        content.Append(UberMedia.Core.Cache_HtmlTemplates["item_player_image"]);
                         break;
                     default: // Unknown
-                        content += UberMedia.Core.Cache_HtmlTemplates["item_player_unknown"];
+                        content.Append(UberMedia.Core.Cache_HtmlTemplates["item_player_unknown"]);
                         break;
                 }
                 PageElements.Add("ITEM_VITEMID", data[0]["vitemid"]);
@@ -879,16 +883,16 @@ public partial class _Default : System.Web.UI.Page
                         Connector.Query_Execute("INSERT INTO tag_items (tagid, vitemid) VALUES('" + Utils.Escape(Request.Form["tag"]) + "', '" + Utils.Escape(data[0]["vitemid"]) + "')");
                 }
                 // Build page content
-                content += UberMedia.Core.Cache_HtmlTemplates["item_page"]
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["item_page"]
                     .Replace("%VITEMID%", data[0]["vitemid"])
                     .Replace("%TITLE%", HttpUtility.HtmlEncode(data[0]["title"]))
                     .Replace("%DESCRIPTION%", data[0]["description"].Length > 0 ? HttpUtility.HtmlEncode(data[0]["description"]) : "(no description)")
                     .Replace("%VIEWS%", data[0]["views"])
                     .Replace("%DATE_ADDED%", data[0]["date_added"])
                     .Replace("%RATING%", data[0]["cache_rating"])
-                    .Replace("%TYPE%", data[0]["type"])
-                    .Replace("%PATH%", data[0]["path"])
-                    .Replace("%VITEMID%", data[0]["vitemid"]);
+                    .Replace("%TYPE%", HttpUtility.HtmlEncode(data[0]["type"]))
+                    .Replace("%PATH%", HttpUtility.HtmlEncode(data[0]["path"]))
+                    .Replace("%VITEMID%", data[0]["vitemid"]));
                 // Add tags
                 string cTags = "";
                 string optionsTags = "";
@@ -903,13 +907,13 @@ public partial class _Default : System.Web.UI.Page
                             .Replace("%TITLE%", HttpUtility.HtmlEncode(tag["title"]));
                 // Build a list of all the tags
                 foreach (ResultRow tag in Connector.Query_Read("SELECT * FROM tags ORDER BY title ASC"))
-                    optionsTags += "<option value=\"" + HttpUtility.HtmlEncode(tag["tagid"]) + "\">" + HttpUtility.HtmlEncode(tag["title"]) + "</option>";
+                    optionsTags += "<option value=\"" + tag["tagid"] + "\">" + HttpUtility.HtmlEncode(tag["title"]) + "</option>";
                 content = content.Replace("%TAGS%", cTags).Replace("%OPTIONS_TAGS%", optionsTags);
                 break;
         }
         SelectNavItem("BROWSE");
         // Build content area
-        PageElements["CONTENT_RIGHT"] = content;
+        PageElements["CONTENT_RIGHT"] = content.ToString();
         // Build options area
         PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["item_sidebar"].Replace("%URL%", ResolveUrl("")).Replace("%VITEMID%", vitemid);
     }
