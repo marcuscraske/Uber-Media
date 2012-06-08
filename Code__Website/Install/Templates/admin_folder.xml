@@ -1,17 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[Admin folder page used to modify/control a folder.]]></description><html><![CDATA[<h2><a href="<!--URL-->/admin/folders">Configure Main Folders</a> &gt; <a href="<!--URL-->/admin/folder/%PFOLDERID%">%TITLE%</a></h2>
 <h3>Stats</h3>
-<div class="T">
+<div class="R">
 
-<div>Total items:</div>
-<div>%TOTAL_ITEMS%</div>
+<div class="C">Total items:</div>
+<div class="C">%TOTAL_ITEMS%</div>
 
-<div>Total folders:</div>
-<div>%TOTAL_FOLDERS%</div>
+<div class="C">Total folders:</div>
+<div class="C">%TOTAL_FOLDERS%</div>
 
-<div>Total views:</div>
-<div>%TOTAL_VIEWS%</div>
+<div class="C">Total views:</div>
+<div class="C">%TOTAL_VIEWS%</div>
 
-<div>&nbsp;</div>
+<div class="clear"></div>
 </div>
 <h3>Options</h3>
 <a href="<!--URL-->/admin/folder/%PFOLDERID%/index" class="BUTTON FL M">Run Indexer</a>
@@ -23,15 +23,15 @@
 Below you can add the types of media you want indexed in your media library for this folder.
 
 <form method="post" action="<!--URL-->/admin/folder/%PFOLDERID%/add_type">
-<div class="T">
-<div>&nbsp;</div><div>&nbsp;</div>
+<div class="R">
 
-<div>Type:</div>
-<div><select name="type">%TYPES%</select></div>
+<div class="C">Type:</div>
+<div class="C"><select name="type">%TYPES%</select></div>
 
-<div>You should press the "Run Indexer" button in the options area for changes to occur.</div>
-<div><input type="submit" class="BUTTON" value="Add" /></div>
+<div class="C">You should press the "Run Indexer" button in the options area for changes to occur.</div>
+<div class="C"><input type="submit" class="BUTTON" value="Add" /></div>
 
+<div class="clear"></div>
 </div>
 </form>
 
@@ -40,24 +40,23 @@ Below you can add the types of media you want indexed in your media library for 
 
 <h3>Modify</h3>
 <form method="post" action="<!--URL-->/admin/folder/%PFOLDERID%">
-<div class="T">
+<div class="R">
 
-<div>Title:</div>
-<div><input type="text" name="title" value="%TITLE%" /></div>
+<div class="C">Title:</div>
+<div class="C"><input type="text" name="title" value="%TITLE%" /></div>
 
-<div>Path:</div>
-<div><input type="text" name="path" value="%PATH%" /></div>
+<div class="C">Path:</div>
+<div class="C"><input type="text" name="path" value="%PATH%" /></div>
 
-<div>Allow web synopsis:</div>
-<div><input type="checkbox" name="synopsis" %SYNOPSIS%/></div>
+<div class="C">Allow web synopsis:</div>
+<div class="C"><input type="checkbox" name="synopsis" %SYNOPSIS%/></div>
 
-<div>&nbsp;</div>
-<div>&nbsp;</div>
+<div class="clear"></div><br /><br />
 
-<div>When changing the path, ensure it is correct or you could loose all of your media information for this folder!</div>
-<div><input type="submit" class="BUTTON" value="Save" /></div>
+<div class="C">When changing the path, ensure it is correct or you could loose all of your media information for this folder!</div>
+<div class="C"><input type="submit" class="BUTTON" value="Save" /></div>
 
-<div>&nbsp;</div>
+<div class="clear"></div>
 </div>
 <div class="clear"></div>
 <div class="ERROR_BOX" style="<!--ERR_STYLE-->">
