@@ -32,7 +32,7 @@
     {
         // This code rewrites the URL
         string path = System.Web.HttpContext.Current.Request.Path;
-        if (path.ToLower().StartsWith("/content") || path.ToLower().StartsWith("/backend")) return;
+        if (path.ToLower().StartsWith("/content") || path.ToLower().StartsWith("/backend") || path.Equals("/favicon.ico")) return;
         else if (path.ToLower().StartsWith("/installer"))
         {
             RewriteNewPath(Request.ApplicationPath + "/Install/Installer.aspx", Request.ApplicationPath + "/Install/Installer.aspx");
