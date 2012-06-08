@@ -37,6 +37,8 @@ namespace UberMediaServer
         private Thread workerProcessor = null;
         public NowPlaying np = null;
         public double currentVolume = 1.0f;
+        private List<string> playedItems = new List<string>();
+        private int playedItemsOffset = 0;
         #endregion
 
         #region "Form - Init"
@@ -112,6 +114,7 @@ namespace UberMediaServer
             string response = null;
             string command = null;
             string args = null;
+            bool commandQueued = false;
             while (true)
             {
                 try
@@ -123,12 +126,14 @@ namespace UberMediaServer
                         else m.np.updatePositionEnd();
                     }
                     catch { System.Diagnostics.Debug.WriteLine("Failed to get position and duration!"); }
+                    // Check if to get queued commands only
+                    commandQueued = m._currentInterface == null; // Only use queued commands if the current media has finished
                     // Build the URL for updating the status etc
                     url = new StringBuilder();
                     url.Append(m.libraryURL + "/terminal/update?")     // Append base URL
                     // -- Append parameters of the request
                         .Append("&tid=").Append(m.terminalID)
-                        .Append("&q=").Append(m._currentInterface == null || m._currentInterface.State() == Interfaces.Interface.States.Idle ? "1" : "0");
+                        .Append("&q=").Append(commandQueued ? "1" : "0");
                     if(m._currentInterface != null)
                         url
                         .Append("&state=").Append((int)m._currentInterface.State())
@@ -171,27 +176,42 @@ namespace UberMediaServer
                             // Shutdown this terminal
                             // <no args>
                             case "shutdown":
-                                m.controlShutdown();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlShutdown();
+                                });
                                 break;
                             // Play the current media
                             // <no args>
                             case "play":
-                                m.controlPlay();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlPlay();
+                                });
                                 break;
                             // Toggles play/pause of the current media
                             // <no args>
                             case "play_toggle":
-                                m.controlPlayToggle();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlPlayToggle();
+                                });
                                 break;
                             // Stop the current media
                             // <no args>
                             case "stop":
-                                m.controlStop();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlStop();
+                                });
                                 break;
                             // Pause the current media
                             // <no args>
                             case "pause":
-                                m.controlPause();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlPause();
+                                });
                                 break;
                             // Sets the current volume of the interface.
                             // <volume from 0.0 to 1.0>
@@ -200,65 +220,108 @@ namespace UberMediaServer
                                 double.TryParse(args, out value);
                                 if (value != -1)
                                 {
-                                    m.controlVolume(value);
-                                    m.currentVolume = value;
+                                    m.Invoke((MethodInvoker)delegate()
+                                    {
+                                        m.controlVolume(value);
+                                        m.currentVolume = value;
+                                    });
                                 }
                                 break;
                             // Mutes the volume of the current media.
                             // <no args>
                             case "mute":
-                                m.controlVolumeMute();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlVolumeMute();
+                                });
                                 break;
                             // Unmutes the volume of the current media.
                             // <no args>
                             case "unmute":
-                                m.controlVolumeUnmute();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlVolumeUnmute();
+                                });
                                 break;
                             // Toggles the mute of the current media.
                             // <no args>
                             case "mute_toggle":
-                                m.controlVolumeMuteToggle();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlVolumeMuteToggle();
+                                });
                                 break;
                             // Sets the position of the current media.
                             // <seconds>
                             case "position":
                                 double value2 = -1;
                                 double.TryParse(args, out value2);
-                                m.controlPosition(value2);
+                                if (value2 >= 0)
+                                    m.Invoke((MethodInvoker)delegate()
+                                    {
+                                        m.controlPosition(value2);
+                                    });
                                 break;
                             // Plays the previous item in the playlist
                             // <no args>
                             case "previous":
-                                m.controlItemPrevious();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlItemPrevious();
+                                });
                                 break;
                             // Plays the next item in the playlist
                             // <no args>
                             case "next":
-                                m.controlItemNext();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlItemNext();
+                                });
                                 break;
                             // Skips the current media backwards by a few seconds
                             // <no args>
                             case "skip_backward":
-                                m.controlSkipBackward();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlSkipBackward();
+                                });
                                 break;
                             // Skips the current media forward by a few seconds
                             // <no args>
                             case "skip_forward":
-                                m.controlSkipForward();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlSkipForward();
+                                });
                                 break;
                             // Change media
                             // <vitemid>
                             case "media":
-                                m.controlMedia(args);
+                                // Add to history
+                                m.playedItems.Add(args);
+                                // If not queued, play now (reset the history index)
+                                if (!commandQueued) m.playedItemsOffset = 0;
+                                else if (m.playedItemsOffset > 0) m.playedItemsOffset++;
+                                // Play media
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlMedia(m.playedItems[m.playedItems.Count - 1 - m.playedItemsOffset]);
+                                });
                                 break;
                             // API command
                             // <data>
                             case "api":
-                                m.controlAPI(args);
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlAPI(args);
+                                });
                                 break;
                             // Restart the terminal
                             case "restart":
-                                m.controlRestart();
+                                m.Invoke((MethodInvoker)delegate()
+                                {
+                                    m.controlRestart();
+                                });
                                 break;
                             // Unknown command - hault application and inform the user, could be critical!
                             default: m.np.displayMessage("Received unknown command '" + command + "'!"); break;
@@ -266,6 +329,7 @@ namespace UberMediaServer
                     }
                     // No command executed, sleep for 200 m/s
                     else System.Threading.Thread.Sleep(200);
+
                 }
                 catch (Exception ex)
                 {
@@ -288,17 +352,24 @@ namespace UberMediaServer
         /// </summary>
         public void HookInterfaceEvent_End()
         {
-            if(_currentInterface != null) _currentInterface.MediaEnd += new Interfaces.Interface._MediaEnd(intf_MediaEnd);
+            if(_currentInterface != null)
+                _currentInterface.MediaEnd += new Interfaces.Interface._MediaEnd(intf_MediaEnd);
         }
         /// <summary>
         /// This methid is invoked when an interface media ends.
         /// </summary>
         void intf_MediaEnd()
         {
-            // Clear the information pane now playing text
-            np.updateNowPlaying(null, null);
-            // Play the next item
-            controlItemNext();
+            Invoke((MethodInvoker)delegate()
+            {
+                // Clear the information pane now playing text
+                np.updateNowPlaying(null, null);
+                // Dispose the interface
+                DisposeCurrentInterface();
+                // Play the next item if in an offset
+                if (playedItemsOffset > 0)
+                    controlItemNext();
+            });
         }
         #endregion
 
@@ -309,6 +380,7 @@ namespace UberMediaServer
         public void DisposeCurrentInterface()
         {
             if (_currentInterface == null) return;
+            _currentInterface.MediaEnd -= new Interfaces.Interface._MediaEnd(intf_MediaEnd);
             _currentInterface.Dispose();
             _currentInterface = null;
         }
@@ -460,13 +532,13 @@ namespace UberMediaServer
         }
         public void controlItemPrevious()
         {
-            // Not implemented yet.
+            if (playedItemsOffset < playedItems.Count - 1) playedItemsOffset++;
+            controlMedia(playedItems[playedItems.Count - 1 - playedItemsOffset]);
         }
         public void controlItemNext()
         {
-            try
-            { if(_currentInterface != null) DisposeCurrentInterface(); }
-            catch { }
+            if (playedItemsOffset > 0) playedItemsOffset--;
+            controlMedia(playedItems[playedItems.Count - 1 - playedItemsOffset]);
         }
         public void controlSkipBackward()
         {
@@ -505,9 +577,6 @@ namespace UberMediaServer
         {
             // Dispose interface
             DisposeCurrentInterface();
-            // Shutdown worker processor
-            workerProcessor.Abort();
-            workerProcessor = null;
             // Restart
             np.displayMessage("Restarting terminal...");
             Thread.Sleep(500);
@@ -562,56 +631,62 @@ namespace UberMediaServer
             { if (_currentInterface != null) _currentInterface.API(data); }
             catch { }
         }
+        private object controlMediaLock = new object();
         /// <summary>
         /// Changes the media being played to a different item.
         /// </summary>
         /// <param name="vitemid"></param>
         public void controlMedia(string _vitemid)
         {
+            // Dispose previous interface
             DisposeCurrentInterface();
-            // Fetch the virtual item details
-            string mediaTitle = null;
-            string mediaInterface = null;
-            string mediaPath = null;
-            string data = null;
-            try
+            // Create new interface - thread-lock this procedure to avoid multi-threading issues
+            lock (controlMediaLock)
             {
-                data = Library.fetchData(libraryURL + "/terminal/media?vitemid=" + _vitemid);
-                WebPacket wp = new WebPacket(data);
-                if (wp.errorCode == WebPacket.ErrorCode.ERROR) throw new Exception("Web packet error '" + wp.errorMessage + "'!");
-                else if (wp.arguments.Count != 3)
-                    throw new LibraryConnectionFailure("Malformed argument count!");
-                else
+                // Fetch the virtual item details
+                string mediaTitle = null;
+                string mediaInterface = null;
+                string mediaPath = null;
+                string data = null;
+                try
                 {
-                    // -- Interface, Path, Title
-                    mediaTitle = wp.arguments[2];
-                    mediaPath = wp.arguments[1];
-                    mediaInterface = wp.arguments[0];
+                    data = Library.fetchData(libraryURL + "/terminal/media?vitemid=" + _vitemid);
+                    WebPacket wp = new WebPacket(data);
+                    if (wp.errorCode == WebPacket.ErrorCode.ERROR) throw new Exception("Web packet error '" + wp.errorMessage + "'!");
+                    else if (wp.arguments.Count != 3)
+                        throw new LibraryConnectionFailure("Malformed argument count!");
+                    else
+                    {
+                        // -- Interface, Path, Title
+                        mediaTitle = wp.arguments[2];
+                        mediaPath = wp.arguments[1];
+                        mediaInterface = wp.arguments[0];
+                    }
                 }
-            }
-            catch(Exception ex)
-            {
-                throw new LibraryConnectionFailure("Failed to retrieve media information: '" + ex.Message + "' - data: '" + data + "'!", ex);
-            }
-            try
-            {
-                System.Diagnostics.Debug.WriteLine("Playing new item: " + mediaTitle + " : " + mediaInterface + " : " + mediaPath);
-                _currentInterface = (Interfaces.Interface)System.Reflection.Assembly.GetExecutingAssembly().CreateInstance("UberMediaServer.Interfaces." + mediaInterface, false, System.Reflection.BindingFlags.CreateInstance, null,
-                    new object[] { this, mediaPath, vitemid }, null, null);
-                HookInterfaceEvent_End();
-                // Set the volume
-                _currentInterface.Volume = currentVolume;
-                // Update information pane
-                np.displayMessage("Now playing:\t\t" + mediaTitle);
-                np.updateNowPlaying(mediaTitle, _vitemid);
-                vitemid = _vitemid;
-                Refocus();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(ex.Message + ": " + ex.StackTrace);
-                DisposeCurrentInterface();
-                throw new Exception("Could not play item '" + vitemid + "': " + ex.Message + "!");
+                catch (Exception ex)
+                {
+                    throw new LibraryConnectionFailure("Failed to retrieve media information: '" + ex.Message + "' - data: '" + data + "'!", ex);
+                }
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine("Playing new item: " + mediaTitle + " : " + mediaInterface + " : " + mediaPath);
+                    _currentInterface = (Interfaces.Interface)System.Reflection.Assembly.GetExecutingAssembly().CreateInstance("UberMediaServer.Interfaces." + mediaInterface, false, System.Reflection.BindingFlags.CreateInstance, null,
+                        new object[] { this, mediaPath, vitemid }, null, null);
+                    HookInterfaceEvent_End();
+                    // Set the volume
+                    _currentInterface.Volume = currentVolume;
+                    // Update information pane
+                    np.displayMessage("Now playing:\t\t" + mediaTitle);
+                    np.updateNowPlaying(mediaTitle, _vitemid);
+                    vitemid = _vitemid;
+                    Refocus();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine(ex.Message + ": " + ex.StackTrace);
+                    DisposeCurrentInterface();
+                    throw new Exception("Could not play item '" + vitemid + "': " + ex.Message + "!");
+                }
             }
         }
         #endregion

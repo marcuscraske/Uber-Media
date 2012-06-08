@@ -26,6 +26,7 @@ namespace UberMediaServer.Interfaces
     public class video_vlc : Interface
     {
         #region "Variables"
+        private bool disposing = false;
         private IMediaPlayerFactory m_factory;
         private IDiskPlayer m_player;
         private IMedia m_media;
@@ -44,25 +45,18 @@ namespace UberMediaServer.Interfaces
         {
             try
             {
-                main.Invoke((MethodInvoker)delegate()
-                {
-                    // Create player
-                    m_factory = new MediaPlayerFactory();
-                    m_player = m_factory.CreatePlayer<IDiskPlayer>();
-                    m_player.Events.MediaEnded += new EventHandler(Events_MediaEnded);
-                    m_player.Events.PlayerStopped += new EventHandler(Events_PlayerStopped);
-                    m_player.WindowHandle = main.panel1.Handle;
-                });
-                main.Invoke((MethodInvoker)delegate()
-                {
-                    // Open media
-                    m_media = m_factory.CreateMedia<IMedia>(path);
-                    m_media.Events.DurationChanged += new EventHandler<MediaDurationChange>(Events_DurationChanged);
-                    m_media.Events.StateChanged += new EventHandler<MediaStateChange>(Events_StateChanged);
-                    m_player.Open(m_media);
-                    m_media.Parse(true);
-                    m_player.Play();
-                });
+                // Create player
+                m_factory = new MediaPlayerFactory();
+                m_player = m_factory.CreatePlayer<IDiskPlayer>();
+                m_player.Events.MediaEnded += new EventHandler(Events_MediaEnded);
+                m_player.WindowHandle = main.panel1.Handle;
+                // Open media
+                m_media = m_factory.CreateMedia<IMedia>(path);
+                m_media.Events.DurationChanged += new EventHandler<MediaDurationChange>(Events_DurationChanged);
+                m_media.Events.StateChanged += new EventHandler<MediaStateChange>(Events_StateChanged);
+                m_player.Open(m_media);
+                m_media.Parse(true);
+                m_player.Play();
             }
             catch(Exception ex)
             {
@@ -80,13 +74,14 @@ namespace UberMediaServer.Interfaces
         {
             duration = e.NewDuration;
         }
-        void Events_PlayerStopped(object sender, EventArgs e)
-        {
-            if (MediaEnd != null) MediaEnd();
-        }
         void Events_MediaEnded(object sender, EventArgs e)
         {
-            if (MediaEnd != null) MediaEnd();
+            if (MediaEnd != null & !disposing)
+            {
+                System.Diagnostics.Debug.WriteLine("media end event about to be thrown by VLC!");
+                MediaEnd();
+                System.Diagnostics.Debug.WriteLine("Media end event thrown by VLC!");
+            }
         }
         #endregion
 
@@ -166,14 +161,25 @@ namespace UberMediaServer.Interfaces
         }
         public override void Dispose()
         {
-            formMain.Invoke((MethodInvoker)delegate()
+            lock (m_media)
             {
-                m_player.WindowHandle = IntPtr.Zero;
-                if (m_player.IsPlaying) m_player.Stop();
-                m_media.Dispose();
-                m_player.Dispose();
-                m_factory.Dispose();
-            });
+                lock (m_player)
+                {
+                    lock (m_factory)
+                    {
+                        disposing = true;
+                        m_player.Events.MediaEnded -= new EventHandler(Events_MediaEnded);
+                        m_player.Stop();
+                        m_player.WindowHandle = IntPtr.Zero;
+                        m_media.Dispose();
+                        m_player.Dispose();
+                        m_factory.Dispose();
+                    }
+                }
+            }
+            m_media = null;
+            m_player = null;
+            m_factory = null;
         }
         #endregion
     }

@@ -77,11 +77,8 @@ namespace UberMediaServer.Interfaces
         #region "Methods - Overrides"
         public override void Dispose()
         {
-            formMain.Invoke((MethodInvoker)delegate()
-            {
-                formMain.panel1.Visible = true;
-                formMain.Paint -= new PaintEventHandler(main_Paint);
-            });
+            formMain.panel1.Visible = true;
+            formMain.Paint -= new PaintEventHandler(main_Paint);
             if (img != null)
             {
                 img.Dispose();
