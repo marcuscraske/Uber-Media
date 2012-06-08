@@ -52,9 +52,9 @@ namespace UberMediaServer.Interfaces
                     formMain.panel1.Visible = false;
                 });
             }
-            catch
+            catch(Exception ex)
             {
-                Error("Could not load image!");
+                if (Error != null) Error("Could not load image - " + ex.Message + "!");
             }
         }
         #endregion

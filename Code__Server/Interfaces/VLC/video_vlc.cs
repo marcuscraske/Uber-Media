@@ -35,31 +35,39 @@ namespace UberMediaServer.Interfaces
 
         #region "Events"
         public override event Interface._MediaEnd MediaEnd;
+        public override event Interface._Error Error;
         #endregion
 
         #region "Methods - Constructors"
         public video_vlc(Main main, string path, string vitemid)
             : base(main, path, vitemid)
         {
-            main.Invoke((MethodInvoker)delegate()
+            try
             {
-                // Create player
-                m_factory = new MediaPlayerFactory();
-                m_player = m_factory.CreatePlayer<IDiskPlayer>();
-                m_player.Events.MediaEnded += new EventHandler(Events_MediaEnded);
-                m_player.Events.PlayerStopped += new EventHandler(Events_PlayerStopped);
-                m_player.WindowHandle = main.panel1.Handle;
-            });
-            main.Invoke((MethodInvoker)delegate()
+                main.Invoke((MethodInvoker)delegate()
+                {
+                    // Create player
+                    m_factory = new MediaPlayerFactory();
+                    m_player = m_factory.CreatePlayer<IDiskPlayer>();
+                    m_player.Events.MediaEnded += new EventHandler(Events_MediaEnded);
+                    m_player.Events.PlayerStopped += new EventHandler(Events_PlayerStopped);
+                    m_player.WindowHandle = main.panel1.Handle;
+                });
+                main.Invoke((MethodInvoker)delegate()
+                {
+                    // Open media
+                    m_media = m_factory.CreateMedia<IMedia>(path);
+                    m_media.Events.DurationChanged += new EventHandler<MediaDurationChange>(Events_DurationChanged);
+                    m_media.Events.StateChanged += new EventHandler<MediaStateChange>(Events_StateChanged);
+                    m_player.Open(m_media);
+                    m_media.Parse(true);
+                    m_player.Play();
+                });
+            }
+            catch(Exception ex)
             {
-                // Open media
-                m_media = m_factory.CreateMedia<IMedia>(path);
-                m_media.Events.DurationChanged += new EventHandler<MediaDurationChange>(Events_DurationChanged);
-                m_media.Events.StateChanged += new EventHandler<MediaStateChange>(Events_StateChanged);
-                m_player.Open(m_media);
-                m_media.Parse(true);
-                m_player.Play();
-            });
+                if (Error != null) Error("Could not load media - " + ex.Message + "!");
+            }
         }
         #endregion
 

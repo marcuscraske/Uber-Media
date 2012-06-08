@@ -41,43 +41,58 @@ namespace UberMediaServer.Interfaces
 
         #region "Events"
         public override event Interface._MediaEnd MediaEnd;
+        public override event Interface._Error Error;
         #endregion
 
         #region "Methods - Constructors"
         public youtube(Main main, string path, string vitemid) : base(main, path, vitemid)
         {
-            mainForm = main;
-            // Check Adobe Flash is installed
-            if (!checkedFlashInstall)
-            {
-                flashInstalled = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Macromedia\FlashPlayer") != null;
-                checkedFlashInstall = true;
-                System.Diagnostics.Debug.WriteLine("Adobe Flash Player installed: " + flashInstalled);
-            }
-            // Create browser object
-            main.Invoke((MethodInvoker)delegate()
-            {
-                // Create and attach web browser to inner panel
-                browser = new WebBrowser();
-                main.panel1.Controls.Add(browser);
-                // Set browser properties
-                browser.ScriptErrorsSuppressed = true;
-                browser.Dock = DockStyle.Fill;
-                browser.DocumentTitleChanged += new EventHandler(browser_DocumentTitleChanged);
-                browser.ScrollBarsEnabled = false;
-                // Load YouTube player if flash is installed - else inform the user
-                if(flashInstalled)
-                    browser.Navigate("file://" + Application.StartupPath + "\\Interfaces\\YouTube\\YouTube.html");
-                else
-                    browser.Navigate("file://" + Application.StartupPath + "\\Interfaces\\YouTube\\FlashPlayer.html");
-            });
-            // Pass the path variable, which contains the ID of the YouTube video
             try
             {
-                videoid = File.ReadAllText(path);
+                mainForm = main;
+                // Check Adobe Flash is installed
+                if (!checkedFlashInstall)
+                {
+                    flashInstalled = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Macromedia\FlashPlayer") != null;
+                    checkedFlashInstall = true;
+                    System.Diagnostics.Debug.WriteLine("Adobe Flash Player installed: " + flashInstalled);
+                }
+                // Create browser object
+                main.Invoke((MethodInvoker)delegate()
+                {
+                    try
+                    {
+                        // Create and attach web browser to inner panel
+                        browser = new WebBrowser();
+                        main.panel1.Controls.Add(browser);
+                        // Set browser properties
+                        browser.ScriptErrorsSuppressed = true;
+                        browser.Dock = DockStyle.Fill;
+                        browser.DocumentTitleChanged += new EventHandler(browser_DocumentTitleChanged);
+                        browser.ScrollBarsEnabled = false;
+                        // Load YouTube player if flash is installed - else inform the user
+                        if (flashInstalled)
+                            browser.Navigate("file://" + Application.StartupPath + "\\Interfaces\\YouTube\\YouTube.html");
+                        else
+                            browser.Navigate("file://" + Application.StartupPath + "\\Interfaces\\YouTube\\FlashPlayer.html");
+                    }
+                    catch (Exception ex)
+                    {
+                        if (Error != null) Error("Could not play YouTube - " + ex.Message + "!");
+                    }
+                });
+                // Pass the path variable, which contains the ID of the YouTube video
+                try
+                {
+                    videoid = File.ReadAllText(path);
+                }
+                catch { }
+                System.Diagnostics.Debug.WriteLine("Playing YouTube ID: '" + videoid + "'!");
             }
-            catch { }
-            System.Diagnostics.Debug.WriteLine("Playing YouTube ID: '" + videoid + "'!");
+            catch (Exception ex)
+            {
+                if (Error != null) Error("Could not play YouTube - " + ex.Message + "!");
+            }
         }
         #endregion
 
