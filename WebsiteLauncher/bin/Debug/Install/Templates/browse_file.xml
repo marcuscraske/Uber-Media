@@ -1,4 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[A listed file item.]]></description><html><![CDATA[<a class="ITEM" title="%TITLE%" href="%URL%">
-<img alt="Thumbnail" src="<!--URL-->/thumbnail/%VITEMID%" />
-<span>%TITLE_S%</span>
-</a>]]></html></template>

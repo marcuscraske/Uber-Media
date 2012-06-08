@@ -1,5 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[Settings item on the admin settings page.]]></description><html><![CDATA[<div class="R RD">
-<div class="C">%KEYID%<br /><i>%DESCRIPTION%</i></div>
-<div class="C"><input type="text" name="setting_%KEYID%" value="%VALUE%"/></div>
-<div class="clear"></div>
-</div>]]></html></template>

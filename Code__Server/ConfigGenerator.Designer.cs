@@ -151,7 +151,7 @@
             this.buttContinue.Style_OnHover_Background_1 = System.Drawing.Color.LightGray;
             this.buttContinue.Style_OnHover_Background_2 = System.Drawing.Color.White;
             this.buttContinue.Style_OnHover_Background_Image = null;
-            this.buttContinue.Style_OnHover_Text_Colour = System.Drawing.Color.White;
+            this.buttContinue.Style_OnHover_Text_Colour = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(102)))), ((int)(((byte)(0)))));
             this.buttContinue.Style_Text_Font = new System.Drawing.Font("Verdana", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttContinue.Style_Text_Position_Horizontal = UberLib.Controls.Button.TextTypeX.Centre;
             this.buttContinue.Style_Text_Position_Vertical = UberLib.Controls.Button.TextTypeY.Centre;
@@ -210,7 +210,7 @@
             this.buttExit.Style_OnHover_Background_1 = System.Drawing.Color.LightGray;
             this.buttExit.Style_OnHover_Background_2 = System.Drawing.Color.White;
             this.buttExit.Style_OnHover_Background_Image = null;
-            this.buttExit.Style_OnHover_Text_Colour = System.Drawing.Color.White;
+            this.buttExit.Style_OnHover_Text_Colour = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(102)))), ((int)(((byte)(0)))));
             this.buttExit.Style_Text_Font = new System.Drawing.Font("Verdana", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttExit.Style_Text_Position_Horizontal = UberLib.Controls.Button.TextTypeX.Centre;
             this.buttExit.Style_Text_Position_Vertical = UberLib.Controls.Button.TextTypeY.Centre;

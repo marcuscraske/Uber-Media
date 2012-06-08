@@ -41,6 +41,7 @@
             this.cbHideWindows = new UberLib.Controls.Checkbox();
             this.cbLaunchDatabase = new UberLib.Controls.Checkbox();
             this.cbLaunchWeb = new UberLib.Controls.Checkbox();
+            this.cbShortcut = new UberLib.Controls.Checkbox();
             this.SuspendLayout();
             // 
             // headerSettings
@@ -65,7 +66,7 @@
             this.headerPorts.HeaderColour = System.Drawing.Color.White;
             this.headerPorts.HeaderIcon = null;
             this.headerPorts.HeaderText = "Ports";
-            this.headerPorts.Location = new System.Drawing.Point(1, 135);
+            this.headerPorts.Location = new System.Drawing.Point(1, 170);
             this.headerPorts.Margin = new System.Windows.Forms.Padding(4);
             this.headerPorts.Name = "headerPorts";
             this.headerPorts.Size = new System.Drawing.Size(425, 28);
@@ -76,7 +77,7 @@
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label2.ForeColor = System.Drawing.Color.White;
-            this.label2.Location = new System.Drawing.Point(9, 178);
+            this.label2.Location = new System.Drawing.Point(9, 213);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(40, 16);
             this.label2.TabIndex = 26;
@@ -85,7 +86,7 @@
             // txtPortWeb
             // 
             this.txtPortWeb.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtPortWeb.Location = new System.Drawing.Point(86, 172);
+            this.txtPortWeb.Location = new System.Drawing.Point(86, 207);
             this.txtPortWeb.MaxLength = 5;
             this.txtPortWeb.Name = "txtPortWeb";
             this.txtPortWeb.Size = new System.Drawing.Size(97, 26);
@@ -97,7 +98,7 @@
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.ForeColor = System.Drawing.Color.White;
-            this.label1.Location = new System.Drawing.Point(9, 210);
+            this.label1.Location = new System.Drawing.Point(9, 245);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(71, 16);
             this.label1.TabIndex = 28;
@@ -106,7 +107,7 @@
             // txtPortDatabase
             // 
             this.txtPortDatabase.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtPortDatabase.Location = new System.Drawing.Point(86, 204);
+            this.txtPortDatabase.Location = new System.Drawing.Point(86, 239);
             this.txtPortDatabase.MaxLength = 5;
             this.txtPortDatabase.Name = "txtPortDatabase";
             this.txtPortDatabase.Size = new System.Drawing.Size(97, 26);
@@ -116,9 +117,9 @@
             // buttExit
             // 
             this.buttExit.BackColor = System.Drawing.Color.Transparent;
-            this.buttExit.ButtonText = "Close";
+            this.buttExit.ButtonText = "Cancel";
             this.buttExit.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.buttExit.Location = new System.Drawing.Point(12, 276);
+            this.buttExit.Location = new System.Drawing.Point(12, 311);
             this.buttExit.Name = "buttExit";
             this.buttExit.Size = new System.Drawing.Size(98, 27);
             this.buttExit.Style_Border_Colour = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
@@ -137,7 +138,7 @@
             this.buttExit.Style_OnHover_Background_1 = System.Drawing.Color.LightGray;
             this.buttExit.Style_OnHover_Background_2 = System.Drawing.Color.White;
             this.buttExit.Style_OnHover_Background_Image = null;
-            this.buttExit.Style_OnHover_Text_Colour = System.Drawing.Color.White;
+            this.buttExit.Style_OnHover_Text_Colour = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(102)))), ((int)(((byte)(0)))));
             this.buttExit.Style_Text_Font = new System.Drawing.Font("Verdana", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttExit.Style_Text_Position_Horizontal = UberLib.Controls.Button.TextTypeX.Centre;
             this.buttExit.Style_Text_Position_Vertical = UberLib.Controls.Button.TextTypeY.Centre;
@@ -149,7 +150,7 @@
             this.buttContinue.BackColor = System.Drawing.Color.Transparent;
             this.buttContinue.ButtonText = "Save";
             this.buttContinue.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.buttContinue.Location = new System.Drawing.Point(311, 276);
+            this.buttContinue.Location = new System.Drawing.Point(311, 311);
             this.buttContinue.Name = "buttContinue";
             this.buttContinue.Size = new System.Drawing.Size(98, 27);
             this.buttContinue.Style_Border_Colour = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
@@ -168,7 +169,7 @@
             this.buttContinue.Style_OnHover_Background_1 = System.Drawing.Color.LightGray;
             this.buttContinue.Style_OnHover_Background_2 = System.Drawing.Color.White;
             this.buttContinue.Style_OnHover_Background_Image = null;
-            this.buttContinue.Style_OnHover_Text_Colour = System.Drawing.Color.White;
+            this.buttContinue.Style_OnHover_Text_Colour = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(102)))), ((int)(((byte)(0)))));
             this.buttContinue.Style_Text_Font = new System.Drawing.Font("Verdana", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttContinue.Style_Text_Position_Horizontal = UberLib.Controls.Button.TextTypeX.Centre;
             this.buttContinue.Style_Text_Position_Vertical = UberLib.Controls.Button.TextTypeY.Centre;
@@ -181,7 +182,7 @@
             this.labelDesc.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.labelDesc.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.labelDesc.ForeColor = System.Drawing.Color.White;
-            this.labelDesc.Location = new System.Drawing.Point(12, 249);
+            this.labelDesc.Location = new System.Drawing.Point(12, 284);
             this.labelDesc.Multiline = true;
             this.labelDesc.Name = "labelDesc";
             this.labelDesc.ReadOnly = true;
@@ -240,12 +241,30 @@
             this.cbLaunchWeb.Size = new System.Drawing.Size(397, 27);
             this.cbLaunchWeb.TabIndex = 22;
             // 
+            // cbShortcut
+            // 
+            this.cbShortcut.BackColor = System.Drawing.Color.Transparent;
+            this.cbShortcut.BackgroundChecked = System.Drawing.Color.FromArgb(((int)(((byte)(153)))), ((int)(((byte)(204)))), ((int)(((byte)(0)))));
+            this.cbShortcut.BackgroundUnchecked = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
+            this.cbShortcut.Checked = true;
+            this.cbShortcut.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.cbShortcut.HeaderText = "Create desktop shortcut to website";
+            this.cbShortcut.HeaderTextColour = System.Drawing.Color.White;
+            this.cbShortcut.HeaderTextFont = new System.Drawing.Font("Arial", 10F);
+            this.cbShortcut.ImageChecked = global::WebsiteLauncher.Properties.Resources.tick;
+            this.cbShortcut.ImageUnchecked = global::WebsiteLauncher.Properties.Resources.cross;
+            this.cbShortcut.Location = new System.Drawing.Point(12, 134);
+            this.cbShortcut.Name = "cbShortcut";
+            this.cbShortcut.Size = new System.Drawing.Size(397, 27);
+            this.cbShortcut.TabIndex = 33;
+            // 
             // Settings
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(102)))), ((int)(((byte)(153)))), ((int)(((byte)(0)))));
-            this.ClientSize = new System.Drawing.Size(421, 313);
+            this.ClientSize = new System.Drawing.Size(421, 350);
+            this.Controls.Add(this.cbShortcut);
             this.Controls.Add(this.cbHideWindows);
             this.Controls.Add(this.labelDesc);
             this.Controls.Add(this.buttExit);
@@ -264,7 +283,8 @@
             this.MinimizeBox = false;
             this.Name = "Settings";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Uber Media - Website Launcher Configurator";
+            this.Text = "Uber Media - Website Launcher - Configuration";
+            this.Load += new System.EventHandler(this.Settings_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -284,6 +304,7 @@
         private UberLib.Controls.Button buttContinue;
         private System.Windows.Forms.TextBox labelDesc;
         private UberLib.Controls.Checkbox cbHideWindows;
+        private UberLib.Controls.Checkbox cbShortcut;
     }
 }
 

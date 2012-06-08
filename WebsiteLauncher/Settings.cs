@@ -1,4 +1,17 @@
-﻿using System;
+﻿/*
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /Settings.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
+ * 
+ * Used to configure the launcher.
+ */
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,6 +20,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.IO;
 using System.Xml;
+using UberMedia.Shared;
 
 namespace WebsiteLauncher
 {
@@ -57,6 +71,7 @@ namespace WebsiteLauncher
             bool launchWeb = cbLaunchWeb.Checked;
             bool launchDb = cbLaunchDatabase.Checked;
             bool launchHide = cbHideWindows.Checked;
+            bool createShortcut = cbShortcut.Checked;
             string rawPortWeb = txtPortWeb.Text;
             string rawPortDb = txtPortDatabase.Text;
             // Validate
@@ -109,7 +124,12 @@ namespace WebsiteLauncher
                     xw.WriteCData(portWeb.ToString());
                     xw.WriteEndElement();
 
-                    // Web server port
+                    // Database server port
+                    xw.WriteStartElement("database_port");
+                    xw.WriteCData(portWeb.ToString());
+                    xw.WriteEndElement();
+
+                    // Hide windows
                     xw.WriteStartElement("hide_windows");
                     xw.WriteCData(launchHide ? "1" : "0");
                     xw.WriteEndElement();
@@ -123,14 +143,86 @@ namespace WebsiteLauncher
                 }
                 catch (Exception ex)
                 {
-                    error = "Failed to write Config.xml configuration, the following error occurred:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace;
+                    error = "Failed to write Launcher.xml configuration, the following error occurred:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace;
                 }
-                // Restart the application
-                Application.Restart();
+                if (createShortcut)
+                {
+                    try
+                    {
+                        // Create desktop shortcut
+                        Misc.createShortcut(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "UberMedia Media Library", Application.ExecutablePath, "http://" + Environment.MachineName + ":" + portWeb + "/", true, true);
+                    }
+                    catch(Exception ex)
+                    {
+                        MessageBox.Show("Failed to create desktop shortcut; this is not critical and has been ignored. Error:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                }
+                if (firstTimeConfig)
+                {
+                    // Display the completion form
+                    new Complete(portWeb).Show();
+                    // Hide this form - no longer required
+                    Hide();
+                }
+                else
+                    Application.Restart();
             }
             // Check if an error has occurred
             if (error != null)
                 MessageBox.Show(error, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        private void Settings_Load(object sender, EventArgs e)
+        {
+            // If this is not the first time configuring the launcher, show previous settings
+            if (!firstTimeConfig)
+            {
+                // Disable creating a shortcut
+                cbShortcut.Checked = false;
+                // Load existing settings to determine the current values
+                XmlDocument doc;
+                try
+                {
+                    string config = File.ReadAllText(Program.PATH_CONFIG);
+                    doc = new XmlDocument();
+                    doc.LoadXml(config);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Failed to load configuration! If this persists, delete the file 'Launcher.xml' in the same directory as this application (" + Application.StartupPath + ")...\r\n\r\nError:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Environment.Exit(0);
+                    return;
+                }
+                // Hide windows
+                try
+                {
+                    cbHideWindows.Checked = doc["settings"]["hide_windows"].InnerText == "1";
+                }
+                catch { }
+                // Web startup
+                try
+                {
+                    cbLaunchWeb.Checked = doc["settings"]["launch"]["web"].InnerText == "1";
+                }
+                catch { }
+                // Database startup
+                try
+                {
+                    cbLaunchDatabase.Checked = doc["settings"]["launch"]["database"].InnerText == "1";
+                }
+                catch { }
+                // Database port
+                try
+                {
+                    txtPortWeb.Text = doc["settings"]["database_port"].InnerText;
+                }
+                catch { }
+                // Web port
+                try
+                {
+                    txtPortWeb.Text = doc["settings"]["web_port"].InnerText;
+                }
+                catch { }
+            }
         }
         #endregion
     }

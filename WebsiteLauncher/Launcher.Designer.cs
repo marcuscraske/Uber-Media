@@ -34,6 +34,8 @@
             this.csniMain = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.settingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.restartToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openWebsiteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.csniMain.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -49,27 +51,43 @@
             // 
             this.csniMain.BackColor = System.Drawing.Color.White;
             this.csniMain.DropShadowEnabled = false;
-            this.csniMain.Font = new System.Drawing.Font("Arial Narrow", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.csniMain.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.csniMain.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.openWebsiteToolStripMenuItem,
             this.settingsToolStripMenuItem,
+            this.restartToolStripMenuItem,
             this.exitToolStripMenuItem});
             this.csniMain.Name = "csniMain";
             this.csniMain.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
-            this.csniMain.Size = new System.Drawing.Size(153, 74);
+            this.csniMain.Size = new System.Drawing.Size(177, 114);
             // 
             // settingsToolStripMenuItem
             // 
             this.settingsToolStripMenuItem.Name = "settingsToolStripMenuItem";
-            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.settingsToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
             this.settingsToolStripMenuItem.Text = "Settings";
             this.settingsToolStripMenuItem.Click += new System.EventHandler(this.settingsToolStripMenuItem_Click);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(152, 24);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
             this.exitToolStripMenuItem.Text = "Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
+            // 
+            // restartToolStripMenuItem
+            // 
+            this.restartToolStripMenuItem.Name = "restartToolStripMenuItem";
+            this.restartToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
+            this.restartToolStripMenuItem.Text = "Restart";
+            this.restartToolStripMenuItem.Click += new System.EventHandler(this.restartToolStripMenuItem_Click);
+            // 
+            // openWebsiteToolStripMenuItem
+            // 
+            this.openWebsiteToolStripMenuItem.Name = "openWebsiteToolStripMenuItem";
+            this.openWebsiteToolStripMenuItem.Size = new System.Drawing.Size(176, 22);
+            this.openWebsiteToolStripMenuItem.Text = "Open Website";
+            this.openWebsiteToolStripMenuItem.Click += new System.EventHandler(this.openWebsiteToolStripMenuItem_Click);
             // 
             // Launcher
             // 
@@ -96,5 +114,7 @@
         private System.Windows.Forms.ContextMenuStrip csniMain;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem restartToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem openWebsiteToolStripMenuItem;
     }
 }

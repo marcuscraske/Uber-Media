@@ -1,2 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[Used to provide a hyper-link to a web-page.]]></description><html><![CDATA[<h3>Web-Link</h3>
-<p><a href="<!--ITEM_URL-->"><!--ITEM_URL--></a></p>]]></html></template>

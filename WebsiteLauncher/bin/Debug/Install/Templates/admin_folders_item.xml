@@ -1,6 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[A folder item on the admin_folders page.]]></description><html><![CDATA[<a class="FOLDER" href="<!--URL-->/admin/folder/%PFOLDERID%">
-<span>%TITLE%</span>
-<div>%PATH%</div>
-<div>Synopsis: %SYNOPSIS%</div>
-<div class="clear"></div>
-</a>]]></html></template>

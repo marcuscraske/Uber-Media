@@ -47,6 +47,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Complete.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Complete.Designer.cs">
+      <DependentUpon>Complete.cs</DependentUpon>
+    </Compile>
     <Compile Include="Launcher.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -61,6 +67,9 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Complete.resx">
+      <DependentUpon>Complete.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Launcher.resx">
       <DependentUpon>Launcher.cs</DependentUpon>
     </EmbeddedResource>
@@ -97,11 +106,19 @@
     <Content Include="icon.ico" />
     <Content Include="Updater.xml" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UberMediaSharedLibrary\UberMediaSharedLibrary.csproj">
+      <Project>{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}</Project>
+      <Name>UberMediaSharedLibrary</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PreBuildEvent>xcopy "$(ProjectDir)Database" "$(TargetDir)Database\" /s /q /y
+    <PreBuildEvent>rd /S /Q "$(TargetDir)"
+mkdir "$(TargetDir)"
+xcopy "$(ProjectDir)Database" "$(TargetDir)Database\" /s /q /y
 xcopy "$(ProjectDir)Webserver" "$(TargetDir)Webserver\" /s /q /y
-xcopy "$(SolutionDir)Code__Website" "$(TargetDir)" /s /q /y</PreBuildEvent>
+xcopy "$(SolutionDir)Code__Website" "$(TargetDir)Website\" /s /q /y</PreBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

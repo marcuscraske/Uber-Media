@@ -26,6 +26,8 @@ Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Code__Website", "Code__Webs
 		VWDVirtualPath = "/"
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UberMediaSharedLibrary", "UberMediaSharedLibrary\UberMediaSharedLibrary.csproj", "{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -76,6 +78,18 @@ Global
 		{CE390DD0-813B-425A-9E35-D590166B95F1}.Release|Mixed Platforms.Build.0 = Debug|Any CPU
 		{CE390DD0-813B-425A-9E35-D590166B95F1}.Release|x64.ActiveCfg = Debug|Any CPU
 		{CE390DD0-813B-425A-9E35-D590166B95F1}.Release|x86.ActiveCfg = Debug|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Release|x64.ActiveCfg = Release|Any CPU
+		{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

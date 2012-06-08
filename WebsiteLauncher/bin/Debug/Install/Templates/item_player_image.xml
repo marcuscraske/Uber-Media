@@ -1,1 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[Used to view an image.]]></description><html><![CDATA[<img src="<!--URL-->/item/<!--ITEM_VITEMID-->/stream" alt="<!--ITEM_TITLE-->" class="ITEM_IMG" />]]></html></template>

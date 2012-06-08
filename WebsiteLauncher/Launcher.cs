@@ -1,4 +1,18 @@
-﻿using System;
+﻿/*
+ * UBERMEAT FOSS
+ * ****************************************************************************************
+ * License:                 Creative Commons Attribution-ShareAlike 3.0 unported
+ *                          http://creativecommons.org/licenses/by-sa/3.0/
+ * 
+ * Project:                 Uber Media
+ * File:                    /Launcher.cs
+ * Author(s):               limpygnome						limpygnome@gmail.com
+ * To-do/bugs:              none
+ * 
+ * Responsible for launching the web and/or database server(s); this is also used to
+ * display a notification icon to the user with a context-menu.
+ */
+using System;
 using System.Data;
 using System.Drawing;
 using System.Text;
@@ -16,6 +30,7 @@ namespace WebsiteLauncher
         private Settings settingsWindow = null;
         private Process db = null;
         private Process webserver = null;
+        private int webPort;
         #endregion
 
         #region "Methods - Constructors"
@@ -40,7 +55,7 @@ namespace WebsiteLauncher
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to load configuration! If this persists, delete the file 'Config.xml' in the same directory as this application (" + Application.StartupPath + ")...\r\n\r\nError:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Failed to load configuration! If this persists, delete the file 'Launcher.xml' in the same directory as this application (" + Application.StartupPath + ")...\r\n\r\nError:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Environment.Exit(0);
                 return;
             }
@@ -51,14 +66,14 @@ namespace WebsiteLauncher
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to load window-hide configuration! If this persists, delete the file 'Config.xml' in the same directory as this application (" + Application.StartupPath + ")...\r\n\r\nError:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Failed to load window-hide configuration! If this persists, delete the file 'Launcher.xml' in the same directory as this application (" + Application.StartupPath + ")...\r\n\r\nError:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Environment.Exit(0);
                 return;
             }
             // Launch the database-server
             try
             {
-                if (doc["settings"]["launch"]["web"].InnerText == "1")
+                if (doc["settings"]["launch"]["database"].InnerText == "1")
                 {
                     db = new Process();
                     db.StartInfo.WorkingDirectory = Program.PATH_DB + "\\bin";
@@ -71,7 +86,7 @@ namespace WebsiteLauncher
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to launch database-server! If this persists, delete the file 'Config.xml' in the same directory as this application (" + Application.StartupPath + ")...\r\n\r\nError:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Failed to launch database-server! If this persists, delete the file 'Launcher.xml' in the same directory as this application (" + Application.StartupPath + ")...\r\n\r\nError:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Environment.Exit(0);
                 return;
             }
@@ -83,7 +98,8 @@ namespace WebsiteLauncher
                     webserver = new Process();
                     webserver.StartInfo.WorkingDirectory = Program.PATH_WEB;
                     webserver.StartInfo.FileName = "UltiDevCassinWebServer2a.exe";
-                    webserver.StartInfo.Arguments = "/run \"" + Application.StartupPath + "\" \"Default.aspx\" \"" + int.Parse(doc["settings"]["web_port"].InnerText) + "\" nobrowser";
+                    webPort = int.Parse(doc["settings"]["web_port"].InnerText);
+                    webserver.StartInfo.Arguments = "/run \"" + Program.PATH_WEBSITE + "\" \"Default.aspx\" \"" + webPort + "\" nobrowser";
                     webserver.StartInfo.WindowStyle = hideWindow ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal;
                     webserver.Start();
                     Thread.Sleep(1000); // To allow the process to start
@@ -92,7 +108,7 @@ namespace WebsiteLauncher
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to launch web-server! If this persists, delete the file 'Config.xml' in the same directory as this application (" + Application.StartupPath + ")...\r\n\r\nError:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Failed to launch web-server! If this persists, delete the file 'Launcher.xml' in the same directory as this application (" + Application.StartupPath + ")...\r\n\r\nError:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Critical Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Environment.Exit(0);
                 return;
             }
@@ -132,6 +148,21 @@ namespace WebsiteLauncher
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Application.Exit();
+        }
+        private void restartToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Application.Restart();
+        }
+        private void openWebsiteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                Process.Start("http://" + Environment.MachineName + ":" + webPort + "/");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not open web-browser! Error:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
         #endregion
 
