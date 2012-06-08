@@ -131,7 +131,7 @@ namespace UberMedia
                 {
                     string parentFolder = GetParentVITEMID(tia.pfolderid, file.Remove(0, tia.base_path.Length), ref Cache, tia.Connector);
                     string vitemid = tia.Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, type_uid, title, description, phy_path, parent, date_added) VALUES('" + tia.pfolderid + "', '" + Utils.Escape(ExtensionsMap[ext]) + "', '" + Utils.Escape(title) + "', '" + Utils.Escape(desc) + "', '" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "', " + (parentFolder != null ? "'" + Utils.Escape(parentFolder) + "'" : "NULL") + ", NOW()); SELECT LAST_INSERT_ID();").ToString();
-                    if (ThumbnailExts.ContainsKey(ext)) ThumbnailGeneratorService.AddToQueue(file, AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails/" + vitemid.ToString() + ".png", ThumbnailExts[ext]);
+                    if (ThumbnailExts.ContainsKey(ext)) ThumbnailGeneratorService.AddToQueue(file, vitemid, ThumbnailExts[ext]);
                 }
             }
             UpdateStatus(tia.pfolderid, "Verifying index integrity");

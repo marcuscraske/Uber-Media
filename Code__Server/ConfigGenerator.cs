@@ -22,6 +22,7 @@ using System.IO;
 using System.Net;
 using Microsoft.Win32;
 using System.Xml;
+using UberMedia.Shared;
 
 namespace UberMediaServer
 {
@@ -48,6 +49,7 @@ namespace UberMediaServer
             string windowsPassword = txtAutoLogonPassword.Text;
             bool autoStart = cbAutoStartup.Checked;
             bool autoLogon = cbAutoLogon.Checked;
+            bool desktopShortcut = cbDesktopShortcut.Checked;
             // Format the fields
             if(website.EndsWith("/")) website = website.Remove(website.Length - 1, 1);
             // Validate the fields
@@ -142,6 +144,19 @@ namespace UberMediaServer
                             }
                             if (error != null)
                                 MessageBox.Show(error, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            // Check if to make a desktop shortcut
+                            if (desktopShortcut)
+                            {
+                                try
+                                {
+                                    // Create desktop shortcut
+                                    Misc.createShortcut(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "UberMedia Media Terminal", Application.ExecutablePath, Application.ExecutablePath, true, false);
+                                }
+                                catch (Exception ex)
+                                {
+                                    MessageBox.Show("Failed to create desktop shortcut; this is not critical and has been ignored. Error:\r\n" + ex.Message + "\r\n\r\nStack-trace:\r\n" + ex.StackTrace, "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                }
+                            }
                             // Restart the application
                             Application.Restart();
                         }

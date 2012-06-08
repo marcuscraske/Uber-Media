@@ -188,6 +188,10 @@
       <Project>{F61563BA-E114-4526-9803-A314DB50190D}</Project>
       <Name>Connector</Name>
     </ProjectReference>
+    <ProjectReference Include="..\UberMediaSharedLibrary\UberMediaSharedLibrary.csproj">
+      <Project>{E9F742CA-DD2E-4011-A384-CD5E4DAFC986}</Project>
+      <Name>UberMediaSharedLibrary</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Content Include="icon.ico" />

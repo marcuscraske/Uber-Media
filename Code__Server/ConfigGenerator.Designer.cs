@@ -42,6 +42,7 @@
             this.buttExit = new UberLib.Controls.Button();
             this.cbAutoLogon = new UberLib.Controls.Checkbox();
             this.cbAutoStartup = new UberLib.Controls.Checkbox();
+            this.cbDesktopShortcut = new UberLib.Controls.Checkbox();
             this.SuspendLayout();
             // 
             // label3
@@ -132,7 +133,7 @@
             this.buttContinue.BackColor = System.Drawing.Color.Transparent;
             this.buttContinue.ButtonText = "Save";
             this.buttContinue.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.buttContinue.Location = new System.Drawing.Point(314, 370);
+            this.buttContinue.Location = new System.Drawing.Point(314, 403);
             this.buttContinue.Name = "buttContinue";
             this.buttContinue.Size = new System.Drawing.Size(98, 27);
             this.buttContinue.Style_Border_Colour = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
@@ -191,7 +192,7 @@
             this.buttExit.BackColor = System.Drawing.Color.Transparent;
             this.buttExit.ButtonText = "Exit";
             this.buttExit.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.buttExit.Location = new System.Drawing.Point(15, 370);
+            this.buttExit.Location = new System.Drawing.Point(12, 403);
             this.buttExit.Name = "buttExit";
             this.buttExit.Size = new System.Drawing.Size(98, 27);
             this.buttExit.Style_Border_Colour = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
@@ -251,12 +252,30 @@
             this.cbAutoStartup.Size = new System.Drawing.Size(397, 27);
             this.cbAutoStartup.TabIndex = 21;
             // 
+            // cbDesktopShortcut
+            // 
+            this.cbDesktopShortcut.BackColor = System.Drawing.Color.Transparent;
+            this.cbDesktopShortcut.BackgroundChecked = System.Drawing.Color.FromArgb(((int)(((byte)(153)))), ((int)(((byte)(204)))), ((int)(((byte)(0)))));
+            this.cbDesktopShortcut.BackgroundUnchecked = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
+            this.cbDesktopShortcut.Checked = true;
+            this.cbDesktopShortcut.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.cbDesktopShortcut.HeaderText = "Create desktop shortcut";
+            this.cbDesktopShortcut.HeaderTextColour = System.Drawing.Color.White;
+            this.cbDesktopShortcut.HeaderTextFont = new System.Drawing.Font("Arial", 10F);
+            this.cbDesktopShortcut.ImageChecked = global::UberMediaServer.Properties.Resources.tick;
+            this.cbDesktopShortcut.ImageUnchecked = global::UberMediaServer.Properties.Resources.cross;
+            this.cbDesktopShortcut.Location = new System.Drawing.Point(15, 359);
+            this.cbDesktopShortcut.Name = "cbDesktopShortcut";
+            this.cbDesktopShortcut.Size = new System.Drawing.Size(397, 27);
+            this.cbDesktopShortcut.TabIndex = 23;
+            // 
             // ConfigGenerator
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(102)))), ((int)(((byte)(153)))), ((int)(((byte)(0)))));
-            this.ClientSize = new System.Drawing.Size(422, 406);
+            this.ClientSize = new System.Drawing.Size(422, 443);
+            this.Controls.Add(this.cbDesktopShortcut);
             this.Controls.Add(this.cbAutoLogon);
             this.Controls.Add(this.cbAutoStartup);
             this.Controls.Add(this.textBox1);
@@ -301,5 +320,6 @@
         private UberLib.Controls.Button buttExit;
         private UberLib.Controls.Checkbox cbAutoStartup;
         private UberLib.Controls.Checkbox cbAutoLogon;
+        private UberLib.Controls.Checkbox cbDesktopShortcut;
     }
 }
