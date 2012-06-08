@@ -489,11 +489,11 @@ namespace UberMediaServer
         public void controlShutdown()
         {
             // Dispose interface
-            DisposeCurrentInterface();
-            // Shutdown worker processor
-            workerProcessor.Abort();
-            workerProcessor = null;
-            // Dispose and shutdown
+            try
+            { DisposeCurrentInterface(); }
+            catch
+            { }
+            // Shutdown
             np.displayMessage("Shutting down...");
             Thread.Sleep(2500);
 #if !DEBUG

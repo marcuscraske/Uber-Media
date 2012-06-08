@@ -1325,7 +1325,7 @@ public partial class _Default : System.Web.UI.Page
                             return;
                         }
                         // Grab the info of the key
-                        Result tdata = Connector.Query_Read("SELECT terminalid, title, tkey FROM terminals WHERE terminalid='" + Utils.Escape(t) + "'");
+                        Result tdata = Connector.Query_Read("SELECT terminalid, title FROM terminals WHERE terminalid='" + Utils.Escape(t) + "'");
                         // Check if the user has confirmed the deletion, else prompt them
                         if (Request.Form["confirm"] != null)
                         {
@@ -1419,6 +1419,29 @@ public partial class _Default : System.Web.UI.Page
             // Store the setting in a session variable
             Session["mediacomputer"] = Request.QueryString["c"];
         Response.End();
+    }
+    public void Page__shutdown()
+    {
+        // Ensure a media computer is selected
+        if (Session["mediacomputer"] == null)
+        {
+            Page__404();
+            return;
+        }
+        // Ask the user to confirm their action
+        if (Request.Form["confirm"] != null)
+        {
+            terminalBufferEntry("shutdown", Session["mediacomputer"].ToString(), string.Empty, false, true, Connector);
+            Response.Redirect(ResolveUrl("/control"));
+        }
+        else
+            PageElements["CONTENT_RIGHT"] =
+                UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                .Replace("%ACTION_TITLE%", "Shutdown Terminal")
+                .Replace("%ACTION_URL%", ResolveUrl("/shutdown"))
+                .Replace("%ACTION_DESC%", "Are you sure you want to shutdown the current terminal?")
+                .Replace("%ACTION_BACK%", ResolveUrl("/control"))
+                ;
     }
     public void Page__credits()
     {
