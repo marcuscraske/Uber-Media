@@ -23,11 +23,20 @@ using System.Xml;
 using System.Threading;
 using System.IO;
 using System.Diagnostics;
+using UberMedia.Shared;
+using System.Runtime.InteropServices;
 
 namespace UberMediaServer
 {
     public partial class Main : Form
     {
+        #region "Constants"
+        /// <summary>
+        /// Used for identifying this application in error-files.
+        /// </summary>
+        public const string APPLICATION_ID = "UM_TERMINAL";
+        #endregion
+
         #region "Variables"
         private Interfaces.Interface _currentInterface = null;
         private string vitemid = string.Empty;
@@ -75,9 +84,10 @@ namespace UberMediaServer
                     rawxml = File.ReadAllText("Settings.xml");
                     settings.LoadXml(rawxml);
                 }
-                catch
+                catch(Exception ex)
                 {
                     SetErrorMessage("Could not load configuration!");
+                    Misc.dumpError(APPLICATION_ID, ex);
                     return;
                 }
                 try
@@ -86,9 +96,10 @@ namespace UberMediaServer
                     terminalID = settings["settings"]["connection"]["id"].InnerText;
                     libraryURL = settings["settings"]["connection"]["url"].InnerText;
                 }
-                catch
+                catch(Exception ex)
                 {
                     SetErrorMessage("Invalid configuration!");
+                    Misc.dumpError(APPLICATION_ID, ex);
                     return;
                 }
                 // Start work processor
@@ -102,12 +113,26 @@ namespace UberMediaServer
             catch (Exception ex)
             {
                 SetErrorMessage("Failed to load terminal:\r\n" + ex.Message);
+                Misc.dumpError(APPLICATION_ID, ex);
             }
+        }
+        #endregion
+
+        #region "Screensaver Headers"
+        // Credit: http://social.msdn.microsoft.com/Forums/br/csharpgeneral/thread/b951fc9f-8996-47a4-aaab-1131447d06ea
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        static extern EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE flags);
+        [Flags]
+
+        public enum EXECUTION_STATE : uint
+        {
+            ES_CONTINUOUS = 0x80000000
         }
         #endregion
 
         public static void WorkProcessor(object obj)
         {
+            // Begin reading commands
             Main m = (Main)obj;
             StringBuilder url;
             int splitterIndex;
@@ -117,6 +142,8 @@ namespace UberMediaServer
             bool commandQueued = false;
             while (true)
             {
+                // Tell windows to keep the screensaver disabled by resetting the timer
+                SetThreadExecutionState(EXECUTION_STATE.ES_CONTINUOUS);
                 try
                 {
                     // Update current position in information pane
@@ -337,6 +364,7 @@ namespace UberMediaServer
                     m.np.displayMessage("Worker processor failure, check output!");
                     System.Diagnostics.Debug.WriteLine(ex.Message + ": " + ex.StackTrace);
 #endif
+                    Misc.dumpError(APPLICATION_ID, ex);
                 }
                 finally
                 {
@@ -396,7 +424,8 @@ namespace UberMediaServer
                 DisposeCurrentInterface();
                 np.displayMessage(error);
             }
-            catch { }
+            catch
+            { }
         }
         /// <summary>
         /// Brings this form to the top of the application and focuses it - required for catching tv input.
@@ -665,6 +694,7 @@ namespace UberMediaServer
                 }
                 catch (Exception ex)
                 {
+                    Misc.dumpError(APPLICATION_ID, ex);
                     throw new LibraryConnectionFailure("Failed to retrieve media information: '" + ex.Message + "' - data: '" + data + "'!", ex);
                 }
                 try
@@ -683,6 +713,7 @@ namespace UberMediaServer
                 }
                 catch (Exception ex)
                 {
+                    Misc.dumpError(APPLICATION_ID, ex);
                     System.Diagnostics.Debug.WriteLine(ex.Message + ": " + ex.StackTrace);
                     DisposeCurrentInterface();
                     throw new Exception("Could not play item '" + vitemid + "': " + ex.Message + "!");

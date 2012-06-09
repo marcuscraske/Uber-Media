@@ -46,7 +46,9 @@ namespace UberMediaServer
             
             string terminalTitle = txtTerminalTitle.Text;
             string website = txtWebsite.Text;
-            string windowsPassword = txtAutoLogonPassword.Text;
+            string windowsDomain = txtWindowsDomain.Text;
+            string windowsUsername = txtWindowsUsername.Text;
+            string windowsPassword = txtWindowsPassword.Text;
             bool autoStart = cbAutoStartup.Checked;
             bool autoLogon = cbAutoLogon.Checked;
             bool desktopShortcut = cbDesktopShortcut.Checked;
@@ -130,9 +132,9 @@ namespace UberMediaServer
                                         error = "Cannot access Winlogon registry subkey for automatic logon!";
                                     else
                                     {
-                                        reg.SetValue("DefaultUserName", Environment.UserName);
-                                        reg.SetValue("DefaultDomainName", Environment.UserDomainName ?? "");
-                                        reg.SetValue("DefaultPassword", txtAutoLogonPassword.Text);
+                                        reg.SetValue("DefaultUserName", windowsUsername);
+                                        reg.SetValue("DefaultDomainName", windowsDomain);
+                                        reg.SetValue("DefaultPassword", windowsPassword);
                                         reg.SetValue("AutoAdminLogon", "1");
                                         reg.Close();
                                     }
@@ -177,6 +179,12 @@ namespace UberMediaServer
         private void buttExit_MouseClick(object sender, MouseEventArgs e)
         {
             Application.Exit();
+        }
+        private void ConfigGenerator_Load(object sender, EventArgs e)
+        {
+            // Set the boxers for the automatic logon with the current user
+            txtWindowsDomain.Text = Environment.UserDomainName;
+            txtWindowsUsername.Text = Environment.UserName;
         }
     }
 }

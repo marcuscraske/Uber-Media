@@ -34,7 +34,7 @@
             this.txtWebsite = new System.Windows.Forms.TextBox();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.label6 = new System.Windows.Forms.Label();
-            this.txtAutoLogonPassword = new System.Windows.Forms.TextBox();
+            this.txtWindowsPassword = new System.Windows.Forms.TextBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.buttContinue = new UberLib.Controls.Button();
             this.header1 = new UberLib.Controls.Header();
@@ -43,6 +43,10 @@
             this.cbAutoLogon = new UberLib.Controls.Checkbox();
             this.cbAutoStartup = new UberLib.Controls.Checkbox();
             this.cbDesktopShortcut = new UberLib.Controls.Checkbox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.txtWindowsDomain = new System.Windows.Forms.TextBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.txtWindowsUsername = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // label3
@@ -85,33 +89,33 @@
             this.textBox1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(102)))), ((int)(((byte)(153)))), ((int)(((byte)(0)))));
             this.textBox1.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.textBox1.ForeColor = System.Drawing.Color.White;
-            this.textBox1.Location = new System.Drawing.Point(12, 321);
+            this.textBox1.Location = new System.Drawing.Point(12, 374);
             this.textBox1.Multiline = true;
             this.textBox1.Name = "textBox1";
             this.textBox1.ReadOnly = true;
-            this.textBox1.Size = new System.Drawing.Size(400, 32);
+            this.textBox1.Size = new System.Drawing.Size(400, 18);
             this.textBox1.TabIndex = 8;
-            this.textBox1.Text = "Enter the password for your current Windows account and it will automatically log" +
-                "on when your computer starts-up.";
+            this.textBox1.Text = "This will cause the above user to be automatically logged-on when Windows starts." +
+                "";
             this.textBox1.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // label6
             // 
             this.label6.AutoSize = true;
             this.label6.ForeColor = System.Drawing.Color.White;
-            this.label6.Location = new System.Drawing.Point(12, 298);
+            this.label6.Location = new System.Drawing.Point(12, 352);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(144, 13);
+            this.label6.Size = new System.Drawing.Size(56, 13);
             this.label6.TabIndex = 6;
-            this.label6.Text = "Windows account password:";
+            this.label6.Text = "Password:";
             // 
-            // txtAutoLogonPassword
+            // txtWindowsPassword
             // 
-            this.txtAutoLogonPassword.Location = new System.Drawing.Point(162, 295);
-            this.txtAutoLogonPassword.Name = "txtAutoLogonPassword";
-            this.txtAutoLogonPassword.PasswordChar = '*';
-            this.txtAutoLogonPassword.Size = new System.Drawing.Size(247, 20);
-            this.txtAutoLogonPassword.TabIndex = 10;
+            this.txtWindowsPassword.Location = new System.Drawing.Point(162, 349);
+            this.txtWindowsPassword.Name = "txtWindowsPassword";
+            this.txtWindowsPassword.PasswordChar = '*';
+            this.txtWindowsPassword.Size = new System.Drawing.Size(247, 20);
+            this.txtWindowsPassword.TabIndex = 10;
             // 
             // textBox2
             // 
@@ -133,7 +137,7 @@
             this.buttContinue.BackColor = System.Drawing.Color.Transparent;
             this.buttContinue.ButtonText = "Save";
             this.buttContinue.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.buttContinue.Location = new System.Drawing.Point(314, 403);
+            this.buttContinue.Location = new System.Drawing.Point(314, 438);
             this.buttContinue.Name = "buttContinue";
             this.buttContinue.Size = new System.Drawing.Size(98, 27);
             this.buttContinue.Style_Border_Colour = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
@@ -181,7 +185,7 @@
             this.header3.HeaderColour = System.Drawing.Color.White;
             this.header3.HeaderIcon = null;
             this.header3.HeaderText = "Windows Automatic Logon";
-            this.header3.Location = new System.Drawing.Point(1, 187);
+            this.header3.Location = new System.Drawing.Point(1, 226);
             this.header3.Margin = new System.Windows.Forms.Padding(4);
             this.header3.Name = "header3";
             this.header3.Size = new System.Drawing.Size(422, 28);
@@ -192,7 +196,7 @@
             this.buttExit.BackColor = System.Drawing.Color.Transparent;
             this.buttExit.ButtonText = "Exit";
             this.buttExit.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.buttExit.Location = new System.Drawing.Point(12, 403);
+            this.buttExit.Location = new System.Drawing.Point(12, 438);
             this.buttExit.Name = "buttExit";
             this.buttExit.Size = new System.Drawing.Size(98, 27);
             this.buttExit.Style_Border_Colour = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
@@ -225,12 +229,12 @@
             this.cbAutoLogon.BackgroundUnchecked = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(51)))), ((int)(((byte)(51)))));
             this.cbAutoLogon.Checked = false;
             this.cbAutoLogon.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.cbAutoLogon.HeaderText = "Automatically logon this Windows Account";
+            this.cbAutoLogon.HeaderText = "Automatically logon the following Windows user";
             this.cbAutoLogon.HeaderTextColour = System.Drawing.Color.White;
             this.cbAutoLogon.HeaderTextFont = new System.Drawing.Font("Arial", 10F);
             this.cbAutoLogon.ImageChecked = global::UberMediaServer.Properties.Resources.tick;
             this.cbAutoLogon.ImageUnchecked = global::UberMediaServer.Properties.Resources.cross;
-            this.cbAutoLogon.Location = new System.Drawing.Point(15, 255);
+            this.cbAutoLogon.Location = new System.Drawing.Point(15, 264);
             this.cbAutoLogon.Name = "cbAutoLogon";
             this.cbAutoLogon.Size = new System.Drawing.Size(397, 27);
             this.cbAutoLogon.TabIndex = 22;
@@ -247,7 +251,7 @@
             this.cbAutoStartup.HeaderTextFont = new System.Drawing.Font("Arial", 10F);
             this.cbAutoStartup.ImageChecked = global::UberMediaServer.Properties.Resources.tick;
             this.cbAutoStartup.ImageUnchecked = global::UberMediaServer.Properties.Resources.cross;
-            this.cbAutoStartup.Location = new System.Drawing.Point(15, 222);
+            this.cbAutoStartup.Location = new System.Drawing.Point(15, 190);
             this.cbAutoStartup.Name = "cbAutoStartup";
             this.cbAutoStartup.Size = new System.Drawing.Size(397, 27);
             this.cbAutoStartup.TabIndex = 21;
@@ -264,24 +268,62 @@
             this.cbDesktopShortcut.HeaderTextFont = new System.Drawing.Font("Arial", 10F);
             this.cbDesktopShortcut.ImageChecked = global::UberMediaServer.Properties.Resources.tick;
             this.cbDesktopShortcut.ImageUnchecked = global::UberMediaServer.Properties.Resources.cross;
-            this.cbDesktopShortcut.Location = new System.Drawing.Point(15, 359);
+            this.cbDesktopShortcut.Location = new System.Drawing.Point(15, 394);
             this.cbDesktopShortcut.Name = "cbDesktopShortcut";
             this.cbDesktopShortcut.Size = new System.Drawing.Size(397, 27);
             this.cbDesktopShortcut.TabIndex = 23;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.ForeColor = System.Drawing.Color.White;
+            this.label1.Location = new System.Drawing.Point(12, 300);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(46, 13);
+            this.label1.TabIndex = 24;
+            this.label1.Text = "Domain:";
+            // 
+            // txtWindowsDomain
+            // 
+            this.txtWindowsDomain.Location = new System.Drawing.Point(162, 297);
+            this.txtWindowsDomain.Name = "txtWindowsDomain";
+            this.txtWindowsDomain.Size = new System.Drawing.Size(247, 20);
+            this.txtWindowsDomain.TabIndex = 25;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.ForeColor = System.Drawing.Color.White;
+            this.label4.Location = new System.Drawing.Point(12, 326);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(58, 13);
+            this.label4.TabIndex = 26;
+            this.label4.Text = "Username:";
+            // 
+            // txtWindowsUsername
+            // 
+            this.txtWindowsUsername.Location = new System.Drawing.Point(162, 323);
+            this.txtWindowsUsername.Name = "txtWindowsUsername";
+            this.txtWindowsUsername.Size = new System.Drawing.Size(247, 20);
+            this.txtWindowsUsername.TabIndex = 27;
             // 
             // ConfigGenerator
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(102)))), ((int)(((byte)(153)))), ((int)(((byte)(0)))));
-            this.ClientSize = new System.Drawing.Size(422, 443);
+            this.ClientSize = new System.Drawing.Size(422, 476);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.txtWindowsUsername);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.txtWindowsDomain);
             this.Controls.Add(this.cbDesktopShortcut);
             this.Controls.Add(this.cbAutoLogon);
             this.Controls.Add(this.cbAutoStartup);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label6);
-            this.Controls.Add(this.txtAutoLogonPassword);
+            this.Controls.Add(this.txtWindowsPassword);
             this.Controls.Add(this.txtTerminalTitle);
             this.Controls.Add(this.textBox2);
             this.Controls.Add(this.buttExit);
@@ -299,6 +341,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Uber Media - Server Configurator";
             this.TopMost = true;
+            this.Load += new System.EventHandler(this.ConfigGenerator_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -311,7 +354,7 @@
         private System.Windows.Forms.TextBox txtTerminalTitle;
         private System.Windows.Forms.TextBox txtWebsite;
         private System.Windows.Forms.Label label6;
-        private System.Windows.Forms.TextBox txtAutoLogonPassword;
+        private System.Windows.Forms.TextBox txtWindowsPassword;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.TextBox textBox2;
         private UberLib.Controls.Button buttContinue;
@@ -321,5 +364,9 @@
         private UberLib.Controls.Checkbox cbAutoStartup;
         private UberLib.Controls.Checkbox cbAutoLogon;
         private UberLib.Controls.Checkbox cbDesktopShortcut;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox txtWindowsDomain;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.TextBox txtWindowsUsername;
     }
 }
