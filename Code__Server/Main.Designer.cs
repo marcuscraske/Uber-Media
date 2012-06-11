@@ -30,13 +30,19 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Main));
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.invalidateTimer = new System.Windows.Forms.Timer(this.components);
             this.panel1 = new System.Windows.Forms.Panel();
             this.SuspendLayout();
             // 
+            // invalidateTimer
+            // 
+            this.invalidateTimer.Enabled = true;
+            this.invalidateTimer.Interval = 60;
+            this.invalidateTimer.Tick += new System.EventHandler(this.invalidateTimer_Tick);
+            // 
             // panel1
             // 
-            this.panel1.BackColor = System.Drawing.Color.Black;
+            this.panel1.BackColor = System.Drawing.Color.Transparent;
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
@@ -61,6 +67,7 @@
             this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Main_FormClosing);
             this.Shown += new System.EventHandler(this.Main_Shown);
+            this.Paint += new System.Windows.Forms.PaintEventHandler(this.Main_Paint);
             this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.Main_KeyUp);
             this.ResumeLayout(false);
 
@@ -68,7 +75,7 @@
 
         #endregion
 
-        private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.Timer invalidateTimer;
         public System.Windows.Forms.Panel panel1;
 
     }

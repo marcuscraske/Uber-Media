@@ -13,6 +13,7 @@
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <IsWebBootstrapper>false</IsWebBootstrapper>
+    <TargetFrameworkProfile />
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -28,7 +29,6 @@
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -116,6 +116,7 @@
     </Compile>
     <Compile Include="Exceptions\PlayFailure.cs" />
     <Compile Include="Exceptions\LibraryConnectionFailure.cs" />
+    <Compile Include="Idle Drawing\RenderIdle.cs" />
     <Compile Include="Interface.cs" />
     <Compile Include="Interfaces\VLC\video_vlc.cs" />
     <Compile Include="Interfaces\Images\images.cs" />

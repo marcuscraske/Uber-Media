@@ -48,6 +48,7 @@ namespace UberMediaServer
         public double currentVolume = 1.0f;
         private List<string> playedItems = new List<string>();
         private int playedItemsOffset = 0;
+        private RenderIdle renderIdle = null;
         #endregion
 
         #region "Form - Init"
@@ -110,6 +111,8 @@ namespace UberMediaServer
                 Refocus();
                 cursorHide();
                 np.displayMessage("Welcome!");
+                // Init idle class
+                renderIdle = new RenderIdle(this);
             }
             catch (Exception ex)
             {
@@ -131,6 +134,7 @@ namespace UberMediaServer
         }
         #endregion
 
+        public static bool libraryIsAccessible = false;
         public static void WorkProcessor(object obj)
         {
             // Begin reading commands
@@ -184,14 +188,21 @@ namespace UberMediaServer
                     {
                         response = Library.fetchData(url.ToString());
                     }
-                    catch(Exception ex)
+                    catch (LibraryConnectionFailure)
+                    {
+                        libraryIsAccessible = false;
+                    }
+                    catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine("Failed to update: " + ex.Message + " - " + ex.StackTrace + " ## Base: " + ex.GetBaseException().Message + " - " + ex.GetBaseException().StackTrace);
                         response = null;
                     }
+                    // Check if we got a response - hence the library online
+                    libraryIsAccessible = response != null;
                     // Process the response data
                     if (response != null && (splitterIndex = response.IndexOf(':')) != -1 && splitterIndex < response.Length)
                     {
+                        // Parse the data
                         command = response.Substring(0, splitterIndex);
                         args = response.Substring(splitterIndex + 1);
                     }
@@ -730,10 +741,46 @@ namespace UberMediaServer
         }
         #endregion
 
-        #region "Form"
+        #region "Methods - Form"
         private void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
             Environment.Exit(0);
+        }
+        private const string paintLibraryUnconnected = "Unable to connect to the media library...";
+        private static Font paintFont = new Font("Arial", 30.0f, FontStyle.Regular, GraphicsUnit.Pixel);
+        private static Font paintFontTime = new Font("Arial", 50.0f, FontStyle.Bold, GraphicsUnit.Pixel);
+        private static Brush paintBrush = new SolidBrush(Color.White);
+        private void Main_Paint(object sender, PaintEventArgs e)
+        {
+            // If the current interface is null, draw the idle information
+            if (_currentInterface == null)
+            {
+                // Execute ball logic
+                if (renderIdle != null)
+                {
+                    renderIdle.logic();
+                    // Draw our magic balls :D
+                    renderIdle.draw(e.Graphics);
+                }
+                string date = DateTime.Now.ToString("dd/MM/yyyy");
+                string time = DateTime.Now.ToString("HH:mm:ss");
+                SizeF sizeDate = e.Graphics.MeasureString(date, paintFont);
+                // Draw date
+                e.Graphics.DrawString(date, paintFont, paintBrush, 10, 10);
+                // Draw time
+                e.Graphics.DrawString(time, paintFontTime, paintBrush, 10, 10 + sizeDate.Height + 5);
+                // Draw online
+                if (!libraryIsAccessible)
+                {
+                    SizeF sizeAccessible = e.Graphics.MeasureString(paintLibraryUnconnected, paintFont);
+                    e.Graphics.DrawString(paintLibraryUnconnected, paintFont, paintBrush, Width - (10 + sizeAccessible.Width), Height - (10 + sizeAccessible.Height));
+                }
+            }
+        }
+        private void invalidateTimer_Tick(object sender, EventArgs e)
+        {
+            if (_currentInterface == null)
+                Invalidate();
         }
         public void cursorShow()
         {
