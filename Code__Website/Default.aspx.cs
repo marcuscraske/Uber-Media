@@ -193,14 +193,22 @@ public partial class _Default : System.Web.UI.Page
                 // Queue all the files in this folder
                 if (Session["mediacomputer"] != null) // Ensure a media computer is selected
                 {
+                    string terminalid = Utils.Escape(Session["mediacomputer"].ToString());;
                     // Grab all of the items
                     Result items = Connector.Query_Read("SELECT vi.vitemid FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent='0'") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC"));
-                    // Generate massive statement to add them to the terminal buffer
-                    StringBuilder statement = new StringBuilder();
-                    foreach (ResultRow item in items)
-                        statement.Append(terminalBufferEntry("media", (string)Session["mediacomputer"], item["vitemid"], true));
-                    // Execute statement
-                    Connector.Query_Execute(statement.ToString());
+                    if (items.Rows.Count != 0)
+                    {
+                        // Generate huge insert statement
+                        StringBuilder statement = new StringBuilder();
+                        statement.Append("INSERT INTO terminal_buffer (command, terminalid, arguments, queue) VALUES ");
+                        foreach (ResultRow item in items)
+                            // Append each item
+                            statement.Append("('media', '" + terminalid + "', '" + Utils.Escape(item["vitemid"]) + "', '1'),");
+                        // Remove trailing comma
+                        statement.Remove(statement.Length - 1, 1);
+                        // Execute the query
+                        Connector.Query_Execute(statement.ToString());
+                    }
                 }
                 // Redirect the user back
                 Response.Redirect(ResolveUrl(current_url + current_params + current_tag));
@@ -1443,6 +1451,29 @@ public partial class _Default : System.Web.UI.Page
                 .Replace("%ACTION_BACK%", ResolveUrl("/control"))
                 ;
     }
+    public void Page__restart()
+    {
+        // Ensure a media computer is selected
+        if (Session["mediacomputer"] == null)
+        {
+            Page__404();
+            return;
+        }
+        // Ask the user to confirm their action
+        if (Request.Form["confirm"] != null)
+        {
+            terminalBufferEntry("restart", Session["mediacomputer"].ToString(), string.Empty, false, true, Connector);
+            Response.Redirect(ResolveUrl("/control"));
+        }
+        else
+            PageElements["CONTENT_RIGHT"] =
+                UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                .Replace("%ACTION_TITLE%", "Restart Terminal")
+                .Replace("%ACTION_URL%", ResolveUrl("/restart"))
+                .Replace("%ACTION_DESC%", "Are you sure you want to restart the current terminal?")
+                .Replace("%ACTION_BACK%", ResolveUrl("/control"))
+                ;
+    }
     public void Page__credits()
     {
         PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["credits_sidebar"];
@@ -1859,7 +1890,6 @@ public partial class _Default : System.Web.UI.Page
         else if (Session["post_protect"] != null) Session["post_protect"] = DateTime.Now;
         else Session.Add("post_protect", DateTime.Now);
     }
-    Random terminalBufferRandom = new Random(DateTime.Now.Millisecond);
     /// <summary>
     /// Enters a command into the terminal buffer to control a media computer/terminal.
     /// </summary>
@@ -1874,7 +1904,7 @@ public partial class _Default : System.Web.UI.Page
         if (!onlineProtection || Connector.Query_Count("SELECT COUNT('') FROM terminals WHERE status_updated >= DATE_SUB(NOW(), INTERVAL 1 MINUTE) AND terminalid='" + Utils.Escape(terminalid) + "'") == 1)
         {
             checkAutoIncrementSafety();
-            Connector.Query_Execute("INSERT INTO terminal_buffer (cid, command, terminalid, arguments, queue) VALUES('" + DateTime.Now.ToString("yyyyMMddHHmmssffff") + terminalBufferRandom.Next(0, Int32.MaxValue) + "', '" + Utils.Escape(command) + "', '" + Utils.Escape(terminalid) + "', '" + Utils.Escape(arguments) + "', '" + (queue ? "1" : "0") + "')");
+            Connector.Query_Execute("INSERT INTO terminal_buffer (command, terminalid, arguments, queue) VALUES('" + Utils.Escape(command) + "', '" + Utils.Escape(terminalid) + "', '" + Utils.Escape(arguments) + "', '" + (queue ? "1" : "0") + "')");
             return true;
         }
         else return false;
@@ -1891,7 +1921,7 @@ public partial class _Default : System.Web.UI.Page
     string terminalBufferEntry(string command, string terminalid, string arguments, bool queue)
     {
         checkAutoIncrementSafety();
-        return "INSERT INTO terminal_buffer (cid, command, terminalid, arguments, queue) VALUES('" + DateTime.Now.ToString("yyyyMMddHHmmssffff") + terminalBufferRandom.Next(0, Int32.MaxValue) + "', '" + Utils.Escape(command) + "', '" + Utils.Escape(terminalid) + "', '" + Utils.Escape(arguments) + "', '" + (queue ? "1" : "0") + "');";
+        return "INSERT INTO terminal_buffer (command, terminalid, arguments, queue) VALUES('" + Utils.Escape(command) + "', '" + Utils.Escape(terminalid) + "', '" + Utils.Escape(arguments) + "', '" + (queue ? "1" : "0") + "');";
     }
     private const long TERMINAL_BUFFER_AUTOINCREMENT_LIMIT = long.MaxValue - 100000;
     /// <summary>

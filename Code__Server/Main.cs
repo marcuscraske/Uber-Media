@@ -64,7 +64,7 @@ namespace UberMediaServer
         {
             SetStyle(ControlStyles.AllPaintingInWmPaint, true);
             SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
-            if (!File.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Settings.xml"))
+            if (!File.Exists(Application.StartupPath + "\\Settings.xml"))
             {
                 ConfigGenerator cg = new ConfigGenerator();
                 cg.Show();
@@ -81,7 +81,7 @@ namespace UberMediaServer
                 string rawxml;
                 try
                 {
-                    rawxml = File.ReadAllText("Settings.xml");
+                    rawxml = File.ReadAllText(Application.StartupPath + "\\Settings.xml");
                     settings.LoadXml(rawxml);
                 }
                 catch(Exception ex)

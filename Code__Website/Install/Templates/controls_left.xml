@@ -1,3 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[The left side-menu of the controls page.]]></description><html><![CDATA[<h2>Options</h2>
 <a onclick="return controlsButton('<!--MEDIACOMPUTER-->', 'remove_all');" href="<!--URL-->/control?mc=<!--MEDIACOMPUTER-->&amp;cmd=remove_all&amp;manual=1"><img src="<!--URL-->/Content/Images/delete.png" alt="Remove Upcoming Items" />Remove Upcoming Items</a>
-<a href="<!--URL-->/admin"><img src="<!--URL-->/Content/Images/configure.png" alt="Admin" />Admin</a>]]></html></template>
+<a href="<!--URL-->/admin"><img src="<!--URL-->/Content/Images/configure.png" alt="Admin" />Admin</a>
+<a href="<!--URL-->/shutdown"><img src="<!--URL-->/Content/Images/shutdown.png" alt="Shutdown" />Shutdown Terminal</a>
+<a href="<!--URL-->/restart"><img src="<!--URL-->/Content/Images/restart.png" alt="Restart" />Restart Terminal</a>]]></html></template>
