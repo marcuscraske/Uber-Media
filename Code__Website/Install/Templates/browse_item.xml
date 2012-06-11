@@ -4,10 +4,10 @@
 		%TITLE_S%
 	</a>
 	<div class="OPTIONS">
-		<a href="<!--URL-->/item/%VITEMID%/play_now" onclick="return itemPlay('26');">
+		<a href="<!--URL-->/item/%VITEMID%/play_now" onclick="return itemPlay('%CID%');">
 			<img src="<!--URL-->/Content/Images/Browse/play_now.png" alt="Play now" title="Play now" />
 		</a>
-		<a href="<!--URL-->/item/%VITEMID%/add_to_queue" onclick="return itemQueue('26');">
+		<a href="<!--URL-->/item/%VITEMID%/add_to_queue" onclick="return itemQueue('%CID%');">
 			<img src="<!--URL-->/Content/Images/Browse/add_to_queue.png" alt="Add to queue" title="Add to queue" />
 		</a>
 		<a href="<!--URL-->/item/%VITEMID%/watch">
