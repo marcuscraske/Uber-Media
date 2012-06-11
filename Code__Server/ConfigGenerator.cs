@@ -108,7 +108,7 @@ namespace UberMediaServer
                             {
                                 if (autoStart)
                                 {
-                                    RegistryKey reg = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
+                                    RegistryKey reg = Registry.LocalMachine.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true);
                                     if (reg == null)
                                         error = "Could not make this application automatically start-up!";
                                     else
