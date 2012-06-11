@@ -64,6 +64,7 @@ namespace UberMediaServer
         {
             SetStyle(ControlStyles.AllPaintingInWmPaint, true);
             SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+            // Check if the configuration file exists, else show the configurator
             if (!File.Exists(Application.StartupPath + "\\Settings.xml"))
             {
                 ConfigGenerator cg = new ConfigGenerator();
@@ -566,8 +567,15 @@ namespace UberMediaServer
         }
         public void controlItemNext()
         {
-            if (playedItemsOffset > 0) playedItemsOffset--;
-            controlMedia(playedItems[playedItems.Count - 1 - playedItemsOffset]);
+            if (playedItemsOffset > 0)
+            {
+                playedItemsOffset--;
+                // Play the next item in the history array
+                controlMedia(playedItems[playedItems.Count - 1 - playedItemsOffset]);
+            }
+            else
+                // Dispose the current interface - this will cause the work processor to grab new media
+                DisposeCurrentInterface();
         }
         public void controlSkipBackward()
         {

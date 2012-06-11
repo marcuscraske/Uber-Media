@@ -251,37 +251,49 @@ h1
     margin-right: 0.5em;
     text-decoration: none;
 }
-.AREA_CONTENT #RIGHT a.ITEM
+.AREA_CONTENT #RIGHT .ITEM
 {
     float: left;
-    width: 18.25em;
-    height: 4em;
-    border: dashed 1px #CCC;
-    padding: 0.5em;
+    width: 19em;
+    overflow: hidden;
+    border: solid 0.1em #CCC;
     margin: 0em 0.5em 0.5em 0em;
+}
+.AREA_CONTENT #RIGHT .ITEM .THUMB
+{
+    float: left;
+    width: 7em;
+    height: 5em;
+    margin-right: 0.5em;
+    border: none;
+}
+.AREA_CONTENT #RIGHT .ITEM .INFO
+{
+    float: right;
+    width: 100%;
+    height: 5em;
     text-decoration: none;
-    color: #000;
 }
-.AREA_CONTENT #RIGHT a.ITEM img
+.AREA_CONTENT #RIGHT .ITEM .INFO:hover
 {
-    float: left;
-    margin: 0em 0.5em 0.5em 0em;
-    width: 6em;
-    height: 4em;
-    border: solid 1px #999;
-    background-size: 100%;
+    background: #9C0;
+    color: #360;
 }
-.AREA_CONTENT #RIGHT a.ITEM:hover, .AREA_CONTENT #RIGHT a.ITEM:focus
+.AREA_CONTENT #RIGHT .ITEM .OPTIONS
 {
+    clear: both;
+    float: right;
+    height: 2.5em;
+    width: 100%;
     background: #CCC;
 }
-.AREA_CONTENT #RIGHT a.ITEM span
+.AREA_CONTENT #RIGHT .ITEM .OPTIONS img
 {
-    display: block;
+    width: 1.5em;
+    height: 1.5em;
+    padding: 0.5em;
     float: right;
-    width: 11em;
-    height: 3.5em;
-    overflow: hidden;
+    border: none;
 }
 .AREA_CONTENT #RIGHT div.B_FOOTER
 {

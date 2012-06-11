@@ -63,7 +63,8 @@ function controlsInit(mediacomputer)
     setInterval(function () { controlsUpdate(mediacomputer); }, 500);
 }
 var slidersGripped = false;
-var playlistValue = "";
+var playlistHash = "";
+var currentItem = "";
 function grip(val)
 {
     slidersGripped = val;
@@ -81,6 +82,7 @@ function controlsUpdate(mediacomputer)
         var muted = doc.getElementsByTagName("m")[0].childNodes.length > 0 ? doc.getElementsByTagName("m")[0].childNodes[0].nodeValue : "1";
         var status = doc.getElementsByTagName("s")[0].childNodes.length > 0 ? doc.getElementsByTagName("s")[0].childNodes[0].nodeValue : "7"; // 7 = error
         var pv = doc.getElementsByTagName("pv")[0].childNodes.length > 0 ? doc.getElementsByTagName("pv")[0].childNodes[0].nodeValue : "";
+        var ph = doc.getElementsByTagName("ph")[0].childNodes.length > 0 ? doc.getElementsByTagName("ph")[0].childNodes[0].nodeValue : "";
 
         if (!slidersGripped) // Only set the sliders if they're not being gripped by the user
         {
@@ -100,9 +102,9 @@ function controlsUpdate(mediacomputer)
         // Set time text
         document.getElementById("TIME").innerHTML = timeString(position) + "/" + timeString(duration);
         // Check if the playlist needs updating
-        if (pv != playlistValue)
+        if (ph != playlistHash || pv != currentItem)
         {
-            playlistValue = pv;
+            playlistHash = ph;
             controlsUpdatePlaylist(mediacomputer);
         }
     },
@@ -120,9 +122,15 @@ function controlsUpdatePlaylist(mediacomputer)
         var upcoming = doc.getElementsByTagName("u")[0];
         // Set the current item
         if (current.getElementsByTagName("v")[0].childNodes.length == 0)
+        {
             document.getElementById("PLAYING").innerHTML = "None.";
+            currentItem = "";
+        }
         else
+        {
             document.getElementById("PLAYING").innerHTML = buildPlaylistItem("", current.getElementsByTagName("v")[0].childNodes[0].nodeValue, current.getElementsByTagName("t")[0].childNodes[0].nodeValue, mediacomputer);
+            currentItem = current.getElementsByTagName("v")[0].childNodes[0].nodeValue;
+        }
         // Rebuild upcoming items
         if (upcoming.getElementsByTagName("i").length == 0)
             document.getElementById("UPCOMING").innerHTML = "None.";
@@ -139,8 +147,7 @@ function controlsUpdatePlaylist(mediacomputer)
             document.getElementById("UPCOMING").innerHTML = data;
         }
     },
-    function (a)
-    {
+    function (a) {
         playlistValue = "";
     });
 }

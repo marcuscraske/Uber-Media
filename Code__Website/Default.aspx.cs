@@ -151,15 +151,30 @@ public partial class _Default : System.Web.UI.Page
     {
         // Build list of folders/drives for the sidebar
         string folders = "";
-        foreach (ResultRow folder in Connector.Query_Read("SELECT title, pfolderid FROM physical_folders ORDER BY title ASC")) folders += "<a href=\"%URL%/browse/" + folder["pfolderid"] + "\"><img src=\"%URL%/Content/Images/folder.png\" alt=\"Folder\" />" + folder["title"] + "</a>";
+        foreach (ResultRow folder in Connector.Query_Read("SELECT title, pfolderid FROM physical_folders ORDER BY title ASC"))
+            folders += "<a href=\"%URL%/browse/" + folder["pfolderid"] + "\"><img src=\"%URL%/Content/Images/folder.png\" alt=\"Folder\" />" + folder["title"] + "</a>";
         // Build list of new items
-        string i_new = "";
-        foreach (ResultRow file in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY vi.date_added DESC LIMIT 6")) i_new += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%VITEMID%", file["vitemid"]);
+        StringBuilder itemsNew = new StringBuilder();
+        foreach (ResultRow item in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY vi.date_added DESC LIMIT 6"))
+            itemsNew.Append(
+                                UberMedia.Core.Cache_HtmlTemplates[item["type_uid"].Equals("100") ? "browse_folder" : "browse_item"]
+                                .Replace("%TITLE%", HttpUtility.HtmlEncode(item["title"]))
+                                .Replace("%TITLE_S%", HttpUtility.HtmlEncode(Title_Split(item["title"], 15)))
+                                .Replace("%VITEMID%", item["vitemid"])
+                                .Replace("%PFOLDERID%", item["pfolderid"])
+                            );
         // Build list of random items
-        string i_rand = "";
-        foreach (ResultRow file in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY RAND() DESC LIMIT 6")) i_rand += UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%VITEMID%", file["vitemid"]);
+        StringBuilder itemsRandom = new StringBuilder();
+        foreach (ResultRow item in Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' ORDER BY RAND() DESC LIMIT 6"))
+            itemsRandom.Append(
+                                UberMedia.Core.Cache_HtmlTemplates[item["type_uid"].Equals("100") ? "browse_folder" : "browse_item"]
+                                .Replace("%TITLE%", HttpUtility.HtmlEncode(item["title"]))
+                                .Replace("%TITLE_S%", HttpUtility.HtmlEncode(Title_Split(item["title"], 15)))
+                                .Replace("%VITEMID%", item["vitemid"])
+                                .Replace("%PFOLDERID%", item["pfolderid"])
+                            );
         PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["home_sidebar"].Replace("%FOLDERS%", folders.Length == 0 ? "None." : folders).Replace("%URL%", ResolveUrl(""));
-        PageElements["CONTENT_RIGHT"] = UberMedia.Core.Cache_HtmlTemplates["home"].Replace("%NEWEST%", i_new).Replace("%RANDOM%", i_rand);
+        PageElements["CONTENT_RIGHT"] = UberMedia.Core.Cache_HtmlTemplates["home"].Replace("%NEWEST%", itemsNew.ToString()).Replace("%RANDOM%", itemsRandom.ToString());
         SelectNavItem("HOME");
     }
     /// <summary>
@@ -371,8 +386,17 @@ public partial class _Default : System.Web.UI.Page
                 // List files
                 Result files = Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi " + (qtag.Length != 0 ? "LEFT OUTER JOIN tag_items AS ti ON ti.vitemid=vi.vitemid " : "") + "LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100'" + (qtag.Length != 0 ? " AND ti.tagid='" + Utils.Escape(qtag) + "'" : "") + (Request.QueryString["1"] != null ? " AND vi.pfolderid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (Request.QueryString["2"] != null ? " AND vi.parent='" + Utils.Escape(Request.QueryString["2"]) + "'" : " AND vi.parent IS NULL") : "") + " ORDER BY " + sort + " " + (sort_asc ? "ASC" : "DESC") + " LIMIT " + ((items_per_page * page) - items_per_page) + ", " + items_per_page.ToString());
                 content.Append("<h2>Files " + Browse_CreateNavigationBar(Request.QueryString["1"] ?? "", Request.QueryString["2"] ?? "") + "</h2>");
-                if (files.Rows.Count != 0) foreach (ResultRow file in files) content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", ResolveUrl("/item/" + file["vitemid"])).Replace("%VITEMID%", file["vitemid"]));
-                else content.Append("<p>No items - check the sidebar for sub-folders on the left!</p>");
+                if (files.Rows.Count != 0)
+                    foreach (ResultRow item in files)
+                        content.Append(
+                            UberMedia.Core.Cache_HtmlTemplates[item["type_uid"].Equals("100") ? "browse_folder" : "browse_item"]
+                            .Replace("%TITLE%", HttpUtility.HtmlEncode(item["title"]))
+                            .Replace("%TITLE_S%", HttpUtility.HtmlEncode(Title_Split(item["title"], 15)))
+                            .Replace("%VITEMID%", item["vitemid"])
+                            .Replace("%PFOLDERID%", item["pfolderid"])
+                        );
+                else
+                    content.Append("<p>No items - check the sidebar for sub-folders on the left!</p>");
                 // Attach footer
                 content.Append(UberMedia.Core.Cache_HtmlTemplates["browse_footer"]
                     .Replace("%PAGE%", page.ToString())
@@ -739,11 +763,17 @@ public partial class _Default : System.Web.UI.Page
                 break;
             case "play_now":
                 if(Session["mediacomputer"] != null) terminalBufferEntry("media", (string)Session["mediacomputer"], data[0]["vitemid"], false, true, Connector);
-                Response.Redirect(ResolveUrl("/item/" + data[0]["vitemid"]));
+                if (Request.UrlReferrer != null)
+                    Response.Redirect(Request.UrlReferrer.AbsoluteUri);
+                else
+                    Response.Redirect(ResolveUrl("/item/" + data[0]["vitemid"]));
                 break;
             case "add_to_queue":
                 if(Session["mediacomputer"] != null) terminalBufferEntry("media", (string)Session["mediacomputer"], data[0]["vitemid"], true, false, Connector);
-                Response.Redirect(ResolveUrl("/item/" + data[0]["vitemid"]));
+                if (Request.UrlReferrer != null)
+                    Response.Redirect(Request.UrlReferrer.AbsoluteUri);
+                else
+                    Response.Redirect(ResolveUrl("/item/" + data[0]["vitemid"]));
                 break;
             case "remove_tag":
                 string t = Request.QueryString["t"];
@@ -938,9 +968,17 @@ public partial class _Default : System.Web.UI.Page
         {
             Response.Write("Results for '" + query + "':<div class=\"clear\"></div>");
             Result results = Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.title LIKE '%" + query + "%' ORDER BY FIELD(vi.type_uid, '100') DESC, vi.title ASC LIMIT 100");
-            if (results.Rows.Count == 0) Response.Write("No items were found matching your criteria...");
+            if (results.Rows.Count == 0) Response.Write("<p>No items were found matching your criteria...</p>");
             else
-                foreach (ResultRow file in results) Response.Write(UberMedia.Core.Cache_HtmlTemplates["browse_file"].Replace("%TITLE%", file["title"]).Replace("%TITLE_S%", Title_Split(file["title"], 15)).Replace("%URL%", file["type_uid"].Equals("100") ? ResolveUrl("/browse/" + file["pfolderid"] + "/" + file["vitemid"]) : ResolveUrl("/item/" + file["vitemid"])).Replace("%VITEMID%", file["type_uid"] == "100" ? "folder" : file["vitemid"]).Replace("<!--URL-->", ResolveUrl("")));
+                foreach (ResultRow item in results)
+                        Response.Write(
+                            UberMedia.Core.Cache_HtmlTemplates[item["type_uid"].Equals("100") ? "browse_folder" : "browse_item"]
+                            .Replace("%TITLE%", HttpUtility.HtmlEncode(item["title"]))
+                            .Replace("%TITLE_S%", HttpUtility.HtmlEncode(Title_Split(item["title"], 15)))
+                            .Replace("%VITEMID%", item["vitemid"])
+                            .Replace("%PFOLDERID%", item["pfolderid"])
+                            .Replace("<!--URL-->", ResolveUrl(""))
+                            );
         }
         Response.End();
     }
@@ -1653,16 +1691,33 @@ public partial class _Default : System.Web.UI.Page
                      * 
                      */
                     Result data = Connector.Query_Read("SELECT t.*, CONCAT(CONCAT((SELECT COUNT('') FROM terminal_buffer WHERE terminalid=t.terminalid AND command='media' AND queue='1'), ':'),(SELECT cid FROM terminal_buffer WHERE terminalid=t.terminalid AND command='media' AND queue='1' ORDER BY cid DESC LIMIT 1)) AS val FROM terminals AS t WHERE t.terminalid='" + Utils.Escape(mc) + "' AND t.status_updated >= DATE_SUB(NOW(), INTERVAL 1 MINUTE);");
-                    if (data.Rows.Count != 1) break;
-                    ResultRow s = data[0];
-                    Response.Write("<d>");
-                    Response.Write("    <p>" + s["status_position"] + "</p>");
-                    Response.Write("    <d>" + s["status_duration"] + "</d>");
-                    Response.Write("    <v>" + s["status_volume"] + "</v>");
-                    Response.Write("    <m>" + s["status_volume_muted"] + "</m>");
-                    Response.Write("    <s>" + s["status_state"] + "</s>");
-                    Response.Write("    <pv>" + s["status_vitemid"] + ":" + (s["val"].Length > 0 ? s["val"] : "0") + "</pv>");
-                    Response.Write("</d>");
+                    // This "hash" system could be much improved, however this works well for the current scenario
+                    string playlistHash = Connector.Query_Scalar("SELECT SUM(arguments)*COUNT(arguments) FROM terminal_buffer WHERE terminalid='" + Utils.Escape(mc) + "' AND command='media' AND queue='1';").ToString();
+                    if (data.Rows.Count == 1)
+                    {
+                        ResultRow s = data[0];
+                        Response.Write("<d>");
+                        Response.Write("    <p>" + s["status_position"] + "</p>");
+                        Response.Write("    <d>" + s["status_duration"] + "</d>");
+                        Response.Write("    <v>" + s["status_volume"] + "</v>");
+                        Response.Write("    <m>" + s["status_volume_muted"] + "</m>");
+                        Response.Write("    <s>" + s["status_state"] + "</s>");
+                        Response.Write("    <pv>" + s["status_vitemid"] + "</pv>");
+                        Response.Write("    <ph>" + playlistHash + "</ph>");
+                        Response.Write("</d>");
+                    }
+                    else
+                    {
+                        Response.Write("<d>");
+                        Response.Write("    <p>0</p>");
+                        Response.Write("    <d>0</d>");
+                        Response.Write("    <v>0</v>");
+                        Response.Write("    <m>1</m>");
+                        Response.Write("    <s>0</s>");
+                        Response.Write("    <pv></pv>");
+                        Response.Write("    <ph>" + playlistHash + "</ph>");
+                        Response.Write("</d>");
+                    }
                     break;
                 case "playlist":
                     // For retrieving the playlist of items (current item & upcoming items)
