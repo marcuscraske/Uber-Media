@@ -120,7 +120,7 @@ input[type=range]::-webkit-slider-thumb
 {
     display: block;
     text-decoration: none;
-    width: 100%;
+    width: 59em;
     height: 4em;
     border: solid 0.1em #000;
     vertical-align: top;
@@ -134,6 +134,19 @@ input[type=range]::-webkit-slider-thumb
 .PITEM a.i
 {
     text-decoration: none;
+}
+.PITEM a.t
+{
+    display: block;
+    text-decoration: none;
+    padding: 0.5em;
+    width: 50em;
+    height: 3em;
+}
+.PITEM a.t:hover, .PITEM a.t:focus
+{
+    background: #CCC;
+    color: #333;
 }
 .PITEM a.i:hover
 {

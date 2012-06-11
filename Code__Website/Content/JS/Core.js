@@ -154,8 +154,8 @@ function controlsUpdatePlaylist(mediacomputer)
 function buildPlaylistItem(cid, vitemid, title, mediacomputer)
 {
     return "<div class=\"PITEM\">" +
-    "<a onclick=\"return controlsRemoveItem('" + mediacomputer + "', '" + cid + "')\" href=\"/control?mc=1&amp;cmd=remove&amp;manual=1&amp;cid=" + cid + "\" class=\"x\">X</a>" +
-    "<a href=\"/item/" + vitemid + "\" class=\"i\"><img src=\"" + getBaseURL() + "/thumbnail/" + vitemid + "\" alt=\"" + title + "\'s thumbnail\" title=\"" + title + "\'s thumbnail\" /></a><div>" + title + "</div>" +
+    "<a onclick=\"return controlsRemoveItem('" + mediacomputer + "', '" + cid + "')\" href=\"/control?mc=" + mediacomputer + "&amp;cmd=remove&amp;manual=1&amp;cid=" + cid + "\" class=\"x\">X</a>" +
+    "<a href=\"/item/" + vitemid + "\" class=\"i\"><img src=\"" + getBaseURL() + "/thumbnail/" + vitemid + "\" alt=\"" + title + "\'s thumbnail\" title=\"" + title + "\'s thumbnail\" /></a><a onclick=\"return controlsPlayItem('" + mediacomputer + "', '" + cid + "')\" href=\"/control?mc=" + mediacomputer + "&amp;cmd=play_now&amp;manual=1&amp;cid=" + cid + "\" class=\"t\">" + title + "</a>" +
     "</div>";
 }
 function controlsButton(mediacomputer, cmd)
@@ -168,6 +168,12 @@ function controlsRemoveItem(mediacomputer, cid)
 {
     Ajax(getBaseURL() + "/control?mc=" + encodeURI(mediacomputer) + "&cmd=remove&cid=" + encodeURI(cid), "GET",
     function () { }, function () { alert("Could not delete item, check you have a connection to the website!"); });
+    return false;
+}
+function controlsPlayItem(mediacomputer, cid)
+{
+    Ajax(getBaseURL() + "/control?mc=" + encodeURI(mediacomputer) + "&cmd=play_now&cid=" + encodeURI(cid), "GET",
+    function () { }, function () { alert("Could not play item, check you have a connection to the website!"); });
     return false;
 }
 function timeString(seconds)

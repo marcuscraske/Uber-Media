@@ -259,7 +259,7 @@ public partial class _Default : System.Web.UI.Page
                             // Create the physical file in-case the database is lost
                             File.WriteAllText(phyPath + subPath + "\\" + title + ".yt", youtubeVID);
                             // Create the virtual item to represent the file
-                            string vitemid = Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, parent, type_uid, title, phy_path, date_added) VALUES('" + Utils.Escape(Request.QueryString["1"]) + "', '" + Utils.Escape(Request.QueryString["2"] ?? string.Empty) + "', '1300', '" + Utils.Escape(title) + "', '" + Utils.Escape(subPath + "\\" + title + ".yt") + "', NOW()); SELECT LAST_INSERT_ID();").ToString();
+                            string vitemid = Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, parent, type_uid, title, phy_path, date_added) VALUES('" + Utils.Escape(Request.QueryString["1"]) + "', " + (Request.QueryString["2"] != null ? "'" + Utils.Escape(Request.QueryString["2"]) + "'" : "NULL") + ", '1300', '" + Utils.Escape(title) + "', '" + Utils.Escape(subPath + "\\" + title + ".yt") + "', NOW()); SELECT LAST_INSERT_ID();").ToString();
                             // Add to the thumbnail generator
                             UberMedia.ThumbnailGeneratorService.AddToQueue(phyPath + subPath + "\\" + title + ".yt", vitemid, "youtube");
                             // Redirect back
@@ -1766,11 +1766,16 @@ public partial class _Default : System.Web.UI.Page
                     Response.Write("</d>");
                     break;
                 case "remove":
+                    string cid = Request.QueryString["cid"];
                     // Removes an item from the playlist - if cid is empty, use skip command
-                    if (Request.QueryString["cid"] == null || Request.QueryString["cid"].Length == 0)
-                        terminalBufferEntry("next", mc, "", false, true, Connector);
-                    else
+                    if (cid != null && cid.Length > 0)
                         Connector.Query_Execute("DELETE FROM terminal_buffer WHERE command='media' AND cid='" + Utils.Escape(Request.QueryString["cid"]) + "'");
+                    break;
+                case "play_now":
+                    string cid2 = Request.QueryString["cid"];
+                    // Plays an item now by setting the queue column/flag to zero - causing the command to be immediately executed on the terminal
+                    if (cid2 != null && cid2.Length > 0)
+                        Connector.Query_Execute("UPDATE terminal_buffer SET queue='0' WHERE cid='" + Utils.Escape(Request.QueryString["cid"]) + "'");
                     break;
                 case "c_pi":
                     // Previous item
