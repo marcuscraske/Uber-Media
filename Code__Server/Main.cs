@@ -392,8 +392,16 @@ namespace UberMediaServer
         /// </summary>
         public void HookInterfaceEvent_End()
         {
-            if(_currentInterface != null)
-                _currentInterface.MediaEnd += new Interfaces.Interface._MediaEnd(intf_MediaEnd);
+            try
+            {
+                if (_currentInterface != null)
+                    lock (_currentInterface)
+                        _currentInterface.MediaEnd += new Interfaces.Interface._MediaEnd(intf_MediaEnd);
+            }
+            catch
+            {
+                np.displayMessage("Error: failed to unhook previous interface!");
+            }
         }
         /// <summary>
         /// This methid is invoked when an interface media ends.
@@ -616,9 +624,7 @@ namespace UberMediaServer
             // Shutdown
             np.displayMessage("Shutting down...");
             Thread.Sleep(2500);
-#if !DEBUG
-                                System.Diagnostics.Process.Start("shutdown", "-s -t 0");
-#endif
+            Windows.shutdown(true);
             Environment.Exit(0);
         }
         public void controlRestart()
@@ -628,7 +634,7 @@ namespace UberMediaServer
             // Restart
             np.displayMessage("Restarting terminal...");
             Thread.Sleep(500);
-            Application.Restart();
+            Windows.applicationRestart();
         }
         public void controlPosition(double seconds)
         {
@@ -735,7 +741,7 @@ namespace UberMediaServer
                     Misc.dumpError(APPLICATION_ID, ex);
                     System.Diagnostics.Debug.WriteLine(ex.Message + ": " + ex.StackTrace);
                     DisposeCurrentInterface();
-                    throw new Exception("Could not play item '" + vitemid + "': " + ex.Message + "!");
+                    np.displayMessage("Could not play item '" + vitemid + "' - " + ex.Message + "!");
                 }
             }
         }

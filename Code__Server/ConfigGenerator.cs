@@ -160,7 +160,7 @@ namespace UberMediaServer
                                 }
                             }
                             // Restart the application
-                            Application.Restart();
+                            Windows.applicationRestart();
                         }
                     }
                     else
@@ -178,7 +178,7 @@ namespace UberMediaServer
         }
         private void buttExit_MouseClick(object sender, MouseEventArgs e)
         {
-            Application.Exit();
+            Windows.applicationExit();
         }
         private void ConfigGenerator_Load(object sender, EventArgs e)
         {
