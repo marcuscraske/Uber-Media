@@ -988,19 +988,17 @@ public partial class _Default : System.Web.UI.Page
     public void Page__admin()
     {
         string subpg = Request.QueryString["1"] != null ? Request.QueryString["1"] : "home";
-        string content = "";
+        StringBuilder content = new StringBuilder();
 
         switch (subpg)
         {
             case "startup":
                 UberMedia.Core.HtmlTemplates_Reload();
-                content = UberMedia.Core.Cache_HtmlTemplates["admin_startup"];
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_startup"]);
                 break;
             case "home":
-                // Info
-                content += "<h2>Info</h2>From here you can control your media library by restricting access, configuring settings and running tasks; below you can view the mechanical status of Uber Media.";
-                // Status
-                content += "<h2>Status - Indexing Service</h2>";
+                // Indexing service
+                StringBuilder indexing = new StringBuilder();
                 if (UberMedia.Indexer.ThreadPool.Count > 0)
                 {
                     Result drives = Connector.Query_Read("SELECT pfolderid, title FROM physical_folders ORDER BY pfolderid ASC");
@@ -1008,27 +1006,66 @@ public partial class _Default : System.Web.UI.Page
                     foreach (KeyValuePair<string, System.Threading.Thread> thread in UberMedia.Indexer.ThreadPool)
                     {
                         i++;
-                        content += "<div>Thread " + i.ToString() + " [Folder " + thread.Key + " - " + DriveTitle(drives, thread.Key) + "]: " + thread.Value.ThreadState.ToString() + " - " + UberMedia.Indexer.GetStatus(thread.Key) + "</div>";
+                        indexing.Append("<div>Thread " + i.ToString() + " [Folder " + thread.Key + " - " + DriveTitle(drives, thread.Key) + "]: " + thread.Value.ThreadState.ToString() + " - " + UberMedia.Indexer.GetStatus(thread.Key) + "</div>");
                     }
                 }
-                else content += "No threads are actively indexing any folders.";
-                content += "<h2>Status - Thumbnail Service</h2>";
+                else indexing.Append("No threads are actively indexing any folders.");
+                // Thumbnail service
+                StringBuilder thumbnail = new StringBuilder();
                 if (UberMedia.ThumbnailGeneratorService.Threads.Count > 0)
                 {
                     int i = 0;
                     foreach (System.Threading.Thread th in UberMedia.ThumbnailGeneratorService.Threads)
                     {
                         i++;
-                        content += "<div>Thread " + i.ToString() + " - " + th.ThreadState.ToString() + "</div>";
+                        thumbnail.Append("<div>Thread " + i.ToString() + " - " + th.ThreadState.ToString() + "</div>");
                     }
                 }
-                else content += "No threads have been pooled by the thumbnail service.";
-                content += "<br /><br />Items queued for processing: " + UberMedia.ThumbnailGeneratorService.Queue.Count.ToString() + "<br />Next item: " + (UberMedia.ThumbnailGeneratorService.Queue.Count > 0 ? UberMedia.ThumbnailGeneratorService.Queue[0][0] : "none.") + "<br />Delegator status: " + UberMedia.ThumbnailGeneratorService.Status;
-                content += "<h2>Status - External Requests - Last 5</h2>";
-                Result ext_req = Connector.Query_Read("SELECT * FROM external_requests ORDER BY datetime DESC LIMIT 5");
-                if (ext_req.Rows.Count != 0)
-                    foreach (ResultRow req in ext_req) content += req["reason"] + " - " + req["url"];
-                else content += "No external requests have been made.";
+                else thumbnail.Append("No threads have been pooled by the thumbnail service.");
+                thumbnail
+                    .Append("<br /><br />Items queued for processing: ").Append(UberMedia.ThumbnailGeneratorService.Queue.Count.ToString())
+                    .Append("<br />Next item: " + (UberMedia.ThumbnailGeneratorService.Queue.Count > 0 ? UberMedia.ThumbnailGeneratorService.Queue[0][0] : "none."))
+                    .Append("<br />Delegator status: ").Append(UberMedia.ThumbnailGeneratorService.Status);
+                 // Film information service
+                StringBuilder filmInformation = new StringBuilder();
+                filmInformation.Append(UberMedia.FilmInformation.state.ToString()).Append(" - ").Append(UberMedia.FilmInformation.status);
+                // Check if this is an ajax request
+                if (Request.QueryString["ajax"] != null)
+                {
+                    Response.ContentType = "application/xml";
+
+                    XmlWriter xml =  XmlWriter.Create(Response.OutputStream);
+                    xml.WriteStartDocument();
+                    xml.WriteStartAttribute("admin");
+
+                    xml.WriteStartElement("indexing");
+                    xml.WriteCData(indexing.ToString());
+                    xml.WriteEndElement();
+
+                    xml.WriteStartElement("thumbnails");
+                    xml.WriteCData(thumbnail.ToString());
+                    xml.WriteEndElement();
+
+                    xml.WriteStartElement("filminformation");
+                    xml.WriteCData(filmInformation.ToString());
+                    xml.WriteEndElement();
+
+                    xml.WriteEndAttribute();
+                    xml.WriteEndDocument();
+
+                    xml.Flush();
+                    Response.End();
+                }
+                else
+                {
+                    // Set the template
+                    content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_home"]);
+                    // Build
+                    content
+                        .Replace("%INDEXING%", indexing.ToString())
+                        .Replace("%THUMBNAIL%", thumbnail.ToString())
+                        .Replace("%FILMINFORMATION%", filmInformation.ToString());
+                }
                 break;
             case "rebuild_all":
                 if (Request.Form["confirm"] != null)
@@ -1052,11 +1089,13 @@ public partial class _Default : System.Web.UI.Page
                     RunIndexers();
                     Response.Redirect(ResolveUrl("/admin"));
                 }
-                else content = UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                else content.Append(
+                    UberMedia.Core.Cache_HtmlTemplates["confirm"]
                     .Replace("%ACTION_TITLE%", "Clear &amp; Rebuild Library")
                     .Replace("%ACTION_DESC%", "All data, tagging, virtual-changes and other related items will be wiped and reindexed.")
                     .Replace("%ACTION_URL%", "<!--URL-->/admin/rebuild_all")
-                    .Replace("%ACTION_BACK%", "<!--URL-->/admin");
+                    .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+                    );
                 break;
             case "rebuild_thumbnails":
                 if (Request.Form["confirm"] != null)
@@ -1083,11 +1122,14 @@ public partial class _Default : System.Web.UI.Page
                     // Redirect user
                     Response.Redirect("/admin");
                 }
-                else content = UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                else
+                    content.Append(
+                        UberMedia.Core.Cache_HtmlTemplates["confirm"]
                     .Replace("%ACTION_TITLE%", "Rebuild All Thumbnails")
                     .Replace("%ACTION_DESC%", "All thumbnails will be deleted and rescheduled for processing.")
                     .Replace("%ACTION_URL%", "<!--URL-->/admin/rebuild_thumbnails")
-                    .Replace("%ACTION_BACK%", "<!--URL-->/admin");
+                    .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+                    );
                 break;
             case "run_indexer":
                 if (Request.Form["confirm"] != null)
@@ -1096,11 +1138,14 @@ public partial class _Default : System.Web.UI.Page
                     RunIndexers();
                     Response.Redirect(ResolveUrl("/admin"));
                 }
-                else content = UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                    .Replace("%ACTION_TITLE%", "Run Indexer")
-                    .Replace("%ACTION_DESC%", "This will run the indexers manually to find new content and delete missing media; drives already being indexed (right now) will be unaffected.")
-                    .Replace("%ACTION_URL%", "<!--URL-->/admin/run_indexer")
-                    .Replace("%ACTION_BACK%", "<!--URL-->/admin");
+                else
+                    content.Append(
+                        UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                     .Replace("%ACTION_TITLE%", "Run Indexer")
+                     .Replace("%ACTION_DESC%", "This will run the indexers manually to find new content and delete missing media; drives already being indexed (right now) will be unaffected.")
+                     .Replace("%ACTION_URL%", "<!--URL-->/admin/run_indexer")
+                     .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+                     );
                 break;
             case "stop_indexer":
                 if (Request.Form["confirm"] != null)
@@ -1109,11 +1154,12 @@ public partial class _Default : System.Web.UI.Page
                     UberMedia.Indexer.TerminateThreadPool();
                     Response.Redirect(ResolveUrl("/admin"));
                 }
-                else content = UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                else
+                    content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
                     .Replace("%ACTION_TITLE%", "Stop Indexer")
                     .Replace("%ACTION_DESC%", "This will force the indexer offline (if any threads of the indexer are executing).")
                     .Replace("%ACTION_URL%", "<!--URL-->/admin/stop_indexer")
-                    .Replace("%ACTION_BACK%", "<!--URL-->/admin");
+                    .Replace("%ACTION_BACK%", "<!--URL-->/admin"));
                 break;
             case "start_thumbnails":
                 if (Request.Form["confirm"] != null)
@@ -1122,11 +1168,12 @@ public partial class _Default : System.Web.UI.Page
                     UberMedia.ThumbnailGeneratorService.Delegator_Start();
                     Response.Redirect(ResolveUrl("/admin"));
                 }
-                else content = UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                else
+                    content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
                     .Replace("%ACTION_TITLE%", "Start Thumbnail Service")
                     .Replace("%ACTION_DESC%", "This will enable the thumbnail service to continue processing items in the thumbnail queue.")
                     .Replace("%ACTION_URL%", "<!--URL-->/admin/start_thumbnails")
-                    .Replace("%ACTION_BACK%", "<!--URL-->/admin");
+                    .Replace("%ACTION_BACK%", "<!--URL-->/admin"));
                 break;
             case "stop_thumbnails":
                 if (Request.Form["confirm"] != null)
@@ -1135,11 +1182,12 @@ public partial class _Default : System.Web.UI.Page
                     UberMedia.ThumbnailGeneratorService.Delegator_Stop();
                     Response.Redirect(ResolveUrl("/admin"));
                 }
-                else content = UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                else
+                    content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
                     .Replace("%ACTION_TITLE%", "Stop Thumbnail Service")
                     .Replace("%ACTION_DESC%", "This will disable the thumbnail service from processing items in the thumbnail queue.")
                     .Replace("%ACTION_URL%", "<!--URL-->/admin/stop_thumbnails")
-                    .Replace("%ACTION_BACK%", "<!--URL-->/admin");
+                    .Replace("%ACTION_BACK%", "<!--URL-->/admin"));
                 break;
             case "folders":
                 // Check if the user has requested to add a new folder
@@ -1171,11 +1219,13 @@ public partial class _Default : System.Web.UI.Page
                         .Replace("%PATH%", HttpUtility.HtmlEncode(folder["physicalpath"]))
                         .Replace("%SYNOPSIS%", folder["allow_web_synopsis"]);
                 // Build page content
-                content = UberMedia.Core.Cache_HtmlTemplates["admin_folders"]
+                content.Append(
+                    UberMedia.Core.Cache_HtmlTemplates["admin_folders"]
                     .Replace("%CURRENT_FOLDERS%", currentFolders)
                     .Replace("%TITLE%", HttpUtility.HtmlEncode(Request.Form["title"]) ?? "")             // Add new folder form
                     .Replace("%PATH%", HttpUtility.HtmlEncode(Request.Form["path"]) ?? "")
-                    .Replace("%SYNOPSIS%", Request.Form["synopsis"] != null ? " checked" : "");
+                    .Replace("%SYNOPSIS%", Request.Form["synopsis"] != null ? " checked" : "")
+                    );
                 break;
             case "folder":
                 // Grab the folder identifier and validate it
@@ -1218,7 +1268,7 @@ public partial class _Default : System.Web.UI.Page
                             // Shutdown the indexer (if it exists)
                             UberMedia.Indexer.TerminateIndexer(data[0]["pfolderid"]);
                             // Remove thumbnails
-                            foreach(ResultRow item in Connector.Query_Read("SELECT vitemid FROM virtual_items WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'"))
+                            foreach (ResultRow item in Connector.Query_Read("SELECT vitemid FROM virtual_items WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'"))
                                 try
                                 {
                                     if (File.Exists(Server.MapPath("/Content/Thumbnails/" + item["vitemid"] + ".png")))
@@ -1230,11 +1280,13 @@ public partial class _Default : System.Web.UI.Page
                             Response.Redirect(ResolveUrl("/admin/folders"));
                         }
                         else
-                            content = UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                            content.Append(
+                                UberMedia.Core.Cache_HtmlTemplates["confirm"]
                                 .Replace("%ACTION_TITLE%", "Remove Folder")
                                 .Replace("%ACTION_DESC%", "Are you sure you want to remove this folder? Note: this will not delete the physical folder!")
                                 .Replace("%ACTION_URL%", "<!--URL-->/admin/folder/" + data[0]["pfolderid"] + "/remove")
-                                .Replace("%ACTION_BACK%", "<!--URL-->/admin/folder/" + data[0]["pfolderid"]);
+                                .Replace("%ACTION_BACK%", "<!--URL-->/admin/folder/" + data[0]["pfolderid"])
+                                );
                         break;
                     case "add_type":
                         string type = Request.Form["type"];
@@ -1279,7 +1331,8 @@ public partial class _Default : System.Web.UI.Page
                                 .Replace("%TITLE%", HttpUtility.HtmlEncode(it["title"]));
                         if (typesRemove.Length == 0) typesRemove = "None.";
                         // Build content
-                        content = UberMedia.Core.Cache_HtmlTemplates["admin_folder"]
+                        content.Append(
+                            UberMedia.Core.Cache_HtmlTemplates["admin_folder"]
                             .Replace("%TITLE%", HttpUtility.HtmlEncode(data[0]["title"]))                               // Modify
                             .Replace("%PATH%", HttpUtility.HtmlEncode(data[0]["physicalpath"]))
                             .Replace("%SYNOPSIS%", data[0]["allow_web_synopsis"].Equals("1") ? "checked" : "")
@@ -1288,7 +1341,8 @@ public partial class _Default : System.Web.UI.Page
                             .Replace("%TOTAL_VIEWS%", data[0]["total_views"])
                             .Replace("%TYPES%", typesAdd)                                                               // Types
                             .Replace("%TYPES_REMOVE%", typesRemove)
-                            .Replace("%PFOLDERID%", data[0]["pfolderid"]);                                              // Misc
+                            .Replace("%PFOLDERID%", data[0]["pfolderid"])                                               // Misc
+                            );
                         break;
                 }
                 break;
@@ -1309,11 +1363,13 @@ public partial class _Default : System.Web.UI.Page
                         .Replace("%REASON%", HttpUtility.HtmlEncode(req["reason"]))
                         .Replace("%DATETIME%", req["datetime"])
                         .Replace("%URL%", HttpUtility.HtmlEncode(req["url"]));
-                content = UberMedia.Core.Cache_HtmlTemplates["admin_requests"]
+                content.Append(
+                    UberMedia.Core.Cache_HtmlTemplates["admin_requests"]
                     .Replace("%ITEMS%", reqs.Length > 0 ? reqs : "None.")
                     .Replace("%P_N%", (page < int.MaxValue ? page + 1 : page).ToString())
                     .Replace("%P_P%", (page > 1 ? page - 1 : page).ToString())
-                    .Replace("%PAGE%", page.ToString());
+                    .Replace("%PAGE%", page.ToString())
+                    );
                 break;
             case "settings":
                 // Check if the user has requested to update a setting
@@ -1327,22 +1383,25 @@ public partial class _Default : System.Web.UI.Page
                         Connector.Query_Execute(queryUpdate);
 				}
                 // Build content
-                content += UberMedia.Core.Cache_HtmlTemplates["admin_settings_header"];
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_settings_header"]);
                 string lastcat = "";
                 foreach (ResultRow setting in Connector.Query_Read("SELECT * FROM settings ORDER BY category ASC, keyid ASC"))
                 {
                     if (!lastcat.Equals(setting["category"]))
                     {
                         lastcat = setting["category"];
-                        content += UberMedia.Core.Cache_HtmlTemplates["admin_settings_category"]
-                            .Replace("%CATEGORY%", HttpUtility.HtmlEncode(setting["category"]));
+                        content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_settings_category"]
+                            .Replace("%CATEGORY%", HttpUtility.HtmlEncode(setting["category"]))
+                            );
                     }
-                    content += UberMedia.Core.Cache_HtmlTemplates["admin_settings_item"]
+                    content.Append(
+                        UberMedia.Core.Cache_HtmlTemplates["admin_settings_item"]
                         .Replace("%KEYID%", HttpUtility.HtmlEncode(setting["keyid"]))
                         .Replace("%VALUE%", HttpUtility.HtmlEncode(setting["value"]))
-                        .Replace("%DESCRIPTION%", HttpUtility.HtmlEncode(setting["description"]));
+                        .Replace("%DESCRIPTION%", HttpUtility.HtmlEncode(setting["description"]))
+                        );
                 }
-                content += UberMedia.Core.Cache_HtmlTemplates["admin_settings_footer"];
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_settings_footer"]);
                 break;
             case "terminals":
                 switch (Request.QueryString["2"])
@@ -1360,8 +1419,10 @@ public partial class _Default : System.Web.UI.Page
                             genTerminals = "<option value=\"" + HttpUtility.HtmlEncode(terminal["terminalid"]) + "\">" + HttpUtility.HtmlEncode(terminal["title"]) + "</option>";
                         }
                         // Build content
-                        content = UberMedia.Core.Cache_HtmlTemplates["admin_terminals"]
-                            .Replace("%TERMINALS%", terminals);
+                        content.Append(
+                            UberMedia.Core.Cache_HtmlTemplates["admin_terminals"]
+                            .Replace("%TERMINALS%", terminals)
+                            );
                         break;
                     case "remove":
                         string t = Request.QueryString["t"];
@@ -1379,11 +1440,13 @@ public partial class _Default : System.Web.UI.Page
                             Response.Redirect(ResolveUrl("/admin/terminals"));
                         }
                         else
-                            content = UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                            content.Append(
+                                UberMedia.Core.Cache_HtmlTemplates["confirm"]
                                 .Replace("%ACTION_TITLE%", "Deletion of Terminal")
                                 .Replace("%ACTION_DESC%", "Are you sure you want to delete the terminal '" + tdata[0]["title"] + "' (TID: " + tdata[0]["terminalid"] + ")?")
                                 .Replace("%ACTION_URL%", "<!--URL-->/admin/terminals/remove?t=" + tdata[0]["terminalid"])
-                                .Replace("%ACTION_BACK%", "<!--URL-->/admin/terminals");
+                                .Replace("%ACTION_BACK%", "<!--URL-->/admin/terminals")
+                                );
                         break;
                     default:
                         Page__404();
@@ -1414,8 +1477,8 @@ public partial class _Default : System.Web.UI.Page
                                 .Replace("%TAGID%", tag["tagid"])
                                 .Replace("%TITLE%", HttpUtility.HtmlEncode(tag["title"]));
                         // Build content
-                        content = UberMedia.Core.Cache_HtmlTemplates["admin_tags"]
-                            .Replace("%TAGS%", tags);
+                        content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_tags"]
+                            .Replace("%TAGS%", tags));
                         break;
                     case "remove":
                         string tagid = Request.QueryString["t"];
@@ -1433,11 +1496,13 @@ public partial class _Default : System.Web.UI.Page
                                 Response.Redirect(ResolveUrl("/admin/tags"));
                             }
                             else
-                                content = UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                                content.Append(
+                                    UberMedia.Core.Cache_HtmlTemplates["confirm"]
                                     .Replace("%ACTION_TITLE%", "Confirm Tag Deletion")
                                     .Replace("%ACTION_DESC%", "Are you sure you want to remvoe tag '" + t[0]["title"] + "'?")
                                     .Replace("%ACTION_URL%", "<!--URL-->/admin/tags/remove?t=" + t[0]["tagid"])
-                                    .Replace("%ACTION_BACK%", "<!--URL-->/admin/tags");
+                                    .Replace("%ACTION_BACK%", "<!--URL-->/admin/tags")
+                                    );
                         }
                         break;
                     default:
@@ -1450,7 +1515,7 @@ public partial class _Default : System.Web.UI.Page
                 return;
         }
         PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["admin_sidebar"];
-        PageElements["CONTENT_RIGHT"] = content;
+        PageElements["CONTENT_RIGHT"] = content.ToString();
         SelectNavItem("CONTROL");
     }
     /// <summary>
@@ -1516,6 +1581,58 @@ public partial class _Default : System.Web.UI.Page
     {
         PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["credits_sidebar"];
         PageElements["CONTENT_RIGHT"] = UberMedia.Core.Cache_HtmlTemplates["credits"];
+    }
+    public void Page__status()
+    {
+        StringBuilder content = new StringBuilder();
+        switch (Request.QueryString["1"])
+        {
+            default:
+                // Status of the terminals
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["status_header"]);
+                bool parsedDate = false;
+                DateTime updated;
+                TimeSpan length;
+                foreach (ResultRow terminal in Connector.Query_Read("SELECT * FROM terminals ORDER BY title ASC"))
+                {
+                    parsedDate = DateTime.TryParse(terminal["status_updated"], out updated);
+                    if (parsedDate)
+                        length = DateTime.Now.Subtract(updated);
+                    else
+                        length = new TimeSpan(); // Cassini seems to have an issue unless this is set...prolly a compilation bug in ASP.NET 2
+                    content.Append(
+                        UberMedia.Core.Cache_HtmlTemplates["status_terminal"]
+                        .Replace("%TERMINALID%", terminal["terminalid"])
+                        .Replace("%TITLE%", HttpUtility.HtmlEncode(terminal["title"]))
+                        .Replace("%UPDATED%", HttpUtility.HtmlEncode(terminal["status_updated"]))
+                        .Replace("%STATUS%", !parsedDate ? "Never online" : length.TotalSeconds < 8 ? "Online" : length.TotalSeconds < 15 ? "Communication lost" : "Offline")
+                        );
+                }
+                break;
+            case "shutdown":
+            case "restart":
+                bool shutdown = Request.QueryString["1"].Equals("shutdown");
+                if (Request.Form["confirm"] != null)
+                {
+                    // Shutdown every terminal
+                    string statement = buildCommandStatementAllTerminals(shutdown ? "shutdown" : "restart", null, false);
+                    if (statement != null)
+                        Connector.Query_Execute(statement);
+                    Response.Redirect(ResolveUrl("/status"));
+                }
+                else
+                    content.Append(
+                        UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                        .Replace("%ACTION_TITLE%", (shutdown ? "Shutdown" : "Restart") + " All Terminals")
+                        .Replace("%ACTION_DESC%", "Are you sure you want to " + (shutdown ? "shutdown" : "restart") + " every terminal?")
+                        .Replace("%ACTION_URL%", shutdown ? ResolveUrl("/status/shutdown") : ResolveUrl("/status/restart"))
+                        .Replace("%ACTION_BACK%", ResolveUrl("/status"))
+                        );
+                break;
+        }
+        PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["status_left"];
+        PageElements["CONTENT_RIGHT"] = content.ToString();
+        SelectNavItem("CONTROL");
     }
     // Terminal registration
     /// <summary>
@@ -2039,6 +2156,33 @@ public partial class _Default : System.Web.UI.Page
             if (c != 32 && c != 45 && !(c >= 48 && c <= 57) && !(c >= 65 && c <= 90) && c != 95 && !(c >= 97 && c <= 122))
                 return false;
         return true;
+    }
+    /// <summary>
+    /// Builds an insert-statement to insert a command for every terminal.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="args"></param>
+    /// <param name="queue"></param>
+    /// <returns>A string if successful, else null if no terminals.</returns>
+    private string buildCommandStatementAllTerminals(string command, string args, bool queue)
+    {
+        Result terminals = Connector.Query_Read("SELECT terminalid FROM terminals");
+        if (terminals.Rows.Count > 0)
+        {
+            // Build the right-hand each row
+            string query = ", '" + Utils.Escape(command) + "', " + (args != null && args.Length > 0 ? "'" + Utils.Escape(args) + "'" : "NULL") + ", '" + (queue ? "1" : "0") + "'),";
+            // Build the actual query
+            StringBuilder statement = new StringBuilder("INSERT INTO terminal_buffer (terminalid, command, arguments, queue) VALUES");
+            // Add each terminal
+            foreach (ResultRow terminal in terminals)
+                statement.Append("('").Append(Utils.Escape(terminal["terminalid"])).Append("'").Append(query);
+            // Remove tailing comma
+            statement.Remove(statement.Length - 1, 1);
+            // Return statement
+            return statement.ToString();
+        }
+        else
+            return null;
     }
     #endregion
 }

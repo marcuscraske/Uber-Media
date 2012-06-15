@@ -118,12 +118,13 @@ namespace UberMediaServer
             {
                 SetErrorMessage("Failed to load terminal:\r\n" + ex.Message);
                 Misc.dumpError(APPLICATION_ID, ex);
+                return;
             }
         }
         #endregion
 
         #region "Screensaver Headers"
-        // Credit: http://social.msdn.microsoft.com/Forums/br/csharpgeneral/thread/b951fc9f-8996-47a4-aaab-1131447d06ea
+        // Credit: Lincoln_MA - http://social.msdn.microsoft.com/Forums/br/csharpgeneral/thread/b951fc9f-8996-47a4-aaab-1131447d06ea
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         static extern EXECUTION_STATE SetThreadExecutionState(EXECUTION_STATE flags);
         [Flags]
@@ -187,10 +188,6 @@ namespace UberMediaServer
                     try
                     {
                         response = Library.fetchData(url.ToString());
-                    }
-                    catch (LibraryConnectionFailure)
-                    {
-                        libraryIsAccessible = false;
                     }
                     catch (Exception ex)
                     {
@@ -372,6 +369,7 @@ namespace UberMediaServer
                 }
                 catch (Exception ex)
                 {
+                    libraryIsAccessible = false;
 #if DEBUG
                     m.np.displayMessage("Worker processor failure, check output!");
                     System.Diagnostics.Debug.WriteLine(ex.Message + ": " + ex.StackTrace);
@@ -398,9 +396,10 @@ namespace UberMediaServer
                     lock (_currentInterface)
                         _currentInterface.MediaEnd += new Interfaces.Interface._MediaEnd(intf_MediaEnd);
             }
-            catch
+            catch(Exception ex)
             {
                 np.displayMessage("Error: failed to unhook previous interface!");
+                Misc.dumpError(APPLICATION_ID, ex);
             }
         }
         /// <summary>
@@ -410,13 +409,21 @@ namespace UberMediaServer
         {
             Invoke((MethodInvoker)delegate()
             {
-                // Clear the information pane now playing text
-                np.updateNowPlaying(null, null);
-                // Dispose the interface
-                DisposeCurrentInterface();
-                // Play the next item if in an offset
-                if (playedItemsOffset > 0)
-                    controlItemNext();
+                try
+                {
+                    // Clear the information pane now playing text
+                    np.updateNowPlaying(null, null);
+                    // Dispose the interface
+                    DisposeCurrentInterface();
+                    // Play the next item if in an offset
+                    if (playedItemsOffset > 0)
+                        controlItemNext();
+                }
+                catch (Exception ex)
+                {
+                    np.displayMessage("Error: media-ended, error occurred!");
+                    Misc.dumpError(APPLICATION_ID, ex);
+                }
             });
         }
         #endregion
@@ -428,9 +435,16 @@ namespace UberMediaServer
         public void DisposeCurrentInterface()
         {
             if (_currentInterface == null) return;
-            _currentInterface.MediaEnd -= new Interfaces.Interface._MediaEnd(intf_MediaEnd);
-            _currentInterface.Dispose();
-            _currentInterface = null;
+            try
+            {
+                _currentInterface.MediaEnd -= new Interfaces.Interface._MediaEnd(intf_MediaEnd);
+                _currentInterface.Dispose();
+                _currentInterface = null;
+            }
+            catch (Exception ex)
+            {
+                Misc.dumpError(APPLICATION_ID, ex);
+            }
         }
         /// <summary>
         /// Displays an error-message to the user.
@@ -756,37 +770,45 @@ namespace UberMediaServer
         private static Font paintFont = new Font("Arial", 30.0f, FontStyle.Regular, GraphicsUnit.Pixel);
         private static Font paintFontTime = new Font("Arial", 50.0f, FontStyle.Bold, GraphicsUnit.Pixel);
         private static Brush paintBrush = new SolidBrush(Color.White);
+        private string paintCacheDate = string.Empty;
+        private string paintCacheTime = string.Empty;
         private void Main_Paint(object sender, PaintEventArgs e)
         {
-            // If the current interface is null, draw the idle information
-            if (_currentInterface == null)
+            try
             {
-                // Execute ball logic
-                if (renderIdle != null)
+                // If the current interface is null, draw the idle information
+                if (_currentInterface == null)
                 {
-                    renderIdle.logic();
-                    // Draw our magic balls :D
-                    renderIdle.draw(e.Graphics);
+                    // Draw our magic balls :D - only if the library is accessible
+                    if (renderIdle != null && libraryIsAccessible)
+                        renderIdle.draw(e.Graphics);
+                    SizeF sizeDate = e.Graphics.MeasureString(paintCacheDate, paintFont);
+                    // Draw date
+                    e.Graphics.DrawString(paintCacheDate, paintFont, paintBrush, 10, 10);
+                    // Draw time
+                    e.Graphics.DrawString(paintCacheTime, paintFontTime, paintBrush, 10, 10 + sizeDate.Height + 5);
+                    // Draw online
+                    if (!libraryIsAccessible)
+                    {
+                        SizeF sizeAccessible = e.Graphics.MeasureString(paintLibraryUnconnected, paintFont);
+                        e.Graphics.DrawString(paintLibraryUnconnected, paintFont, paintBrush, Width - (10 + sizeAccessible.Width), Height - (10 + sizeAccessible.Height));
+                    }
                 }
-                string date = DateTime.Now.ToString("dd/MM/yyyy");
-                string time = DateTime.Now.ToString("HH:mm:ss");
-                SizeF sizeDate = e.Graphics.MeasureString(date, paintFont);
-                // Draw date
-                e.Graphics.DrawString(date, paintFont, paintBrush, 10, 10);
-                // Draw time
-                e.Graphics.DrawString(time, paintFontTime, paintBrush, 10, 10 + sizeDate.Height + 5);
-                // Draw online
-                if (!libraryIsAccessible)
-                {
-                    SizeF sizeAccessible = e.Graphics.MeasureString(paintLibraryUnconnected, paintFont);
-                    e.Graphics.DrawString(paintLibraryUnconnected, paintFont, paintBrush, Width - (10 + sizeAccessible.Width), Height - (10 + sizeAccessible.Height));
-                }
+            }
+            catch (Exception ex)
+            {
+                Misc.dumpError(APPLICATION_ID, ex);
             }
         }
         private void invalidateTimer_Tick(object sender, EventArgs e)
         {
-            if (_currentInterface == null)
+            if (_currentInterface == null && renderIdle != null)
+            {
+                renderIdle.logic();
+                paintCacheDate = DateTime.Now.ToString("dd/MM/yyyy");
+                paintCacheTime = DateTime.Now.ToString("HH:mm:ss");
                 Invalidate();
+            }
         }
         public void cursorShow()
         {

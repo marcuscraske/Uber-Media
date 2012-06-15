@@ -14,6 +14,8 @@ DROP TABLE IF EXISTS `terminals`;
 DROP TABLE IF EXISTS `terminal_buffer`;
 DROP TABLE IF EXISTS `virtual_items`;
 DROP TABLE IF EXISTS `vi_ratings`;
+DROP TABLE IF EXISTS `film_information`;
+DROP TABLE IF EXISTS `film_information_providers`;
 SET FOREIGN_KEY_CHECKS=1;
 
 -- Create tables ************************************************************************************************************************************************************************
@@ -132,6 +134,23 @@ CREATE TABLE `terminal_buffer`
 	FOREIGN KEY(`terminalid`) REFERENCES `terminals`(`terminalid`) ON DELETE CASCADE ON UPDATE CASCADE,
 	`arguments` text,
 	`queue` int DEFAULT '0'
+);
+
+-- Film information
+CREATE TABLE `film_information_providers`
+(
+	`provid` integer PRIMARY KEY AUTO_INCREMENT,
+	`title` text,
+	`cache_updated` datetime
+);
+CREATE TABLE `film_information`
+(
+	`infoid` bigint PRIMARY KEY AUTO_INCREMENT,
+	`title` text,
+	`description` text,
+	`provid` int,
+	`last_updated` datetime,
+	FOREIGN KEY(`provid`) REFERENCES `film_information_providers`(`provid`) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- Populate default data ****************************************************************************************************************************************************************

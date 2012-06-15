@@ -84,6 +84,14 @@ namespace UberMedia
         {
             if (Terminate) return;
             ThreadIndexerAttribs tia = (ThreadIndexerAttribs)obj;
+            // If we retrieve synopsis's, we should ensure the film-information service is ready
+            if (tia.allow_web_synopsis)
+            {
+                UpdateStatus(tia.pfolderid, "Waiting for film-information service to start...");
+                while (FilmInformation.state != FilmInformation.State.Started)
+                    Thread.Sleep(200);
+            }
+            // Begin mapping extensions...
             UpdateStatus(tia.pfolderid, "Mapping extensions to type UID");
             tia.pfolderid = Utils.Escape(tia.pfolderid);
             // Build extensions->typeid map and a list of processible (thumbnail-wise) items
@@ -125,7 +133,7 @@ namespace UberMedia
                 ext = filename.LastIndexOf('.') != -1 ? filename.Substring(filename.LastIndexOf('.') + 1).ToLower() : "";
                 title = ext.Length > 0 ? filename.Remove(filename.Length - (ext.Length + 1), (ext.Length + 1)) : filename;
                 if (tia.allow_web_synopsis)
-                    desc = FilmInformation.FilmSynopsis(title, tia.Connector);
+                    desc = FilmInformation.getFilmSynopsis(title, tia.Connector);
                 else desc = "";
                 if (ext.Length > 0 && ExtensionsMap.ContainsKey(ext) && tia.Connector.Query_Count("SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + tia.pfolderid + "' AND type_uid != '100' AND phy_path='" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "'") == 0)
                 {

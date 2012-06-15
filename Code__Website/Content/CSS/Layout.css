@@ -380,6 +380,13 @@ a.BUTTON.M
 {
     border-bottom: dotted 0.2em #CCC;
 }
+.RH /* Row header */
+{
+    background: #CCC;
+    color: #333;
+    font-weight: bold;
+    border-radius: 5px;
+}
 .R .C, .R .C3 /* Cell of a row */
 {
     float: left;
@@ -392,9 +399,13 @@ a.BUTTON.M
 {
     width: 33%;
 }
-.R .C .P
+.R .C .P, .R .C3 .P
 {
     padding: 0.5em;
+}
+.R .C .P2, .R .C3 .P2
+{
+    padding: 0.25em 0.5em;
 }
 .R .C img, .R .C3 img /* Cell icon */
 {

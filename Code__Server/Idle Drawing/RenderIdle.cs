@@ -23,6 +23,7 @@ namespace UberMediaServer
 {
     public class RenderIdle
     {
+        #region "Variables"
         private Main main;
         private const int BALLS_MIN = 20;
         private const int BALLS_MAX = 30;
@@ -31,6 +32,9 @@ namespace UberMediaServer
         public int canvasWidth;
         public int canvasHeight;
         private List<Ball> balls;
+        #endregion
+
+        #region "Methods - Constructors"
         public RenderIdle(Main main)
         {
             this.main = main;
@@ -52,74 +56,83 @@ namespace UberMediaServer
                         i * diameter,
                         r.Next(BALLS_VEL_MIN, BALLS_VEL_MAX), r.Next(BALLS_VEL_MIN, BALLS_VEL_MAX), diameter, new SolidBrush(Color.FromArgb(r.Next(0, 255), r.Next(0, 255), r.Next(0, 255))))
                         ;
-                // Add variance to x
-                b.x += r.Next(0, canvasWidth - (b.x + b.diameter));
+                // Add variance to x if within bounds of canvas
+                if(canvasWidth - (b.x + b.diameter) > 0) b.x += r.Next(0, canvasWidth - (b.x + b.diameter));
                 // Add to collection
                 balls.Add(b);
             }
         }
+        #endregion
+
+        #region "Methods - Events"
         void main_SizeChanged(object sender, EventArgs e)
         {
             canvasWidth = main.Width;
             canvasHeight = main.Height;
         }
+        #endregion
+
+        #region "Methods"
         public void logic()
         {
-            // Calculate canvas mid-points
-            int midX = canvasWidth / 2;
-            int midY = canvasHeight / 2;
-            // Update the position of all the balls
-            bool inverse;
-            bool collision;
-            int newX;
-            int newY;
-            double pythag;
-            foreach (Ball b in balls)
+            lock (balls)
             {
-                // Calculate the new position
-                newX = b.x + b.velX;
-                newY = b.y + b.velY;
-                // Check the position is within bounds, else inverse the velocity
-                inverse = false;
-                if (newX < 0)
+                // Calculate canvas mid-points
+                int midX = canvasWidth / 2;
+                int midY = canvasHeight / 2;
+                // Update the position of all the balls
+                bool inverse;
+                bool collision;
+                int newX;
+                int newY;
+                double pythag;
+                foreach (Ball b in balls)
                 {
-                    newX = 0;
-                    inverse = true;
-                }
-                if (newX + b.diameter > canvasWidth)
-                {
-                    newX = canvasWidth - b.diameter;
-                    inverse = true;
-                }
-                if (newY < 0)
-                {
-                    newY = 0;
-                    inverse = true;
-                }
-                if (newY + b.diameter > canvasHeight)
-                {
-                    newY = canvasHeight - b.diameter;
-                    inverse = true;
-                }
-                // Perform collision detection
-                collision = false;
-                foreach (Ball b2 in balls)
-                    if (b2 != b)
+                    // Calculate the new position
+                    newX = b.x + b.velX;
+                    newY = b.y + b.velY;
+                    // Check the position is within bounds, else inverse the velocity
+                    inverse = false;
+                    if (newX < 0)
                     {
-                        pythag = Math.Sqrt(Math.Pow(newX - b2.x, 2) + Math.Pow(newY - b2.y, 2));
-                        if(pythag < b.diameter) collision = true;
+                        newX = 0;
+                        inverse = true;
                     }
-                // Only move to the new position if no collision occurred
-                if (!collision)
-                {
-                    b.x = newX;
-                    b.y = newY;
-                }
-                // Only inverse the velocity if we hit something
-                if(collision || inverse)
-                {
-                    b.velX = -b.velX;
-                    b.velY = -b.velY;
+                    if (newX + b.diameter > canvasWidth)
+                    {
+                        newX = canvasWidth - b.diameter;
+                        inverse = true;
+                    }
+                    if (newY < 0)
+                    {
+                        newY = 0;
+                        inverse = true;
+                    }
+                    if (newY + b.diameter > canvasHeight)
+                    {
+                        newY = canvasHeight - b.diameter;
+                        inverse = true;
+                    }
+                    // Perform collision detection
+                    collision = false;
+                    foreach (Ball b2 in balls)
+                        if (b2 != b)
+                        {
+                            pythag = Math.Sqrt(Math.Pow(newX - b2.x, 2) + Math.Pow(newY - b2.y, 2));
+                            if (pythag < b.diameter) collision = true;
+                        }
+                    // Only move to the new position if no collision occurred
+                    if (!collision)
+                    {
+                        b.x = newX;
+                        b.y = newY;
+                    }
+                    // Only inverse the velocity if we hit something
+                    if (collision || inverse)
+                    {
+                        b.velX = -b.velX;
+                        b.velY = -b.velY;
+                    }
                 }
             }
         }
@@ -131,8 +144,8 @@ namespace UberMediaServer
                 foreach (Ball b in balls)
                     g.FillEllipse(b.colour, b.x, b.y, b.diameter, b.diameter);
             }
-
         }
+        #endregion
     }
     public class Ball
     {

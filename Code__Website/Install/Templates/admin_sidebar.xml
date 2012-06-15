@@ -2,10 +2,12 @@
 <h2>Tasks</h2>
 <a href="<!--URL-->/admin/rebuild_all"><img src="<!--URL-->/Content/Images/rebuild_thumbnail.png" alt="Rebuild Library" />Clear &amp; Rebuild Library</a>
 <a href="<!--URL-->/admin/rebuild_thumbnails"><img src="<!--URL-->/Content/Images/rebuild_thumbnail.png" alt="Rebuild Thumbnails" />Rebuild All Thumbnails</a>
+<a href="<!--URL-->/admin/rebuild_film_cache"><img src="<!--URL-->/Content/Images/rebuild_thumbnail.png" alt="Rebuild Film Information" />Rebuild Film Information Cache</a>
 <a href="<!--URL-->/admin/run_indexer"><img src="<!--URL-->/Content/Images/indexer.png" alt="Run Indexer" />Run Indexer</a>
 <a href="<!--URL-->/admin/stop_indexer"><img src="<!--URL-->/Content/Images/delete.png" alt="Stop Indexer" />Stop Indexer</a>
 <a href="<!--URL-->/admin/start_thumbnails"><img src="<!--URL-->/Content/Images/start.png" alt="Start Thumbnails Service" />Start Thumbnails Service</a>
 <a href="<!--URL-->/admin/stop_thumbnails"><img src="<!--URL-->/Content/Images/delete.png" alt="Stop Thumbnails Service" />Stop Thumbnails Service</a>
+<a href="<!--URL-->/admin/reload_templates"><img src="<!--URL-->/Content/Images/reload.png" alt="Reload HTML Templates" />Reload HTML Templates</a>
 <h2>Options</h2>
 <a href="<!--URL-->/admin/folders"><img src="<!--URL-->/Content/Images/folders.png" alt="Configure Main Folders" />Configure Main Folders</a>
 <a href="<!--URL-->/admin/terminals"><img src="<!--URL-->/Content/Images/terminals.png" alt="Terminals" />Terminals/Media Computers</a>

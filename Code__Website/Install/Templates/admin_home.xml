@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[The home of the admin page.]]></description><html><![CDATA[<h2>Info</h2>
+<p>From here you can control your media library and change settings; below you can view the mechanical status of your media library.</p>
+
+<h2>Status - Indexing Service</h2>
+<p id="service_indexing">%INDEXING%</p>
+
+<h2>Status - Thumbnail Service</h2>
+<p id="service_thumbnail">%THUMBNAIL%</p>
+
+<h2>Status - Film Information Service</h2>
+<p id="service_filminformation">%FILMINFORMATION%</p>]]></html></template>

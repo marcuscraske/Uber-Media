@@ -74,7 +74,7 @@
             this.txtTerminalTitle.Location = new System.Drawing.Point(148, 160);
             this.txtTerminalTitle.Name = "txtTerminalTitle";
             this.txtTerminalTitle.Size = new System.Drawing.Size(202, 20);
-            this.txtTerminalTitle.TabIndex = 3;
+            this.txtTerminalTitle.TabIndex = 1;
             this.txtTerminalTitle.Text = "Media Computer";
             // 
             // txtWebsite
@@ -82,7 +82,7 @@
             this.txtWebsite.Location = new System.Drawing.Point(12, 59);
             this.txtWebsite.Name = "txtWebsite";
             this.txtWebsite.Size = new System.Drawing.Size(397, 20);
-            this.txtWebsite.TabIndex = 2;
+            this.txtWebsite.TabIndex = 0;
             // 
             // textBox1
             // 
@@ -94,7 +94,7 @@
             this.textBox1.Name = "textBox1";
             this.textBox1.ReadOnly = true;
             this.textBox1.Size = new System.Drawing.Size(400, 18);
-            this.textBox1.TabIndex = 8;
+            this.textBox1.TabIndex = 25;
             this.textBox1.Text = "This will cause the above user to be automatically logged-on when Windows starts." +
                 "";
             this.textBox1.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
@@ -115,7 +115,7 @@
             this.txtWindowsPassword.Name = "txtWindowsPassword";
             this.txtWindowsPassword.PasswordChar = '*';
             this.txtWindowsPassword.Size = new System.Drawing.Size(247, 20);
-            this.txtWindowsPassword.TabIndex = 10;
+            this.txtWindowsPassword.TabIndex = 6;
             // 
             // textBox2
             // 
@@ -127,7 +127,7 @@
             this.textBox2.Name = "textBox2";
             this.textBox2.ReadOnly = true;
             this.textBox2.Size = new System.Drawing.Size(397, 69);
-            this.textBox2.TabIndex = 9;
+            this.textBox2.TabIndex = 20;
             this.textBox2.Text = "The website of your media library is the site used to control  media computers an" +
                 "d manage your media library, e.g.:\r\nhttp://192.168.10/\r\n\r\nThis should be the bas" +
                 "e-path of the site!";
@@ -160,7 +160,7 @@
             this.buttContinue.Style_Text_Font = new System.Drawing.Font("Verdana", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttContinue.Style_Text_Position_Horizontal = UberLib.Controls.Button.TextTypeX.Centre;
             this.buttContinue.Style_Text_Position_Vertical = UberLib.Controls.Button.TextTypeY.Centre;
-            this.buttContinue.TabIndex = 16;
+            this.buttContinue.TabIndex = 9;
             this.buttContinue.MouseClick += new System.Windows.Forms.MouseEventHandler(this.buttContinue_MouseClick);
             // 
             // header1
@@ -219,7 +219,7 @@
             this.buttExit.Style_Text_Font = new System.Drawing.Font("Verdana", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.buttExit.Style_Text_Position_Horizontal = UberLib.Controls.Button.TextTypeX.Centre;
             this.buttExit.Style_Text_Position_Vertical = UberLib.Controls.Button.TextTypeY.Centre;
-            this.buttExit.TabIndex = 20;
+            this.buttExit.TabIndex = 8;
             this.buttExit.MouseClick += new System.Windows.Forms.MouseEventHandler(this.buttExit_MouseClick);
             // 
             // cbAutoLogon
@@ -237,7 +237,7 @@
             this.cbAutoLogon.Location = new System.Drawing.Point(15, 264);
             this.cbAutoLogon.Name = "cbAutoLogon";
             this.cbAutoLogon.Size = new System.Drawing.Size(397, 27);
-            this.cbAutoLogon.TabIndex = 22;
+            this.cbAutoLogon.TabIndex = 3;
             // 
             // cbAutoStartup
             // 
@@ -254,7 +254,7 @@
             this.cbAutoStartup.Location = new System.Drawing.Point(15, 190);
             this.cbAutoStartup.Name = "cbAutoStartup";
             this.cbAutoStartup.Size = new System.Drawing.Size(397, 27);
-            this.cbAutoStartup.TabIndex = 21;
+            this.cbAutoStartup.TabIndex = 2;
             // 
             // cbDesktopShortcut
             // 
@@ -271,7 +271,7 @@
             this.cbDesktopShortcut.Location = new System.Drawing.Point(15, 394);
             this.cbDesktopShortcut.Name = "cbDesktopShortcut";
             this.cbDesktopShortcut.Size = new System.Drawing.Size(397, 27);
-            this.cbDesktopShortcut.TabIndex = 23;
+            this.cbDesktopShortcut.TabIndex = 7;
             // 
             // label1
             // 
@@ -288,7 +288,7 @@
             this.txtWindowsDomain.Location = new System.Drawing.Point(162, 297);
             this.txtWindowsDomain.Name = "txtWindowsDomain";
             this.txtWindowsDomain.Size = new System.Drawing.Size(247, 20);
-            this.txtWindowsDomain.TabIndex = 25;
+            this.txtWindowsDomain.TabIndex = 4;
             // 
             // label4
             // 
@@ -305,7 +305,7 @@
             this.txtWindowsUsername.Location = new System.Drawing.Point(162, 323);
             this.txtWindowsUsername.Name = "txtWindowsUsername";
             this.txtWindowsUsername.Size = new System.Drawing.Size(247, 20);
-            this.txtWindowsUsername.TabIndex = 27;
+            this.txtWindowsUsername.TabIndex = 5;
             // 
             // ConfigGenerator
             // 

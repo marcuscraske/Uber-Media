@@ -80,6 +80,8 @@ namespace UberMedia
                 HtmlTemplates_Reload();
                 // Start the thumbnail service
                 ThumbnailGeneratorService.Delegator_Start();
+                // Start the film information service
+                FilmInformation.cacheStart();
                 // Index each drive
                 foreach (ResultRow drive in GlobalConnector.Query_Read("SELECT pfolderid, physicalpath, allow_web_synopsis FROM physical_folders ORDER BY title ASC")) Indexer.IndexDrive(drive["pfolderid"], drive["physicalpath"], drive["allow_web_synopsis"].Equals("1"));
                 // Update the core status to running
@@ -118,8 +120,13 @@ namespace UberMedia
                     mconn.Settings_Database = Cache_Settings["db_database"];
                     mconn.Settings_User = Cache_Settings["db_user"];
                     mconn.Settings_Pass = Cache_Settings["db_pass"];
-                    if (persistant) mconn.Settings_Timeout_Connection = 0;
-                    else mconn.Settings_Timeout_Connection = 1000;
+                    if (persistant)
+                    {
+                        mconn.Settings_Timeout_Connection = 864000; // 10 days
+                        mconn.Settings_Timeout_Command = 3600; // 1 hour
+                    }
+                    else
+                        mconn.Settings_Timeout_Connection = 1000;
                     mconn.Connect();
                     return mconn;
                 case "sqlite":
