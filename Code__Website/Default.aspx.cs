@@ -1035,7 +1035,7 @@ public partial class _Default : System.Web.UI.Page
 
                     XmlWriter xml =  XmlWriter.Create(Response.OutputStream);
                     xml.WriteStartDocument();
-                    xml.WriteStartAttribute("admin");
+                    xml.WriteStartElement("admin");
 
                     xml.WriteStartElement("indexing");
                     xml.WriteCData(indexing.ToString());
@@ -1049,7 +1049,7 @@ public partial class _Default : System.Web.UI.Page
                     xml.WriteCData(filmInformation.ToString());
                     xml.WriteEndElement();
 
-                    xml.WriteEndAttribute();
+                    xml.WriteEndElement();
                     xml.WriteEndDocument();
 
                     xml.Flush();
@@ -1059,6 +1059,8 @@ public partial class _Default : System.Web.UI.Page
                 {
                     // Set the template
                     content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_home"]);
+                    // Set on-load
+                    PageElements["ONLOAD"] = "adminStatus();";
                     // Build
                     content
                         .Replace("%INDEXING%", indexing.ToString())
@@ -1509,6 +1511,31 @@ public partial class _Default : System.Web.UI.Page
                         return;
                 }
 				break;
+            case "reload_templates":
+                UberMedia.Core.HtmlTemplates_Reload();
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_reload_templates"]);
+                break;
+            case "reload_settings":
+                UberMedia.Core.CacheSettings_Reload(true);
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_reload_settings"]);
+                break;
+            case "rebuild_film_cache":
+                if (Request.Form["confirm"] != null)
+                {
+                    UberMedia.FilmInformation.state = UberMedia.FilmInformation.State.Starting;
+                    Connector.Query_Execute("UPDATE film_information_providers SET cache_updated=NULL");
+                    UberMedia.FilmInformation.cacheStart();
+                    Response.Redirect(ResolveUrl("/admin"));
+                }
+                else
+                    content.Append(
+                        UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                        .Replace("%ACTION_TITLE%", "Rebuild Film Information Cache")
+                        .Replace("%ACTION_DESC%", "Are you sure you want to rebuild the film information cache?")
+                        .Replace("%ACTION_URL%", "<!--URL-->/admin/rebuild_film_cache")
+                        .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+                        );
+                break;
             default:
                 Page__404();
                 return;

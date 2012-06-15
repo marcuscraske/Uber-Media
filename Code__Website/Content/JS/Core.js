@@ -207,3 +207,25 @@ function itemQueue(vitemid)
     });
     return false;
 }
+function adminStatus()
+{
+    setInterval(adminGetStatus, 1000);
+}
+function adminGetStatus()
+{
+    Ajax(getBaseURL() + "/admin?ajax=1", "get",
+    function (a)
+    {
+        var doc = a.responseXML.getElementsByTagName("admin")[0];
+        document.getElementById("service_indexing").innerHTML = doc.getElementsByTagName("indexing")[0].childNodes[0].nodeValue;
+        document.getElementById("service_thumbnail").innerHTML = doc.getElementsByTagName("thumbnails")[0].childNodes[0].nodeValue;
+        document.getElementById("service_filminformation").innerHTML = doc.getElementsByTagName("filminformation")[0].childNodes[0].nodeValue;
+    },
+    function (a)
+    {
+        document.getElementById("service_indexing").innerHTML = "Client-side error: failed to retrieve dynamic update...";
+        document.getElementById("service_thumbnail").innerHTML = "Client-side error: failed to retrieve dynamic update...";
+        document.getElementById("service_filminformation").innerHTML = "Client-side error: failed to retrieve dynamic update...";
+    }
+    );
+}

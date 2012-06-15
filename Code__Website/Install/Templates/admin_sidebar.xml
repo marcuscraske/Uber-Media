@@ -8,7 +8,8 @@
 <a href="<!--URL-->/admin/stop_indexer"><img src="<!--URL-->/Content/Images/delete.png" alt="Stop Indexer" />Stop Indexer</a>
 <a href="<!--URL-->/admin/start_thumbnails"><img src="<!--URL-->/Content/Images/start.png" alt="Start Thumbnails Service" />Start Thumbnails Service</a>
 <a href="<!--URL-->/admin/stop_thumbnails"><img src="<!--URL-->/Content/Images/delete.png" alt="Stop Thumbnails Service" />Stop Thumbnails Service</a>
-<a href="<!--URL-->/admin/reload_templates"><img src="<!--URL-->/Content/Images/reload.png" alt="Reload HTML Templates" />Reload HTML Templates</a>
+<a href="<!--URL-->/admin/reload_templates"><img src="<!--URL-->/Content/Images/reload_templates.png" alt="Reload HTML Templates" />Reload HTML Templates</a>
+<a href="<!--URL-->/admin/reload_settings"><img src="<!--URL-->/Content/Images/reload_settings.png" alt="Reload Core Settings" />Reload Core Settings</a>
 <h2>Options</h2>
 <a href="<!--URL-->/admin/folders"><img src="<!--URL-->/Content/Images/folders.png" alt="Configure Main Folders" />Configure Main Folders</a>
 <a href="<!--URL-->/admin/terminals"><img src="<!--URL-->/Content/Images/terminals.png" alt="Terminals" />Terminals/Media Computers</a>
