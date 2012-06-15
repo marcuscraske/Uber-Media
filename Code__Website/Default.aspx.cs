@@ -993,7 +993,6 @@ public partial class _Default : System.Web.UI.Page
         switch (subpg)
         {
             case "startup":
-                UberMedia.Core.HtmlTemplates_Reload();
                 content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_startup"]);
                 break;
             case "home":

@@ -1,4 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[Sidebar for the admin page.]]></description><html><![CDATA[<a href="<!--URL-->/admin"><img src="<!--URL-->/Content/Images/home.png" alt="Home" />Home</a>
+<a href="<!--URL-->/admin/startup"><img src="<!--URL-->/Content/Images/home.png" alt="Home" />Startup/Help</a>
 <h2>Tasks</h2>
 <a href="<!--URL-->/admin/rebuild_all"><img src="<!--URL-->/Content/Images/rebuild_thumbnail.png" alt="Rebuild Library" />Clear &amp; Rebuild Library</a>
 <a href="<!--URL-->/admin/rebuild_thumbnails"><img src="<!--URL-->/Content/Images/rebuild_thumbnail.png" alt="Rebuild Thumbnails" />Rebuild All Thumbnails</a>
