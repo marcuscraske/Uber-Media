@@ -20,11 +20,12 @@ may also be suitable for commercial applications.
 -- Audio
 -- YouTube
 
+Planned/upcoming features:
+> Implement automatic media conversion of files (with the ability to keep/delete the original file).
+
 To-do/current issues:
 > BBC iPlayer interface abandoned; consider redoing and reverse engineering again.
 > Implement backward-compatible web features if the user lacks HTML5.
 > Menu on the server-side for TV-remote/media-remote users.
-> User system with modifiable permissions.
-> Implement error overridable event in all interfaces.
+> User system with modifiable permissions - this will most likely not be implemented.
 > Implement API for developers.
-> Implement automatic media conversion of files (with the ability to keep/delete the original file).

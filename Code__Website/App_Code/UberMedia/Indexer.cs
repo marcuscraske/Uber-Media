@@ -132,11 +132,12 @@ namespace UberMedia
                 filename = file.Replace("/", "\\").Substring(file.LastIndexOf('\\') + 1);
                 ext = filename.LastIndexOf('.') != -1 ? filename.Substring(filename.LastIndexOf('.') + 1).ToLower() : "";
                 title = ext.Length > 0 ? filename.Remove(filename.Length - (ext.Length + 1), (ext.Length + 1)) : filename;
-                if (tia.allow_web_synopsis)
-                    desc = FilmInformation.getFilmSynopsis(title, tia.Connector);
-                else desc = "";
                 if (ext.Length > 0 && ExtensionsMap.ContainsKey(ext) && tia.Connector.Query_Count("SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + tia.pfolderid + "' AND type_uid != '100' AND phy_path='" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "'") == 0)
                 {
+                    if (tia.allow_web_synopsis)
+                        desc = FilmInformation.getFilmSynopsis(title, tia.Connector);
+                    else
+                        desc = string.Empty;
                     string parentFolder = GetParentVITEMID(tia.pfolderid, file.Remove(0, tia.base_path.Length), ref Cache, tia.Connector);
                     string vitemid = tia.Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, type_uid, title, description, phy_path, parent, date_added) VALUES('" + tia.pfolderid + "', '" + Utils.Escape(ExtensionsMap[ext]) + "', '" + Utils.Escape(title) + "', '" + Utils.Escape(desc) + "', '" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "', " + (parentFolder != null ? "'" + Utils.Escape(parentFolder) + "'" : "NULL") + ", NOW()); SELECT LAST_INSERT_ID();").ToString();
                     if (ThumbnailExts.ContainsKey(ext)) ThumbnailGeneratorService.AddToQueue(file, vitemid, ThumbnailExts[ext]);
