@@ -960,6 +960,9 @@ public partial class _Default : System.Web.UI.Page
     {
         // Get the files
         bool isOriginFolder = false;
+        string[] videoFormats = new string[] { "mp4", "ogv", "avi", "mkv", "wma", "mpg" };
+        int filterT = -1;
+        string filter = Request.QueryString["filter"] != null && int.TryParse(Request.QueryString["filter"], out filterT) && filterT >= 0 && filterT < videoFormats.Length ? videoFormats[filterT] : null;
         Result files = null;
         if (Request.QueryString["1"] == null)
         {
@@ -967,7 +970,7 @@ public partial class _Default : System.Web.UI.Page
             return;
         }
         else if (Request.QueryString["1"].Equals("folder") && Request.QueryString["2"] != null && IsNumeric(Request.QueryString["2"]) && int.Parse(Request.QueryString["2"]) >= 0)
-            files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.pfolderid='" + Utils.Escape(Request.QueryString["2"]) + "' AND vi.parent is NULL AND vi.type_uid != '100';");
+            files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.pfolderid='" + Utils.Escape(Request.QueryString["2"]) + "' AND vi.parent is NULL AND vi.type_uid != '100'" + (filter != null ? " AND vi.phy_path LIKE '%." + Utils.Escape(filter) + "'" : string.Empty) + ";");
         else if (IsNumeric(Request.QueryString["1"]) && int.Parse(Request.QueryString["1"]) >= 0)
         // Check if the vitemid is a folder or an actual item
         {
@@ -978,15 +981,15 @@ public partial class _Default : System.Web.UI.Page
                 {
                     // Folder
                     isOriginFolder = true;
-                    files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.parent='" + Utils.Escape(Request.QueryString["1"]) + "' AND vi.type_uid != '100';");
+                    files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.parent='" + Utils.Escape(Request.QueryString["1"]) + "' AND vi.type_uid != '100'" + (filter != null ? " AND vi.phy_path LIKE '%." + Utils.Escape(filter) + "'" : string.Empty) + ";");
                 }
                 else
                     // Media item
-                    files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.vitemid='" + Utils.Escape(Request.QueryString["1"]) + "';");
+                    files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.vitemid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (filter != null ? " AND vi.phy_path LIKE '%." + Utils.Escape(filter) + "'" : string.Empty) + ";");
             }
         }
         // No files - 404 due to invalid parameters
-        if(files == null)
+        if (files == null)
         {
             Page__404();
             return;
@@ -1004,7 +1007,6 @@ public partial class _Default : System.Web.UI.Page
         }
         else
         {
-            string[] videoFormats = new string[] { "mp4", "ogv", "avi", "mkv", "wma", "mpg" };
             string error = null;
             // Get posted data
             string convertAction = Request.Form["convert_action"];
@@ -1029,6 +1031,8 @@ public partial class _Default : System.Web.UI.Page
                 int audioSamplerate = -1;
                 int format = -1;
                 // Validate
+                if (files.Rows.Count == 0)
+                    error = "No files to be converted, cannot continue!";
                 if (convertVideoBitrate.Length > 0 && (!int.TryParse(convertVideoBitrate, out videoBitrate) || videoBitrate < 1))
                     error = "Invalid video bitrate!";
                 else if (convertVideoWidth.Length > 0 && (!int.TryParse(convertVideoWidth, out videoWidth) || videoWidth < 1))
@@ -1071,20 +1075,23 @@ public partial class _Default : System.Web.UI.Page
                     string filename;
                     string newFormat = videoFormats[format];
                     foreach (ResultRow file in files)
-                    {
-                        basePath = Path.GetDirectoryName(file["path"]);
-                        filename = Path.GetFileNameWithoutExtension(file["path"]);
-                        ci = new UberMedia.ConversionInfo();
-                        ci.pathSource = file["path"];
-                        ci.pathOutput = basePath + "\\" + filename + "." + newFormat;
-                        ci.actionOriginal = action;
-                        ci.actionOriginalArgs = actionMove;
-                        ci.audioBitrate = audioBitrate;
-                        ci.audioSampleRate = audioSamplerate;
-                        ci.videoBitrate = videoBitrate;
-                        ci.videoResolution = new Size(videoWidth, videoHeight);
-                        // Add item to queue to be converted
-                        UberMedia.ConversionService.queue.Add(ci);
+                    { // We'll skip any files with the same extension
+                        if (Path.GetExtension(file["path"]) != "." + newFormat)
+                        {
+                            basePath = Path.GetDirectoryName(file["path"]);
+                            filename = Path.GetFileNameWithoutExtension(file["path"]);
+                            ci = new UberMedia.ConversionInfo();
+                            ci.pathSource = file["path"];
+                            ci.pathOutput = basePath + "\\" + filename + "." + newFormat;
+                            ci.actionOriginal = action;
+                            ci.actionOriginalArgs = actionMove;
+                            ci.audioBitrate = audioBitrate;
+                            ci.audioSampleRate = audioSamplerate;
+                            ci.videoBitrate = videoBitrate;
+                            ci.videoResolution = new Size(videoWidth, videoHeight);
+                            // Add item to queue to be converted
+                            UberMedia.ConversionService.queue.Add(ci);
+                        }
                     }
                     // Redirect to the origin
                     if (Request.QueryString["1"].Equals("folder"))
@@ -1107,7 +1114,7 @@ public partial class _Default : System.Web.UI.Page
             for (int i = 0; i < videoFormats.Length; i++)
             {
                 f = videoFormats[i];
-                formats.Append("<option value=\"" + i + "\"" + (f.Equals(convertFormat) ? " selected=\"selected\"" : string.Empty) + ">" + f + "</option>");
+                formats.Append("<option value=\"" + i + "\"" + (f.Equals(convertFormat) ? " selected=\"selected\"" : string.Empty) + ">" + HttpUtility.HtmlEncode(f) + "</option>");
             }
             // Build actions list
             StringBuilder actions = new StringBuilder();
@@ -1126,6 +1133,11 @@ public partial class _Default : System.Web.UI.Page
             StringBuilder filesList = new StringBuilder();
             foreach (ResultRow file in files)
                 filesList.Append("<li>").Append(HttpUtility.HtmlEncode(file["title"])).Append("<br /><i>").Append(HttpUtility.HtmlEncode(file["path"])).Append("</i></li>");
+            // Build filter list
+            StringBuilder filterList = new StringBuilder();
+            filterList.Append("<option>None</option>");
+            for (int i = 0; i < videoFormats.Length; i++)
+                filterList.Append("<option value=\"" + i + "\"" + (i == filterT ? " selected=\"selected\"" : string.Empty) + ">" + HttpUtility.HtmlEncode(videoFormats[i]) + "</option>");
             // Set content
             content.Append(
                 UberMedia.Core.Cache_HtmlTemplates["convert"]
@@ -1137,10 +1149,12 @@ public partial class _Default : System.Web.UI.Page
                 .Replace("%AUDIO_SAMPLERATE%", HttpUtility.HtmlEncode(convertAudioSamplerate ?? string.Empty))
                 .Replace("%VIDEO_WIDTH%", HttpUtility.HtmlEncode(convertVideoWidth ?? string.Empty))
                 .Replace("%VIDEO_HEIGHT%", HttpUtility.HtmlEncode(convertVideoHeight ?? string.Empty))
+                .Replace("%FILTER%", filterList.ToString())
                 .Replace("%FILES%", filesList.ToString())
                 .Replace("%ERROR_STYLE%", error != null ? "display: block; visibility: visible;" : string.Empty)
                 .Replace("%ERROR_MSG%", error ?? string.Empty)
-                .Replace("%PARAMS%", (Request.QueryString["1"] != null ? "/" + Request.QueryString["1"] : string.Empty) + (Request.QueryString["2"] != null ? "/" + Request.QueryString["2"] : string.Empty))
+                .Replace("%PARAMS_NOFILTER%", (Request.QueryString["1"] != null ? "/" + Request.QueryString["1"] : string.Empty) + (Request.QueryString["2"] != null ? "/" + Request.QueryString["2"] : string.Empty))
+                .Replace("%PARAMS%", (Request.QueryString["1"] != null ? "/" + Request.QueryString["1"] : string.Empty) + (Request.QueryString["2"] != null ? "/" + Request.QueryString["2"] : string.Empty) + (filterT != -1 ? "?filter=" + filterT : string.Empty))
                 );
         }
         PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["convert_sidebar"];

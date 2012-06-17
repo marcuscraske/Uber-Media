@@ -85,6 +85,21 @@
 	</div>
 </form>
 <h3>Files to be converted</h3>
+<form method="get" action="<!--URL-->/convert%PARAMS_NOFILTER%">
+<div class="R">
+	<div class="C">Filter:</div>
+	<div class="C">
+		<select name="filter">
+			%FILTER%
+		</select>
+	</div>
+</div>
+<div class="R">
+	<div class="C">&nbsp;</div>
+	<div class="C"><input type="submit" class="BUTTON" value="Apply" /></div>
+</div>
+</form>
+<div class="clear"></div>
 <ul>
 	%FILES%
 </ul>]]></html></template>
