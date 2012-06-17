@@ -25,19 +25,35 @@ function Ajax(url, method, success, failure)
     a.send();
 }
 var searchCount = 0;
+var contentSet = true;
+var searchPrevContent = null;
 function Search(input)
 {
-    var localSearchCount = ++searchCount;
-    Ajax(getBaseURL() + "/search?q=" + encodeURI(input), "GET",
-    function(a)
+    if (contentSet)
     {
-        if(localSearchCount == searchCount) // The response may be slower than another future response and hence this avoids overlapping
-            document.getElementById("RIGHT").innerHTML = a.responseText;
-    },
-    function(a)
+        searchPrevContent = document.getElementById("RIGHT").innerHTML;
+        contentSet = false;
+    }
+    else if (input.length == 0)
     {
-        alert("Failed to handle search request...");
-    });
+        contentSet = true;
+        document.getElementById("RIGHT").innerHTML = searchPrevContent;
+        searchPrevContent = null;
+    }
+    else
+    {
+        var localSearchCount = ++searchCount;
+        Ajax(getBaseURL() + "/search?q=" + encodeURI(input), "GET",
+        function (a)
+        {
+            if (localSearchCount == searchCount) // The response may be slower than another future response and hence this avoids overlapping
+                document.getElementById("RIGHT").innerHTML = a.responseText;
+        },
+        function (a)
+        {
+            alert("Failed to handle search request...");
+        });
+    }
 }
 function ChangeMediaComputer(value)
 {

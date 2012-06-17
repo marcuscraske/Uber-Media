@@ -989,7 +989,7 @@ public partial class _Default : System.Web.UI.Page
             }
         }
         // No files - 404 due to invalid parameters
-        if (files == null)
+        if (files == null || files.Rows.Count == 0)
         {
             Page__404();
             return;
@@ -1166,16 +1166,25 @@ public partial class _Default : System.Web.UI.Page
     public void Page__search()
     {
         string query = Request.QueryString["q"] != null ? Utils.Escape(Request.QueryString["q"].Replace("%", "")) : "";
-        Response.Write("<h2>Search</h2>");
-        if (query.Length == 0)
-            Response.Write("Enter your search query on the top-right!");
+        if (query.Length == null)
+        {
+            PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["search_sidebar"];
+            PageElements["CONTENT_RIGHT"] = UberMedia.Core.Cache_HtmlTemplates["search"];
+        }
         else
         {
-            Response.Write("Results for '" + query + "':<div class=\"clear\"></div>");
-            Result results = Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.title LIKE '%" + query + "%' ORDER BY FIELD(vi.type_uid, '100') DESC, vi.title ASC LIMIT 100");
-            if (results.Rows.Count == 0) Response.Write("<p>No items were found matching your criteria...</p>");
+            if (query.Length == 0)
+            {
+                Response.Write("<h2>Search</h2>");
+                Response.Write("<p>Enter your query in the top-right box!</p>");
+            }
             else
-                foreach (ResultRow item in results)
+            {
+                Response.Write("Results for '" + query + "':<div class=\"clear\"></div>");
+                Result results = Connector.Query_Read("SELECT vi.*, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.title LIKE '%" + query + "%' ORDER BY FIELD(vi.type_uid, '100') DESC, vi.title ASC LIMIT 100");
+                if (results.Rows.Count == 0) Response.Write("<p>No items were found matching your criteria...</p>");
+                else
+                    foreach (ResultRow item in results)
                         Response.Write(
                             UberMedia.Core.Cache_HtmlTemplates[item["type_uid"].Equals("100") ? "browse_folder" : "browse_item"]
                             .Replace("%TITLE%", HttpUtility.HtmlEncode(item["title"]))
@@ -1184,8 +1193,9 @@ public partial class _Default : System.Web.UI.Page
                             .Replace("%PFOLDERID%", item["pfolderid"])
                             .Replace("<!--URL-->", ResolveUrl(""))
                             );
+            }
+            Response.End();
         }
-        Response.End();
     }
     /// <summary>
     /// Changes the current media computer being managed.
