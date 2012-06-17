@@ -29,96 +29,110 @@ namespace UberMedia
     /// </summary>
     public static class ThumbnailGeneratorService
     {
-        private static bool ShutdownOverride = false; // Causes the threads to safely terminate
-        public static string Status = "Uninitialised";
-        private static Thread DelegatorThread = null;
-        public static List<Thread> Threads = new List<Thread>();
-        public static List<string[]> Queue = new List<string[]>(); // Path of media, output path, handler
-
-        public static void Delegator_Start()
-        {
-            if (DelegatorThread != null) return;
-            Status = "Creating pool of threads";
-            // Create thread pool
-            Thread th;
-            for (int i = 0; i < int.Parse(Core.Cache_Settings["thumbnail_threads"]); i++)
-            {
-                th = new Thread(new ParameterizedThreadStart(ThreadMethod));
-                Threads.Add(th);
-            }
-            Status = "Starting delegator";
-            // Recreate the cache folder if it exists
-            if (!Directory.Exists(Core.basePath + "\\Content\\Cache"))
-                Directory.CreateDirectory(Core.basePath + "\\Content\\Cache");
-            // Initialise delegator/manager of threads
-            DelegatorThread = new Thread(new ParameterizedThreadStart(Delegator));
-            DelegatorThread.Start();
-            Status = "Delegator started";
-        }
-        public static void Delegator_Stop()
-        {
-            Status = "Delegator shutting down";
-            if (DelegatorThread != null)
-            {
-                DelegatorThread.Abort();
-                DelegatorThread = null;
-            }
-            ShutdownOverride = true;
-            foreach (Thread th in Threads) th.Abort();
-            lock (processes)
-                try { foreach (Process p in processes) p.Kill(); }
-                catch { }
-            Threads.Clear();
-            ShutdownOverride = false;
-            Status = "Delegator and pool terminated";
-        }
-
+        #region "Variables"
         /// <summary>
-        /// Controls the threads.
+        /// Used for checking if we need to keep the application-pool alive for this service, when true.
         /// </summary>
-        private static void Delegator(object o)
-        {
-            while (true && !ShutdownOverride)
-            {
-                lock (Threads)
-                {
-                    Thread th;
-                    for (int i = 0; i < Threads.Count; i++)
-                    {
-                        th = Threads[i];
-                        if (th.ThreadState != System.Threading.ThreadState.WaitSleepJoin && th.ThreadState != System.Threading.ThreadState.Running && Queue.Count != 0)
-                            lock (Queue)
-                            {
-                                Threads[i] = new Thread(new ParameterizedThreadStart(ThreadMethod));
-                                Threads[i].Start(Queue[0]);
-                                Queue.Remove(Queue[0]);
-                            }
-                    }
-
-                }
-                Thread.Sleep(100);
-                Status = "Successfully looped at " + DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
-            }
-        }
-        public static void AddToQueue(string path_media, string vitemid, string handler)
-        {
-            lock (Queue) Queue.Add(new string[] { path_media, vitemid, handler });
-        }
+        public static bool serviceIsActive = false;
+        private static bool shutdownOverride = false; // Causes the threads to safely terminate
+        public static string status = "Uninitialised";
+        private static Thread delegatorThread = null;
+        public static List<Thread> threads = new List<Thread>();
+        public static List<string[]> queue = new List<string[]>(); // Path of media, output path, handler
         /// <summary>
         /// Responsible for any processors executed by the thumbnail service; this is to ensure the service can be suddenly shutdown.
         /// </summary>
         public static List<Process> processes = new List<Process>();
-        private static void ThreadMethod(object o)
+        #endregion
+
+        #region "Methods - Service start/stop"
+        public static void serviceStart()
         {
+            serviceIsActive = true;
+            if (delegatorThread != null) return;
+            status = "Creating pool of threads...";
+            // Create thread pool
+            Thread th;
+            for (int i = 0; i < int.Parse(Core.Cache_Settings["thumbnail_threads"]); i++)
+            {
+                th = new Thread(new ParameterizedThreadStart(processItem));
+                threads.Add(th);
+            }
+            status = "Starting delegator...";
+            // Recreate the cache folder if it exists
+            if (!Directory.Exists(Core.basePath + "\\Content\\Cache"))
+                Directory.CreateDirectory(Core.basePath + "\\Content\\Cache");
+            // Initialise delegator/manager of threads
+            delegatorThread = new Thread(new ParameterizedThreadStart(delegator));
+            delegatorThread.Start();
+            status = "Delegator started...";
+            serviceIsActive = false;
+        }
+        public static void serviceStop()
+        {
+            status = "Delegator shutting down";
+            if (delegatorThread != null)
+            {
+                delegatorThread.Abort();
+                delegatorThread = null;
+            }
+            shutdownOverride = true;
+            foreach (Thread th in threads) th.Abort();
+            lock (processes)
+                try { foreach (Process p in processes) p.Kill(); }
+                catch { }
+            threads.Clear();
+            shutdownOverride = false;
+            status = "Delegator and pool terminated";
+            serviceIsActive = false;
+        }
+        #endregion
+
+        #region "Methods - Delegation"
+        /// <summary>
+        /// Controls the threads.
+        /// </summary>
+        private static void delegator(object o)
+        {
+            while (true && !shutdownOverride)
+            {
+                lock (threads)
+                {
+                    Thread th;
+                    for (int i = 0; i < threads.Count; i++)
+                    {
+                        th = threads[i];
+                        if (th.ThreadState != System.Threading.ThreadState.WaitSleepJoin && th.ThreadState != System.Threading.ThreadState.Running && queue.Count != 0)
+                            lock (queue)
+                            {
+                                threads[i] = new Thread(new ParameterizedThreadStart(processItem));
+                                threads[i].Start(queue[0]);
+                                queue.Remove(queue[0]);
+                            }
+                    }
+                }
+                Thread.Sleep(100);
+                status = "Successfully looped at " + DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
+            }
+        }
+        private static void processItem(object o)
+        {
+            serviceIsActive = true;
             string[] data = (string[])o;
             try
             {
-                typeof(ThumbnailGeneratorService).GetMethod("ThumbnailProcessor__" + data[2], System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                typeof(ThumbnailGeneratorService).GetMethod("thumbnailProcessor__" + data[2], System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
                     .Invoke(null, new object[] { data[0], data[1] });
             }
             catch { }
+            lock (threads)
+                if (threads.Count == 1)
+                    serviceIsActive = false;
         }
-        public static void ThumbnailProcessor__ffmpeg(string path, string vitemid)
+        #endregion
+
+        #region "Methods - Providers"
+        public static void thumbnailProcessor__ffmpeg(string path, string vitemid)
         {
             string cachePath = Core.basePath + "\\Content\\Cache\\" + vitemid + ".png";
             // Initialize ffmpeg
@@ -133,7 +147,7 @@ namespace UberMedia
             try
             {
 
-                while (!p.WaitForExit(int.Parse(Core.Cache_Settings["thumbnail_thread_ttl"])) && !ShutdownOverride)
+                while (!p.WaitForExit(int.Parse(Core.Cache_Settings["thumbnail_thread_ttl"])) && !shutdownOverride)
                 {
                     Thread.Sleep(20);
                 }
@@ -168,10 +182,10 @@ namespace UberMedia
                     // Delete the cache file
                     File.Delete(cachePath);
                 }
-                catch {}
+                catch { }
             }
         }
-        public static void ThumbnailProcessor__youtube(string path, string vitemid)
+        public static void thumbnailProcessor__youtube(string path, string vitemid)
         {
             try
             {
@@ -212,7 +226,7 @@ namespace UberMedia
             {
             }
         }
-        public static void ThumbnailProcessor__image(string path, string vitemid)
+        public static void thumbnailProcessor__image(string path, string vitemid)
         {
             try
             {
@@ -245,5 +259,13 @@ namespace UberMedia
             {
             }
         }
+        #endregion
+
+        #region "Methods"
+        public static void addItem(string path_media, string vitemid, string handler)
+        {
+            lock (queue) queue.Add(new string[] { path_media, vitemid, handler });
+        }
+        #endregion
     }
 }

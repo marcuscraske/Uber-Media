@@ -2,25 +2,24 @@
 
 -- Drop tables **************************************************************************************************************************************************************************
 SET FOREIGN_KEY_CHECKS=0;
-DROP TABLE IF EXISTS `external_requests`;
+-- DROP TABLE IF EXISTS `external_requests`;
 DROP TABLE IF EXISTS `html_templates`;
-DROP TABLE IF EXISTS `item_types`;
-DROP TABLE IF EXISTS `physical_folders`;
-DROP TABLE IF EXISTS `physical_folder_types`;
-DROP TABLE IF EXISTS `settings`;
-DROP TABLE IF EXISTS `tags`;
-DROP TABLE IF EXISTS `tag_items`;
-DROP TABLE IF EXISTS `terminals`;
+-- DROP TABLE IF EXISTS `item_types`;
+-- DROP TABLE IF EXISTS `physical_folders`;
+-- DROP TABLE IF EXISTS `physical_folder_types`;
+-- DROP TABLE IF EXISTS `settings`;
+-- DROP TABLE IF EXISTS `tags`;
+-- DROP TABLE IF EXISTS `tag_items`;
+-- DROP TABLE IF EXISTS `terminals`;
 DROP TABLE IF EXISTS `terminal_buffer`;
-DROP TABLE IF EXISTS `virtual_items`;
-DROP TABLE IF EXISTS `vi_ratings`;
-DROP TABLE IF EXISTS `film_information`;
-DROP TABLE IF EXISTS `film_information_providers`;
+-- DROP TABLE IF EXISTS `virtual_items`;
+-- DROP TABLE IF EXISTS `film_information`;
+-- DROP TABLE IF EXISTS `film_information_providers`;
 SET FOREIGN_KEY_CHECKS=1;
 
 -- Create tables ************************************************************************************************************************************************************************
 -- External Requests
-CREATE TABLE `external_requests`
+CREATE TABLE IF NOT EXISTS `external_requests`
 (
 	`reason` text,
 	`url` text,
@@ -28,7 +27,7 @@ CREATE TABLE `external_requests`
 );
 
 -- HTML templates
-CREATE TABLE `html_templates`
+CREATE TABLE IF NOT EXISTS `html_templates`
 (
 	`hkey` text,
 	`html` text,
@@ -36,7 +35,7 @@ CREATE TABLE `html_templates`
 );
 
 -- Item types
-CREATE TABLE `item_types`
+CREATE TABLE IF NOT EXISTS `item_types`
 (
 	`typeid` INTEGER PRIMARY KEY AUTO_INCREMENT,
 	`title` text,
@@ -48,7 +47,7 @@ CREATE TABLE `item_types`
 );
 
 -- Physical folders
-CREATE TABLE `physical_folders`
+CREATE TABLE IF NOT EXISTS `physical_folders`
 (
 	`pfolderid` INTEGER PRIMARY KEY AUTO_INCREMENT,
 	`title` text,
@@ -57,7 +56,7 @@ CREATE TABLE `physical_folders`
 );
 
 -- Physical folder types - joining physical folders and item_types
-CREATE TABLE `physical_folder_types`
+CREATE TABLE IF NOT EXISTS `physical_folder_types`
 (
 	`pfolderid` INT NOT NULL,
 	`typeid` INT NOT NULL,
@@ -67,7 +66,7 @@ CREATE TABLE `physical_folder_types`
 );
 
 -- Settings
-CREATE TABLE `settings`
+CREATE TABLE IF NOT EXISTS `settings`
 (
 	`category` text,
 	`keyid` VARCHAR(40) NOT NULL,
@@ -77,14 +76,14 @@ CREATE TABLE `settings`
 );
 
 -- Tags
-CREATE TABLE `tags`
+CREATE TABLE IF NOT EXISTS `tags`
 (
 	`tagid` INTEGER PRIMARY KEY AUTO_INCREMENT,
 	`title` text
 );
 
 -- Virtual items
-CREATE TABLE `virtual_items`
+CREATE TABLE IF NOT EXISTS `virtual_items`
 (
 	`vitemid` INTEGER PRIMARY KEY AUTO_INCREMENT,
 	`pfolderid` INT NOT NULL,
@@ -102,7 +101,7 @@ CREATE TABLE `virtual_items`
 );
 
 -- Tag items
-CREATE TABLE `tag_items`
+CREATE TABLE IF NOT EXISTS `tag_items`
 (
 	`tagid` INT NOT NULL,
 	`vitemid` INT NOT NULL,
@@ -112,7 +111,7 @@ CREATE TABLE `tag_items`
 );
 
 -- Terminals
-CREATE TABLE `terminals`
+CREATE TABLE IF NOT EXISTS `terminals`
 (
 	`terminalid` INTEGER PRIMARY KEY AUTO_INCREMENT,
 	`title` text,
@@ -126,7 +125,7 @@ CREATE TABLE `terminals`
 );
 
 -- Terminal buffer
-CREATE TABLE `terminal_buffer`
+CREATE TABLE IF NOT EXISTS `terminal_buffer`
 (
 	`cid` BIGINT PRIMARY KEY AUTO_INCREMENT,
 	`command` text,
@@ -137,13 +136,13 @@ CREATE TABLE `terminal_buffer`
 );
 
 -- Film information
-CREATE TABLE `film_information_providers`
+CREATE TABLE IF NOT EXISTS `film_information_providers`
 (
 	`provid` integer PRIMARY KEY AUTO_INCREMENT,
 	`title` text,
 	`cache_updated` datetime
 );
-CREATE TABLE `film_information`
+CREATE TABLE IF NOT EXISTS `film_information`
 (
 	`infoid` bigint PRIMARY KEY AUTO_INCREMENT,
 	`title` text,
@@ -155,7 +154,7 @@ CREATE TABLE `film_information`
 
 -- Populate default data ****************************************************************************************************************************************************************
 -- Item Types
-INSERT INTO `item_types` (`typeid`, `title`, `uid`, `extensions`, `thumbnail`, `interface`, `system`) VALUES
+INSERT IGNORE INTO `item_types` (`typeid`, `title`, `uid`, `extensions`, `thumbnail`, `interface`, `system`) VALUES
 	('1', 'Video', '1000', 'avi,mkv,mp4,wmv,m2ts,mpg', 'ffmpeg', 'video_vlc', '0'),
 	('2', 'Audio', '1200', 'mp3,wma,wav', '', 'video_vlc', '0'),
 	('3', 'YouTube', '1300', 'yt', 'youtube', 'youtube', '0'),
@@ -165,18 +164,20 @@ INSERT INTO `item_types` (`typeid`, `title`, `uid`, `extensions`, `thumbnail`, `
 ;
 
 -- Settings
-INSERT INTO `settings` (`category`, `keyid`, `value`, `description`) VALUES
+INSERT IGNORE INTO `settings` (`category`, `keyid`, `value`, `description`) VALUES
 	('Third-party', 'rotten_tomatoes_api_key', '', 'Your API key for Rotten Tomatoes to retrieve third-party media information.'),
 	('Terminals', 'terminals_automatic_register', '1', 'Specifies if terminals can self-register themselves to your media library; this allows easier installation of terminals/media-computers.'),
 	('Thumbnails', 'thumbnail_height', '90', 'The height of generated thumbnails for media items.'),
 	('Thumbnails', 'thumbnail_screenshot_media_time', '90', 'The number of seconds from which a thumbnail snapshot should derive from within a media item.'),
 	('Thumbnails', 'thumbnail_threads', '4', 'The number of threads simultaneously generating thumbnails for media items.'),
 	('Thumbnails', 'thumbnail_thread_ttl', '40000', 'The maximum amount of time for a thumbnail to generate an image; if exceeded, the thumbnail generation is terminated.'),
-	('Thumbnails', 'thumbnail_width', '120', 'The width of generated thumbnails for media items.')
+	('Thumbnails', 'thumbnail_width', '120', 'The width of generated thumbnails for media items.'),
+	('Conversion', 'conversion_threads', '2', 'The number of conversions to take place simultaneously.'),
+	('Conversion', 'conversion_timeout', '14400', 'The maximum time for a conversion to successfully complete.')
 ;
 
 -- Tags
-INSERT INTO `tags` (`tagid`, `title`) VALUES
+INSERT IGNORE INTO `tags` (`tagid`, `title`) VALUES
 	('1', 'Unsorted'),
 	('2', 'Action'),
 	('3', 'Adventure'),

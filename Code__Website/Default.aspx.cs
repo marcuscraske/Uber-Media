@@ -261,7 +261,7 @@ public partial class _Default : System.Web.UI.Page
                             // Create the virtual item to represent the file
                             string vitemid = Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, parent, type_uid, title, phy_path, date_added) VALUES('" + Utils.Escape(Request.QueryString["1"]) + "', " + (Request.QueryString["2"] != null ? "'" + Utils.Escape(Request.QueryString["2"]) + "'" : "NULL") + ", '1300', '" + Utils.Escape(title) + "', '" + Utils.Escape(subPath + "\\" + title + ".yt") + "', NOW()); SELECT LAST_INSERT_ID();").ToString();
                             // Add to the thumbnail generator
-                            UberMedia.ThumbnailGeneratorService.AddToQueue(phyPath + subPath + "\\" + title + ".yt", vitemid, "youtube");
+                            UberMedia.ThumbnailGeneratorService.addItem(phyPath + subPath + "\\" + title + ".yt", vitemid, "youtube");
                             // Redirect back
                             Response.Redirect(current_url + current_params);
                         }
@@ -427,6 +427,7 @@ public partial class _Default : System.Web.UI.Page
         { // For folder-specific options only
             sidebar.Append("<a href=\"" + current_url + "&amp;action=add_folder\"><img src=\"<!--URL-->/Content/Images/add_folder.png\" alt=\"Add Folder\" title=\"Add Folder\" />Add Folder</a>");
             sidebar.Append("<a href=\"" + current_url + "&amp;action=add_youtube\"><img src=\"<!--URL-->/Content/Images/youtube.png\" alt=\"Add YouTube\" title=\"Add YouTube\" />Add YouTube</a>");
+            sidebar.Append("<a href=\"" + ResolveUrl("/convert/" + (Request.QueryString["2"] != null ? Request.QueryString["2"] : "folder/" + Request.QueryString["1"])) + "\"><img src=\"<!--URL-->/Content/Images/convert.png\" alt=\"Convert\" title=\"Convert\" />Convert</a>");
         }
         if (Request.QueryString["2"] != null)
         { // For sub-folder specific options only
@@ -704,7 +705,7 @@ public partial class _Default : System.Web.UI.Page
             case "rebuild":
                 if (Request.Form["confirm"] != null)
                 {
-                    UberMedia.ThumbnailGeneratorService.AddToQueue(data[0]["path"], data[0]["vitemid"], data[0]["thumbnail"]);
+                    UberMedia.ThumbnailGeneratorService.addItem(data[0]["path"], data[0]["vitemid"], data[0]["thumbnail"]);
                     Response.Redirect(ResolveUrl("/item/" + vitemid));
                 }
                 else
@@ -928,7 +929,7 @@ public partial class _Default : System.Web.UI.Page
                     .Replace("%VIEWS%", data[0]["views"])
                     .Replace("%DATE_ADDED%", data[0]["date_added"])
                     .Replace("%RATING%", data[0]["cache_rating"])
-                    .Replace("%TYPE%", HttpUtility.HtmlEncode(data[0]["type"]))
+                    .Replace("%TYPE%", HttpUtility.HtmlEncode(data[0]["type"]) + " (" + HttpUtility.HtmlEncode(Path.GetExtension(data[0]["path"])) + ")")
                     .Replace("%PATH%", HttpUtility.HtmlEncode(data[0]["path"]))
                     .Replace("%VITEMID%", data[0]["vitemid"]));
                 // Add tags
@@ -954,6 +955,196 @@ public partial class _Default : System.Web.UI.Page
         PageElements["CONTENT_RIGHT"] = content.ToString();
         // Build options area
         PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["item_sidebar"].Replace("%URL%", ResolveUrl("")).Replace("%VITEMID%", vitemid);
+    }
+    public void Page__convert()
+    {
+        // Get the files
+        bool isOriginFolder = false;
+        Result files = null;
+        if (Request.QueryString["1"] == null)
+        {
+            Page__404();
+            return;
+        }
+        else if (Request.QueryString["1"].Equals("folder") && Request.QueryString["2"] != null && IsNumeric(Request.QueryString["2"]) && int.Parse(Request.QueryString["2"]) >= 0)
+            files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.pfolderid='" + Utils.Escape(Request.QueryString["2"]) + "' AND vi.parent is NULL AND vi.type_uid != '100';");
+        else if (IsNumeric(Request.QueryString["1"]) && int.Parse(Request.QueryString["1"]) >= 0)
+        // Check if the vitemid is a folder or an actual item
+        {
+            Result vitemidCheck = Connector.Query_Read("SELECT type_uid FROM virtual_items WHERE vitemid='" + Utils.Escape(Request.QueryString["1"]) + "'");
+            if (vitemidCheck.Rows.Count == 1)
+            {
+                if (vitemidCheck[0]["type_uid"] == "100")
+                {
+                    // Folder
+                    isOriginFolder = true;
+                    files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.parent='" + Utils.Escape(Request.QueryString["1"]) + "' AND vi.type_uid != '100';");
+                }
+                else
+                    // Media item
+                    files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.vitemid='" + Utils.Escape(Request.QueryString["1"]) + "';");
+            }
+        }
+        // No files - 404 due to invalid parameters
+        if(files == null)
+        {
+            Page__404();
+            return;
+        }
+        // Prepare to build the page
+        StringBuilder content = new StringBuilder();
+        Result folders = Connector.Query_Read("SELECT pfolderid, title FROM physical_folders ORDER BY title ASC");
+        // Check we have files to convert
+        if (files.Rows.Count == 0)
+        {
+            content.Append(
+                UberMedia.Core.Cache_HtmlTemplates["convert_nofiles"]
+                );
+            return;
+        }
+        else
+        {
+            string[] videoFormats = new string[] { "mp4", "ogv", "avi", "mkv", "wma", "mpg" };
+            string error = null;
+            // Get posted data
+            string convertAction = Request.Form["convert_action"];
+            string convertActionMove = Request.Form["convert_action_move"];
+            string convertFormat = Request.Form["convert_format"];
+            string convertVideoBitrate = Request.Form["convert_video_bitrate"];
+            string convertAudioBitrate = Request.Form["convert_audio_bitrate"];
+            string convertAudioSamplerate = Request.Form["convert_audio_samplerate"];
+            string convertVideoWidth = Request.Form["convert_video_width"];
+            string convertVideoHeight = Request.Form["convert_video_height"];
+            // Check for postback
+            if (convertFormat != null && convertVideoBitrate != null && convertAudioBitrate != null && convertAudioSamplerate != null &&
+                convertVideoWidth != null && convertVideoHeight != null)
+            {
+                UberMedia.ConversionAction action = UberMedia.ConversionAction.Nothing;
+                int actionTemp = -1;
+                string actionMove = null;
+                int videoBitrate = -1;
+                int videoWidth = -1;
+                int videoHeight = -1;
+                int audioBitrate = -1;
+                int audioSamplerate = -1;
+                int format = -1;
+                // Validate
+                if (convertVideoBitrate.Length > 0 && (!int.TryParse(convertVideoBitrate, out videoBitrate) || videoBitrate < 1))
+                    error = "Invalid video bitrate!";
+                else if (convertVideoWidth.Length > 0 && (!int.TryParse(convertVideoWidth, out videoWidth) || videoWidth < 1))
+                    error = "Invalid video width!";
+                else if (convertVideoHeight.Length > 0 && (!int.TryParse(convertVideoHeight, out videoHeight) || videoHeight < 1))
+                    error = "Invalid video height!";
+                else if (convertAudioBitrate.Length > 0 && (!int.TryParse(convertAudioBitrate, out audioBitrate) || audioBitrate < 1))
+                    error = "Invalid audio bitrate!";
+                else if (convertAudioSamplerate.Length > 0 && (!int.TryParse(convertAudioSamplerate, out audioSamplerate) || audioSamplerate < 1))
+                    error = "Invalid audio samplerate!";
+                else if (convertFormat == null || !int.TryParse(convertFormat, out format) || format < 0 || format >= videoFormats.Length)
+                    error = "Invalid format!";
+                else if (convertAction == null || !int.TryParse(convertAction, out actionTemp) || !Enum.IsDefined(typeof(UberMedia.ConversionAction), actionTemp))
+                    error = "Invalid action!";
+                try
+                {
+                    action = (UberMedia.ConversionAction)actionTemp;
+                }
+                catch
+                {
+                    error = "Invalid action!";
+                }
+                if (error == null && action == UberMedia.ConversionAction.Move)
+                {
+                    bool found = false;
+                    foreach(ResultRow folder in folders)
+                        if(folder["pfolderid"].Equals(convertActionMove))
+                        {
+                            actionMove = folder["path"];
+                            found = true;
+                            break;
+                        }
+                    if(!found) error = "Invalid action move folder!";
+                }
+                if(error == null)
+                {
+                    // Queue for conversion
+                    UberMedia.ConversionInfo ci;
+                    string basePath;
+                    string filename;
+                    string newFormat = videoFormats[format];
+                    foreach (ResultRow file in files)
+                    {
+                        basePath = Path.GetDirectoryName(file["path"]);
+                        filename = Path.GetFileNameWithoutExtension(file["path"]);
+                        ci = new UberMedia.ConversionInfo();
+                        ci.pathSource = file["path"];
+                        ci.pathOutput = basePath + "\\" + filename + "." + newFormat;
+                        ci.actionOriginal = action;
+                        ci.actionOriginalArgs = actionMove;
+                        ci.audioBitrate = audioBitrate;
+                        ci.audioSampleRate = audioSamplerate;
+                        ci.videoBitrate = videoBitrate;
+                        ci.videoResolution = new Size(videoWidth, videoHeight);
+                        // Add item to queue to be converted
+                        UberMedia.ConversionService.queue.Add(ci);
+                    }
+                    // Redirect to the origin
+                    if (Request.QueryString["1"].Equals("folder"))
+                        // Folder - parent-level
+                        Response.Redirect(ResolveUrl("/browse/" + Request.QueryString["2"]));
+                    else if (isOriginFolder)
+                    {
+                        // Folder - Get the parent folder ID
+                        string pfolderid = Connector.Query_Scalar("SELECT pfolderid FROM virtual_items WHERE vitemid='" + Utils.Escape(Request.QueryString["1"]) + "'").ToString();
+                        Response.Redirect(ResolveUrl("/browse/" + pfolderid + "/" + Request.QueryString["1"]));
+                    }
+                    else
+                        // Item
+                        Response.Redirect(ResolveUrl("/item/" + Request.QueryString["1"]));
+                }
+            }
+            // Build formats list
+            StringBuilder formats = new StringBuilder();
+            string f;
+            for (int i = 0; i < videoFormats.Length; i++)
+            {
+                f = videoFormats[i];
+                formats.Append("<option value=\"" + i + "\"" + (f.Equals(convertFormat) ? " selected=\"selected\"" : string.Empty) + ">" + f + "</option>");
+            }
+            // Build actions list
+            StringBuilder actions = new StringBuilder();
+            string[] actionsText = Enum.GetNames(typeof(UberMedia.ConversionAction));
+            int val;
+            for (int i = 0; i < actionsText.Length; i++)
+            {
+                val = (int)Enum.Parse(typeof(UberMedia.ConversionAction), actionsText[i]);
+                actions.Append("<option value=\"" + val + "\"" + (val.ToString().Equals(convertAction) ? " selected=\"selected\"" : string.Empty) + ">" + HttpUtility.HtmlEncode(actionsText[i].Replace("_", " ")) + "</option>");
+            }
+            // Build actions move list
+            StringBuilder actionsMove = new StringBuilder();
+            foreach (ResultRow folder in folders)
+                actionsMove.Append("<option value=\"" + folder["pfolderid"] + "\"" + (folder["pfolderid"].Equals(convertActionMove) ? " selected=\"selected\"" : string.Empty) + ">" + HttpUtility.HtmlEncode(folder["title"]) + "</option>");
+            // Build files list
+            StringBuilder filesList = new StringBuilder();
+            foreach (ResultRow file in files)
+                filesList.Append("<li>").Append(HttpUtility.HtmlEncode(file["title"])).Append("<br /><i>").Append(HttpUtility.HtmlEncode(file["path"])).Append("</i></li>");
+            // Set content
+            content.Append(
+                UberMedia.Core.Cache_HtmlTemplates["convert"]
+                .Replace("%FORMATS%", formats.ToString())
+                .Replace("%ACTIONS%", actions.ToString())
+                .Replace("%ACTIONS_MOVE%", actionsMove.ToString())
+                .Replace("%VIDEO_BITRATE%", HttpUtility.HtmlEncode(convertVideoBitrate ?? string.Empty))
+                .Replace("%AUDIO_BITRATE%", HttpUtility.HtmlEncode(convertAudioBitrate ?? string.Empty))
+                .Replace("%AUDIO_SAMPLERATE%", HttpUtility.HtmlEncode(convertAudioSamplerate ?? string.Empty))
+                .Replace("%VIDEO_WIDTH%", HttpUtility.HtmlEncode(convertVideoWidth ?? string.Empty))
+                .Replace("%VIDEO_HEIGHT%", HttpUtility.HtmlEncode(convertVideoHeight ?? string.Empty))
+                .Replace("%FILES%", filesList.ToString())
+                .Replace("%ERROR_STYLE%", error != null ? "display: block; visibility: visible;" : string.Empty)
+                .Replace("%ERROR_MSG%", error ?? string.Empty)
+                .Replace("%PARAMS%", (Request.QueryString["1"] != null ? "/" + Request.QueryString["1"] : string.Empty) + (Request.QueryString["2"] != null ? "/" + Request.QueryString["2"] : string.Empty))
+                );
+        }
+        PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["convert_sidebar"];
+        PageElements["CONTENT_RIGHT"] = content.ToString();
     }
     /// <summary>
     /// Searches the media library and displays results of the inputted text by searching for titles of folder and media items which losely match.
@@ -981,568 +1172,6 @@ public partial class _Default : System.Web.UI.Page
                             );
         }
         Response.End();
-    }
-    /// <summary>
-    /// Admin management system; responsible for managing settings and core features of the media library.
-    /// </summary>
-    public void Page__admin()
-    {
-        string subpg = Request.QueryString["1"] != null ? Request.QueryString["1"] : "home";
-        StringBuilder content = new StringBuilder();
-
-        switch (subpg)
-        {
-            case "startup":
-                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_startup"]);
-                break;
-            case "home":
-                // Indexing service
-                StringBuilder indexing = new StringBuilder();
-                if (UberMedia.Indexer.ThreadPool.Count > 0)
-                {
-                    Result drives = Connector.Query_Read("SELECT pfolderid, title FROM physical_folders ORDER BY pfolderid ASC");
-                    int i = 0;
-                    foreach (KeyValuePair<string, System.Threading.Thread> thread in UberMedia.Indexer.ThreadPool)
-                    {
-                        i++;
-                        indexing.Append("<div>Thread " + i.ToString() + " [Folder " + thread.Key + " - " + DriveTitle(drives, thread.Key) + "]: " + thread.Value.ThreadState.ToString() + " - " + UberMedia.Indexer.GetStatus(thread.Key) + "</div>");
-                    }
-                }
-                else indexing.Append("No threads are actively indexing any folders.");
-                // Thumbnail service
-                StringBuilder thumbnail = new StringBuilder();
-                if (UberMedia.ThumbnailGeneratorService.Threads.Count > 0)
-                {
-                    int i = 0;
-                    foreach (System.Threading.Thread th in UberMedia.ThumbnailGeneratorService.Threads)
-                    {
-                        i++;
-                        thumbnail.Append("<div>Thread " + i.ToString() + " - " + th.ThreadState.ToString() + "</div>");
-                    }
-                }
-                else thumbnail.Append("No threads have been pooled by the thumbnail service.");
-                thumbnail
-                    .Append("<br /><br />Items queued for processing: ").Append(UberMedia.ThumbnailGeneratorService.Queue.Count.ToString())
-                    .Append("<br />Next item: " + (UberMedia.ThumbnailGeneratorService.Queue.Count > 0 ? UberMedia.ThumbnailGeneratorService.Queue[0][0] : "none."))
-                    .Append("<br />Delegator status: ").Append(UberMedia.ThumbnailGeneratorService.Status);
-                 // Film information service
-                StringBuilder filmInformation = new StringBuilder();
-                filmInformation.Append(UberMedia.FilmInformation.state.ToString()).Append(" - ").Append(UberMedia.FilmInformation.status);
-                // Check if this is an ajax request
-                if (Request.QueryString["ajax"] != null)
-                {
-                    Response.ContentType = "application/xml";
-
-                    XmlWriter xml =  XmlWriter.Create(Response.OutputStream);
-                    xml.WriteStartDocument();
-                    xml.WriteStartElement("admin");
-
-                    xml.WriteStartElement("indexing");
-                    xml.WriteCData(indexing.ToString());
-                    xml.WriteEndElement();
-
-                    xml.WriteStartElement("thumbnails");
-                    xml.WriteCData(thumbnail.ToString());
-                    xml.WriteEndElement();
-
-                    xml.WriteStartElement("filminformation");
-                    xml.WriteCData(filmInformation.ToString());
-                    xml.WriteEndElement();
-
-                    xml.WriteEndElement();
-                    xml.WriteEndDocument();
-
-                    xml.Flush();
-                    Response.End();
-                }
-                else
-                {
-                    // Set the template
-                    content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_home"]);
-                    // Set on-load
-                    PageElements["ONLOAD"] = "adminStatus();";
-                    // Build
-                    content
-                        .Replace("%INDEXING%", indexing.ToString())
-                        .Replace("%THUMBNAIL%", thumbnail.ToString())
-                        .Replace("%FILMINFORMATION%", filmInformation.ToString());
-                }
-                break;
-            case "rebuild_all":
-                if (Request.Form["confirm"] != null)
-                {
-                    CheckNotDoublePost();
-                    // Shutdown indexers
-                    UberMedia.Indexer.TerminateThreadPool();
-                    // Shutdown thumbnail service
-                    UberMedia.ThumbnailGeneratorService.Delegator_Stop();
-                    // Clear queue
-                    UberMedia.ThumbnailGeneratorService.Queue.Clear();
-                    // Delete database data
-                    UberMedia.Core.GlobalConnector.Query_Execute("DELETE FROM virtual_items; ALTER TABLE virtual_items AUTO_INCREMENT = 0;");
-                    // Delete thumbnails
-                    if (System.IO.Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails")) System.IO.Directory.Delete(AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails", true);
-                    // Recreate thumbnails folder
-                    System.IO.Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails");
-                    // Start thumbnail service
-                    UberMedia.ThumbnailGeneratorService.Delegator_Start();
-                    // Start indexers
-                    RunIndexers();
-                    Response.Redirect(ResolveUrl("/admin"));
-                }
-                else content.Append(
-                    UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                    .Replace("%ACTION_TITLE%", "Clear &amp; Rebuild Library")
-                    .Replace("%ACTION_DESC%", "All data, tagging, virtual-changes and other related items will be wiped and reindexed.")
-                    .Replace("%ACTION_URL%", "<!--URL-->/admin/rebuild_all")
-                    .Replace("%ACTION_BACK%", "<!--URL-->/admin")
-                    );
-                break;
-            case "rebuild_thumbnails":
-                if (Request.Form["confirm"] != null)
-                {
-                    CheckNotDoublePost();
-                    // Shutdown indexing
-                    UberMedia.Indexer.TerminateThreadPool();
-                    // Shutdown thumbnail service
-                    UberMedia.ThumbnailGeneratorService.Delegator_Stop();
-                    // Wipe queue
-                    lock (UberMedia.ThumbnailGeneratorService.Queue)
-                        UberMedia.ThumbnailGeneratorService.Queue.Clear();
-                    // Reset all thumbnails
-                    Connector.Query_Execute("UPDATE virtual_items SET thumbnail_data=NULL;");
-                    // Start thumbnail service
-                    UberMedia.ThumbnailGeneratorService.Delegator_Start();
-                    // Build map of physical folder id's to paths for requeueing
-                    Dictionary<string, string> DrivePaths = new Dictionary<string, string>();
-                    foreach (ResultRow drive in Connector.Query_Read("SELECT pfolderid, physicalpath FROM physical_folders ORDER BY pfolderid ASC"))
-                        DrivePaths.Add(drive["pfolderid"], drive["physicalpath"]);
-                    // Queue items
-                    foreach (ResultRow item in Connector.Query_Read("SELECT vi.vitemid, vi.pfolderid, vi.phy_path, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' AND it.thumbnail != '' ORDER BY vitemid ASC"))
-                        UberMedia.ThumbnailGeneratorService.AddToQueue(DrivePaths[item["pfolderid"]] + item["phy_path"], item["vitemid"], item["thumbnail"]);
-                    // Redirect user
-                    Response.Redirect("/admin");
-                }
-                else
-                    content.Append(
-                        UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                    .Replace("%ACTION_TITLE%", "Rebuild All Thumbnails")
-                    .Replace("%ACTION_DESC%", "All thumbnails will be deleted and rescheduled for processing.")
-                    .Replace("%ACTION_URL%", "<!--URL-->/admin/rebuild_thumbnails")
-                    .Replace("%ACTION_BACK%", "<!--URL-->/admin")
-                    );
-                break;
-            case "run_indexer":
-                if (Request.Form["confirm"] != null)
-                {
-                    CheckNotDoublePost();
-                    RunIndexers();
-                    Response.Redirect(ResolveUrl("/admin"));
-                }
-                else
-                    content.Append(
-                        UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                     .Replace("%ACTION_TITLE%", "Run Indexer")
-                     .Replace("%ACTION_DESC%", "This will run the indexers manually to find new content and delete missing media; drives already being indexed (right now) will be unaffected.")
-                     .Replace("%ACTION_URL%", "<!--URL-->/admin/run_indexer")
-                     .Replace("%ACTION_BACK%", "<!--URL-->/admin")
-                     );
-                break;
-            case "stop_indexer":
-                if (Request.Form["confirm"] != null)
-                {
-                    CheckNotDoublePost();
-                    UberMedia.Indexer.TerminateThreadPool();
-                    Response.Redirect(ResolveUrl("/admin"));
-                }
-                else
-                    content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                    .Replace("%ACTION_TITLE%", "Stop Indexer")
-                    .Replace("%ACTION_DESC%", "This will force the indexer offline (if any threads of the indexer are executing).")
-                    .Replace("%ACTION_URL%", "<!--URL-->/admin/stop_indexer")
-                    .Replace("%ACTION_BACK%", "<!--URL-->/admin"));
-                break;
-            case "start_thumbnails":
-                if (Request.Form["confirm"] != null)
-                {
-                    CheckNotDoublePost();
-                    UberMedia.ThumbnailGeneratorService.Delegator_Start();
-                    Response.Redirect(ResolveUrl("/admin"));
-                }
-                else
-                    content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                    .Replace("%ACTION_TITLE%", "Start Thumbnail Service")
-                    .Replace("%ACTION_DESC%", "This will enable the thumbnail service to continue processing items in the thumbnail queue.")
-                    .Replace("%ACTION_URL%", "<!--URL-->/admin/start_thumbnails")
-                    .Replace("%ACTION_BACK%", "<!--URL-->/admin"));
-                break;
-            case "stop_thumbnails":
-                if (Request.Form["confirm"] != null)
-                {
-                    CheckNotDoublePost();
-                    UberMedia.ThumbnailGeneratorService.Delegator_Stop();
-                    Response.Redirect(ResolveUrl("/admin"));
-                }
-                else
-                    content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                    .Replace("%ACTION_TITLE%", "Stop Thumbnail Service")
-                    .Replace("%ACTION_DESC%", "This will disable the thumbnail service from processing items in the thumbnail queue.")
-                    .Replace("%ACTION_URL%", "<!--URL-->/admin/stop_thumbnails")
-                    .Replace("%ACTION_BACK%", "<!--URL-->/admin"));
-                break;
-            case "folders":
-                // Check if the user has requested to add a new folder
-                if (Request.Form["title"] != null && Request.Form["path"] != null)
-                {
-                    string title = Request.Form["title"];
-                    string path = Request.Form["path"];
-                    bool synopsis = Request.Form["synopsis"] != null;
-                    // Validate
-                    if (title.Length < PHYSICAL_FOLDER_TITLE_MIN || title.Length > PHYSICAL_FOLDER_TITLE_MAX)
-                        ThrowError("Title must be " + PHYSICAL_FOLDER_TITLE_MIN + " to " + PHYSICAL_FOLDER_TITLE_MAX + " characters in length!");
-                    else if (path.Length < PHYSICAL_FOLDER_PATH_MIN || path.Length > PHYSICAL_FOLDER_PATH_MAX)
-                        ThrowError("Invalid path!");
-                    else if (!Directory.Exists(path))
-                        ThrowError("Path '" + path + "' does not exist or it is currently inaccessible!");
-                    else
-                    {
-                        // Add folder to db
-                        string pfolderid = Connector.Query_Scalar("INSERT INTO physical_folders (title, physicalpath, allow_web_synopsis) VALUES('" + Utils.Escape(title) + "', '" + Utils.Escape(path) + "', '" + (synopsis ? "1" : "0") + "'); SELECT LAST_INSERT_ID();").ToString();
-                        Response.Redirect(ResolveUrl("/admin/folder/" + pfolderid));
-                    }
-                }
-                // Build list of folders
-                string currentFolders = "";
-                foreach (ResultRow folder in Connector.Query_Read("SELECT * FROM physical_folders ORDER BY title ASC"))
-                    currentFolders += UberMedia.Core.Cache_HtmlTemplates["admin_folders_item"]
-                        .Replace("%PFOLDERID%", folder["pfolderid"])
-                        .Replace("%TITLE%", HttpUtility.HtmlEncode(folder["title"]))
-                        .Replace("%PATH%", HttpUtility.HtmlEncode(folder["physicalpath"]))
-                        .Replace("%SYNOPSIS%", folder["allow_web_synopsis"]);
-                // Build page content
-                content.Append(
-                    UberMedia.Core.Cache_HtmlTemplates["admin_folders"]
-                    .Replace("%CURRENT_FOLDERS%", currentFolders)
-                    .Replace("%TITLE%", HttpUtility.HtmlEncode(Request.Form["title"]) ?? "")             // Add new folder form
-                    .Replace("%PATH%", HttpUtility.HtmlEncode(Request.Form["path"]) ?? "")
-                    .Replace("%SYNOPSIS%", Request.Form["synopsis"] != null ? " checked" : "")
-                    );
-                break;
-            case "folder":
-                // Grab the folder identifier and validate it
-                string folderid = Request.QueryString["2"];
-                if (folderid == null || !IsNumeric(folderid))
-                {
-                    Page__404();
-                    return;
-                }
-                // Grab the folders info
-                Result data = Connector.Query_Read("SELECT (SELECT COUNT('') FROM virtual_items WHERE pfolderid=p.pfolderid AND type_uid='100') AS total_folders, IFNULL(SUM(vi.views), 0) AS total_views, COUNT(vi.vitemid) AS total_items, p.* FROM physical_folders AS p LEFT OUTER JOIN virtual_items AS vi ON (vi.pfolderid=p.pfolderid AND vi.type_uid != '100') WHERE p.pfolderid='" + Utils.Escape(folderid) + "'");
-                
-                // Redirect if no data is returned
-                if (data.Rows.Count != 1)
-                {
-                    Page__404();
-                    return;
-                }
-                // Build the content
-                switch (Request.QueryString["3"])
-                {
-                    case "rebuild_thumbnails":
-                        // Reset any pre-existing thumbnails
-                        Connector.Query_Execute("UPDATE virtual_items SET thumbnail_data=NULL WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'");
-                        // Get all of the items for this folder
-                        Result items = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.vitemid, it.thumbnail FROM (virtual_items AS vi, physical_folders AS pf, item_types AS it) WHERE it.uid=vi.type_uid AND it.system='0' AND vi.pfolderid=pf.pfolderid AND pf.pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'");
-                        // Requeue all the thumbnails
-                        foreach (ResultRow item in items)
-                            UberMedia.ThumbnailGeneratorService.AddToQueue(item["path"], item["vitemid"], item["thumbnail"]);
-                        // Back to folder main page
-                        Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
-                        break;
-                    case "index":
-                        UberMedia.Indexer.IndexDrive(data[0]["pfolderid"], data[0]["physicalpath"], data[0]["allow_web_synopsis"].Equals("1"));
-                        Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
-                        break;
-                    case "remove":
-                        if (Request.Form["confirm"] != null)
-                        {
-                            // Shutdown the indexer (if it exists)
-                            UberMedia.Indexer.TerminateIndexer(data[0]["pfolderid"]);
-                            // Remove thumbnails
-                            foreach (ResultRow item in Connector.Query_Read("SELECT vitemid FROM virtual_items WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'"))
-                                try
-                                {
-                                    if (File.Exists(Server.MapPath("/Content/Thumbnails/" + item["vitemid"] + ".png")))
-                                        File.Delete(Server.MapPath("/Content/Thumbnails/" + item["vitemid"] + ".png"));
-                                }
-                                catch { }
-                            // Remove items and the folder its self
-                            Connector.Query_Execute("DELETE FROM virtual_items WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'; DELETE FROM physical_folders WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "';");
-                            Response.Redirect(ResolveUrl("/admin/folders"));
-                        }
-                        else
-                            content.Append(
-                                UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                                .Replace("%ACTION_TITLE%", "Remove Folder")
-                                .Replace("%ACTION_DESC%", "Are you sure you want to remove this folder? Note: this will not delete the physical folder!")
-                                .Replace("%ACTION_URL%", "<!--URL-->/admin/folder/" + data[0]["pfolderid"] + "/remove")
-                                .Replace("%ACTION_BACK%", "<!--URL-->/admin/folder/" + data[0]["pfolderid"])
-                                );
-                        break;
-                    case "add_type":
-                        string type = Request.Form["type"];
-                        if (type != null && IsNumeric(type) && Connector.Query_Count("SELECT ((SELECT COUNT('') FROM item_types WHERE system='0' AND typeid='" + Utils.Escape(type) + "') + (SELECT COUNT('') FROM physical_folder_types WHERE typeid='" + Utils.Escape(type) + "' AND pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'))") == 1)
-                            Connector.Query_Execute("INSERT INTO physical_folder_types (pfolderid, typeid) VALUES('" + Utils.Escape(data[0]["pfolderid"]) + "', '" + Utils.Escape(type) + "');");
-                        Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
-                        break;
-                    case "remove_type":
-                        string t = Request.QueryString["t"];
-                        if(t != null && IsNumeric(t))
-                            Connector.Query_Execute("DELETE FROM physical_folder_types WHERE typeid='" + Utils.Escape(t) + "' AND pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "';");
-                        Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
-                        break;
-                    default:
-                        // Check if the user has tried to modify the folder title or/and path
-                        if (Request.Form["title"] != null && Request.Form["path"] != null)
-                        {
-                            string title = Request.Form["title"];
-                            string path = Request.Form["path"];
-                            bool web_synopsis = Request.Form["synopsis"] != null;
-                            if (title.Length < PHYSICAL_FOLDER_TITLE_MIN || title.Length > PHYSICAL_FOLDER_TITLE_MAX)
-                                ThrowError("Title must be " + PHYSICAL_FOLDER_TITLE_MIN + " to " + PHYSICAL_FOLDER_TITLE_MAX + " characters in length!");
-                            else if (path.Length < PHYSICAL_FOLDER_PATH_MIN || path.Length > PHYSICAL_FOLDER_PATH_MAX)
-                                ThrowError("Invalid path!");
-                            else if (!Directory.Exists(path))
-                                ThrowError("Path does not exist!");
-                            else
-                            {
-                                Connector.Query_Execute("UPDATE physical_folders SET physicalpath='" + Utils.Escape(path) + "', title='" + Utils.Escape(title) + "', allow_web_synopsis='" + (web_synopsis ? "1" : "0") + "' WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'");
-                                Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
-                            }
-                        }
-                        // Build list of item types available to add
-                        string typesAdd = "";
-                        foreach (ResultRow it in Connector.Query_Read("SELECT typeid, title FROM item_types WHERE system='0' ORDER BY title ASC"))
-                            typesAdd += "<option value=\"" + Utils.Escape(it["typeid"]) + "\">" + HttpUtility.HtmlEncode(it["title"]) + "</option>";
-                        // Build list of pre-existing types assigned to the folder
-                        string typesRemove = "";
-                        foreach (ResultRow it in Connector.Query_Read("SELECT pft.typeid, it.title FROM physical_folder_types AS pft LEFT OUTER JOIN item_types AS it ON it.typeid=pft.typeid WHERE pft.pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "' ORDER BY it.title ASC;"))
-                            typesRemove += UberMedia.Core.Cache_HtmlTemplates["admin_folder_type"]
-                                .Replace("%TYPEID%", it["typeid"])
-                                .Replace("%TITLE%", HttpUtility.HtmlEncode(it["title"]));
-                        if (typesRemove.Length == 0) typesRemove = "None.";
-                        // Build content
-                        content.Append(
-                            UberMedia.Core.Cache_HtmlTemplates["admin_folder"]
-                            .Replace("%TITLE%", HttpUtility.HtmlEncode(data[0]["title"]))                               // Modify
-                            .Replace("%PATH%", HttpUtility.HtmlEncode(data[0]["physicalpath"]))
-                            .Replace("%SYNOPSIS%", data[0]["allow_web_synopsis"].Equals("1") ? "checked" : "")
-                            .Replace("%TOTAL_ITEMS%", data[0]["total_items"])                                           // Stats
-                            .Replace("%TOTAL_FOLDERS%", data[0]["total_folders"])
-                            .Replace("%TOTAL_VIEWS%", data[0]["total_views"])
-                            .Replace("%TYPES%", typesAdd)                                                               // Types
-                            .Replace("%TYPES_REMOVE%", typesRemove)
-                            .Replace("%PFOLDERID%", data[0]["pfolderid"])                                               // Misc
-                            );
-                        break;
-                }
-                break;
-            case "requests":
-                // Check if the user has requested to delete all of the external request log entries
-                if (Request.QueryString["clear"] != null)
-                {
-                    Connector.Query_Execute("DELETE FROM external_requests;");
-                    Response.Redirect(ResolveUrl("/admin/requests"));
-                }
-                // Build content
-                int page = Request.QueryString["p"] != null && IsNumeric(Request.QueryString["p"]) ? int.Parse(Request.QueryString["p"]) : 1;
-                if (page < 1) page = 1;
-
-                string reqs = "";
-                foreach (ResultRow req in Connector.Query_Read("SELECT * FROM external_requests ORDER BY datetime DESC LIMIT " + ((PAGE_REQUESTS_ITEMSPERPAGE * page) - PAGE_REQUESTS_ITEMSPERPAGE) + ", " + PAGE_REQUESTS_ITEMSPERPAGE))
-                    reqs += UberMedia.Core.Cache_HtmlTemplates["admin_requests_item"]
-                        .Replace("%REASON%", HttpUtility.HtmlEncode(req["reason"]))
-                        .Replace("%DATETIME%", req["datetime"])
-                        .Replace("%URL%", HttpUtility.HtmlEncode(req["url"]));
-                content.Append(
-                    UberMedia.Core.Cache_HtmlTemplates["admin_requests"]
-                    .Replace("%ITEMS%", reqs.Length > 0 ? reqs : "None.")
-                    .Replace("%P_N%", (page < int.MaxValue ? page + 1 : page).ToString())
-                    .Replace("%P_P%", (page > 1 ? page - 1 : page).ToString())
-                    .Replace("%PAGE%", page.ToString())
-                    );
-                break;
-            case "settings":
-                // Check if the user has requested to update a setting
-				if(Request.Form.Count != 0)
-				{
-                    string queryUpdate = "";
-                    foreach (string key in Request.Form.AllKeys)
-                        if (key.StartsWith("setting_"))
-                            queryUpdate += "UPDATE settings SET value='" + Utils.Escape(Request.Form[key]) + "' WHERE keyid='" + Utils.Escape(key.Remove(0, 8)) + "'; ";
-                    if (queryUpdate.Length > 0)
-                        Connector.Query_Execute(queryUpdate);
-				}
-                // Build content
-                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_settings_header"]);
-                string lastcat = "";
-                foreach (ResultRow setting in Connector.Query_Read("SELECT * FROM settings ORDER BY category ASC, keyid ASC"))
-                {
-                    if (!lastcat.Equals(setting["category"]))
-                    {
-                        lastcat = setting["category"];
-                        content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_settings_category"]
-                            .Replace("%CATEGORY%", HttpUtility.HtmlEncode(setting["category"]))
-                            );
-                    }
-                    content.Append(
-                        UberMedia.Core.Cache_HtmlTemplates["admin_settings_item"]
-                        .Replace("%KEYID%", HttpUtility.HtmlEncode(setting["keyid"]))
-                        .Replace("%VALUE%", HttpUtility.HtmlEncode(setting["value"]))
-                        .Replace("%DESCRIPTION%", HttpUtility.HtmlEncode(setting["description"]))
-                        );
-                }
-                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_settings_footer"]);
-                break;
-            case "terminals":
-                switch (Request.QueryString["2"])
-                {
-                    case null:
-                        // Build list of terminals for removal and config generation
-                        string terminals = "";
-                        string genTerminals = "";
-                        foreach (ResultRow terminal in Connector.Query_Read("SELECT * FROM terminals ORDER BY title ASC"))
-                        {
-                            terminals += UberMedia.Core.Cache_HtmlTemplates["admin_terminals_item"]
-                                .Replace("%TERMINALID%", terminal["terminalid"])
-                                .Replace("%TITLE%", HttpUtility.HtmlEncode(terminal["title"]))
-                                .Replace("%UPDATED%", terminal["status_updated"].Length > 0 ? terminal["status_updated"] : "(never)");
-                            genTerminals = "<option value=\"" + HttpUtility.HtmlEncode(terminal["terminalid"]) + "\">" + HttpUtility.HtmlEncode(terminal["title"]) + "</option>";
-                        }
-                        // Build content
-                        content.Append(
-                            UberMedia.Core.Cache_HtmlTemplates["admin_terminals"]
-                            .Replace("%TERMINALS%", terminals)
-                            );
-                        break;
-                    case "remove":
-                        string t = Request.QueryString["t"];
-                        if (t == null || !IsNumeric(t))
-                        {
-                            Page__404();
-                            return;
-                        }
-                        // Grab the info of the key
-                        Result tdata = Connector.Query_Read("SELECT terminalid, title FROM terminals WHERE terminalid='" + Utils.Escape(t) + "'");
-                        // Check if the user has confirmed the deletion, else prompt them
-                        if (Request.Form["confirm"] != null)
-                        {
-                            Connector.Query_Execute("DELETE FROM terminals WHERE terminalid='" + Utils.Escape(tdata[0]["terminalid"]) + "'");
-                            Response.Redirect(ResolveUrl("/admin/terminals"));
-                        }
-                        else
-                            content.Append(
-                                UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                                .Replace("%ACTION_TITLE%", "Deletion of Terminal")
-                                .Replace("%ACTION_DESC%", "Are you sure you want to delete the terminal '" + tdata[0]["title"] + "' (TID: " + tdata[0]["terminalid"] + ")?")
-                                .Replace("%ACTION_URL%", "<!--URL-->/admin/terminals/remove?t=" + tdata[0]["terminalid"])
-                                .Replace("%ACTION_BACK%", "<!--URL-->/admin/terminals")
-                                );
-                        break;
-                    default:
-                        Page__404();
-                        return;
-                }
-                
-                break;
-			case "tags":
-                // Check what the user has requested
-                switch (Request.QueryString["2"])
-                {
-                    case null:
-                        // Check if the user has requested to add a tag
-                        if (Request.Form["title"] != null)
-                        {
-                            string title = Request.Form["title"];
-                            if (title.Length < TAG_TITLE_MIN || title.Length > TAG_TITLE_MAX)
-                                ThrowError("Title must be " + TAG_TITLE_MIN + " to " + TAG_TITLE_MAX + " characters in length!");
-                            else if (Connector.Query_Count("SELECT COUNT('') FROM tags WHERE title LIKE '%" + Utils.Escape(title) + "%'") != 0)
-                                ThrowError("A tag with the same title already exists!");
-                            else
-                                Connector.Query_Execute("INSERT INTO tags (title) VALUES('" + Utils.Escape(title) + "');");
-                        }
-                        // Build tags
-                        string tags = "";
-                        foreach (ResultRow tag in Connector.Query_Read("SELECT * FROM tags ORDER BY title ASC"))
-                            tags += UberMedia.Core.Cache_HtmlTemplates["admin_tags_item"]
-                                .Replace("%TAGID%", tag["tagid"])
-                                .Replace("%TITLE%", HttpUtility.HtmlEncode(tag["title"]));
-                        // Build content
-                        content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_tags"]
-                            .Replace("%TAGS%", tags));
-                        break;
-                    case "remove":
-                        string tagid = Request.QueryString["t"];
-                        if (tagid != null && IsNumeric(tagid))
-                        {
-                            Result t = Connector.Query_Read("SELECT tagid, title FROM tags WHERE tagid='" + Utils.Escape(tagid) + "'");
-                            if (t.Rows.Count != 1)
-                            {
-                                Page__404();
-                                return;
-                            }
-                            if (Request.Form["confirm"] != null)
-                            {
-                                Connector.Query_Execute("DELETE FROM tags WHERE tagid='" + Utils.Escape(tagid) + "'");
-                                Response.Redirect(ResolveUrl("/admin/tags"));
-                            }
-                            else
-                                content.Append(
-                                    UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                                    .Replace("%ACTION_TITLE%", "Confirm Tag Deletion")
-                                    .Replace("%ACTION_DESC%", "Are you sure you want to remvoe tag '" + t[0]["title"] + "'?")
-                                    .Replace("%ACTION_URL%", "<!--URL-->/admin/tags/remove?t=" + t[0]["tagid"])
-                                    .Replace("%ACTION_BACK%", "<!--URL-->/admin/tags")
-                                    );
-                        }
-                        break;
-                    default:
-                        Page__404();
-                        return;
-                }
-				break;
-            case "reload_templates":
-                UberMedia.Core.HtmlTemplates_Reload();
-                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_reload_templates"]);
-                break;
-            case "reload_settings":
-                UberMedia.Core.CacheSettings_Reload(true);
-                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_reload_settings"]);
-                break;
-            case "rebuild_film_cache":
-                if (Request.Form["confirm"] != null)
-                {
-                    UberMedia.FilmInformation.state = UberMedia.FilmInformation.State.Starting;
-                    Connector.Query_Execute("UPDATE film_information_providers SET cache_updated=NULL");
-                    UberMedia.FilmInformation.cacheStart();
-                    Response.Redirect(ResolveUrl("/admin"));
-                }
-                else
-                    content.Append(
-                        UberMedia.Core.Cache_HtmlTemplates["confirm"]
-                        .Replace("%ACTION_TITLE%", "Rebuild Film Information Cache")
-                        .Replace("%ACTION_DESC%", "Are you sure you want to rebuild the film information cache?")
-                        .Replace("%ACTION_URL%", "<!--URL-->/admin/rebuild_film_cache")
-                        .Replace("%ACTION_BACK%", "<!--URL-->/admin")
-                        );
-                break;
-            default:
-                Page__404();
-                return;
-        }
-        PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["admin_sidebar"];
-        PageElements["CONTENT_RIGHT"] = content.ToString();
-        SelectNavItem("CONTROL");
     }
     /// <summary>
     /// Changes the current media computer being managed.
@@ -1660,36 +1289,6 @@ public partial class _Default : System.Web.UI.Page
         PageElements["CONTENT_RIGHT"] = content.ToString();
         SelectNavItem("CONTROL");
     }
-    // Terminal registration
-    /// <summary>
-    /// Handles terminal communication.
-    /// </summary>
-    public void Page__terminal()
-    {
-        switch (Request.QueryString["1"])
-        {
-            case "register":
-                terminal_register();
-                break;
-            case "update":
-                terminal_status();
-                terminal_getcmd();
-                break;
-            case "getcmd":
-                terminal_getcmd();
-                break;
-            case "status":
-                terminal_status();
-                break;
-            case "media":
-                terminal_media();
-                break;
-            default:
-                Response.Write("ERROR:Unknown command specified!");
-                Response.End();
-                break;
-        }
-    }
     public static byte[] thumbnailNotFound = null;
     public void Page__thumbnail()
     {
@@ -1725,6 +1324,37 @@ public partial class _Default : System.Web.UI.Page
         Response.AddHeader("Content-Length", data.Length.ToString());
         Response.BinaryWrite(data);
         Response.End(); // End the response - nothing more to send
+    }
+
+    #region "Terminals"
+    /// <summary>
+    /// Handles terminal communication.
+    /// </summary>
+    public void Page__terminal()
+    {
+        switch (Request.QueryString["1"])
+        {
+            case "register":
+                terminal_register();
+                break;
+            case "update":
+                terminal_status();
+                terminal_getcmd();
+                break;
+            case "getcmd":
+                terminal_getcmd();
+                break;
+            case "status":
+                terminal_status();
+                break;
+            case "media":
+                terminal_media();
+                break;
+            default:
+                Response.Write("ERROR:Unknown command specified!");
+                Response.End();
+                break;
+        }
     }
     /// <summary>
     /// Used to register a new media terminal.
@@ -1806,7 +1436,9 @@ public partial class _Default : System.Web.UI.Page
         }
         Response.End();
     }
-    // Control page
+    #endregion
+
+    #region "Control"
     /// <summary>
     /// Used to control the current selected media computer.
     /// </summary>
@@ -2018,6 +1650,711 @@ public partial class _Default : System.Web.UI.Page
     }
     #endregion
 
+    #region "Admin"
+    /// <summary>
+    /// Admin management system; responsible for managing settings and core features of the media library.
+    /// </summary>
+    public void Page__admin()
+    {
+        string subpg = Request.QueryString["1"] != null ? Request.QueryString["1"] : "home";
+        StringBuilder content = new StringBuilder();
+
+        switch (subpg)
+        {
+            case "startup":
+                admin__startup(ref content);
+                break;
+            case "home":
+                admin__home(ref content);
+                break;
+            case "rebuild_all":
+                admin__rebuild_all(ref content);
+                break;
+            case "rebuild_thumbnails":
+                admin__rebuild_thumbnails(ref content);
+                break;
+            case "run_indexer":
+                admin__run_indexer(ref content);
+                break;
+            case "stop_indexer":
+                admin__stop_indexer(ref content);
+                break;
+            case "start_thumbnails":
+                admin__start_thumbnails(ref content);
+                break;
+            case "stop_thumbnails":
+                admin__stop_thumbnails(ref content);
+                break;
+            case "folders":
+                admin__folders(ref content);
+                break;
+            case "folder":
+                admin__folder(ref content);
+                break;
+            case "requests":
+                admin__requests(ref content);
+                break;
+            case "settings":
+                admin__settings(ref content);
+                break;
+            case "terminals":
+                admin__terminals(ref content);
+                break;
+            case "tags":
+                admin__tags(ref content);
+                break;
+            case "reload_templates":
+                admin__reload_templates(ref content);
+                break;
+            case "reload_settings":
+                admin__reload_settings(ref content);
+                break;
+            case "rebuild_film_cache":
+                admin__rebuild_film_cache(ref content);
+                break;
+            case "conversion_start":
+                admin__conversion_start(ref content);
+                break;
+            case "conversion_stop":
+                admin__conversion_stop(ref content);
+                break;
+            case "conversion_clear":
+                admin__conversion_clear(ref content);
+                break;
+            default:
+                Page__404();
+                return;
+        }
+        PageElements["CONTENT_LEFT"] = UberMedia.Core.Cache_HtmlTemplates["admin_sidebar"];
+        PageElements["CONTENT_RIGHT"] = content.ToString();
+        SelectNavItem("CONTROL");
+    }
+    void admin__startup(ref StringBuilder content)
+    {
+        content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_startup"]);
+    }
+    void admin__home(ref StringBuilder content)
+    {
+        System.Threading.Thread th;
+        int t;
+        // Indexing service
+        StringBuilder indexing = new StringBuilder();
+        if (UberMedia.Indexer.threadPool.Count > 0)
+        {
+            Result drives = Connector.Query_Read("SELECT pfolderid, title FROM physical_folders ORDER BY pfolderid ASC");
+            int i = 0;
+            foreach (KeyValuePair<string, System.Threading.Thread> thread in UberMedia.Indexer.threadPool)
+            {
+                i++;
+                indexing.Append("<div>Thread " + i.ToString() + " [Folder " + thread.Key + " - " + DriveTitle(drives, thread.Key) + "]: " + thread.Value.ThreadState.ToString() + " - " + UberMedia.Indexer.getStatus(thread.Key) + "</div>");
+            }
+        }
+        else indexing.Append("No threads are actively indexing any folders.");
+        // Thumbnail service
+        StringBuilder thumbnail = new StringBuilder();
+        if (UberMedia.ThumbnailGeneratorService.threads.Count > 0)
+        {
+            for (t = 0; t < UberMedia.ThumbnailGeneratorService.threads.Count; t++)
+            {
+                th = UberMedia.ThumbnailGeneratorService.threads[t];
+                thumbnail.Append("<div>Thread ").Append(t).Append(" - ").Append(th.ThreadState.ToString()).Append("</div>");
+            }
+        }
+        else thumbnail.Append("No threads have been pooled by the thumbnail service.");
+        thumbnail
+            .Append("<br /><br />Items queued for processing: ").Append(UberMedia.ThumbnailGeneratorService.queue.Count)
+            .Append("<br />Next item: " + (UberMedia.ThumbnailGeneratorService.queue.Count > 0 ? UberMedia.ThumbnailGeneratorService.queue[0][0] : "none."))
+            .Append("<br />Delegator status: ").Append(UberMedia.ThumbnailGeneratorService.status);
+        // Film information service
+        StringBuilder filmInformation = new StringBuilder();
+        filmInformation.Append(UberMedia.FilmInformation.state.ToString()).Append(" - ").Append(UberMedia.FilmInformation.status);
+        // Conversion service
+        StringBuilder conversion = new StringBuilder();
+        for (t = 0; t < UberMedia.ConversionService.threads.Count; t++)
+        {
+            th = UberMedia.ConversionService.threads[t];
+            conversion.Append("<div>Thread ").Append(t).Append(" - ").Append(th.ThreadState.ToString()).Append(" - ").Append(UberMedia.ConversionService.threadStatus != null && t < UberMedia.ConversionService.threadStatus.Length ? UberMedia.ConversionService.threadStatus[t] ?? "Idle." : "Unknown.").Append("</div>");
+        }
+        conversion.Append("<br />Items queued for conversion: ").Append(UberMedia.ConversionService.queue.Count);
+        conversion.Append("<br />Delegator status: ").Append(UberMedia.ConversionService.status);
+        // Check if this is an ajax request
+        if (Request.QueryString["ajax"] != null)
+        {
+            Response.ContentType = "application/xml";
+
+            XmlWriter xml = XmlWriter.Create(Response.OutputStream);
+            xml.WriteStartDocument();
+            xml.WriteStartElement("admin");
+
+            xml.WriteStartElement("indexing");
+            xml.WriteCData(indexing.ToString());
+            xml.WriteEndElement();
+
+            xml.WriteStartElement("thumbnails");
+            xml.WriteCData(thumbnail.ToString());
+            xml.WriteEndElement();
+
+            xml.WriteStartElement("filminformation");
+            xml.WriteCData(filmInformation.ToString());
+            xml.WriteEndElement();
+
+            xml.WriteStartElement("conversion");
+            xml.WriteCData(conversion.ToString());
+            xml.WriteEndElement();
+
+            xml.WriteEndElement();
+            xml.WriteEndDocument();
+
+            xml.Flush();
+            Response.End();
+        }
+        else
+        {
+            // Set the template
+            content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_home"]);
+            // Set on-load
+            PageElements["ONLOAD"] = "adminStatus();";
+            // Build
+            content
+                .Replace("%INDEXING%", indexing.ToString())
+                .Replace("%THUMBNAIL%", thumbnail.ToString())
+                .Replace("%FILMINFORMATION%", filmInformation.ToString())
+                .Replace("%CONVERSION%", conversion.ToString());
+        }
+    }
+    void admin__rebuild_all(ref StringBuilder content)
+    {
+        if (Request.Form["confirm"] != null)
+        {
+            CheckNotDoublePost();
+            // Shutdown indexers
+            UberMedia.Indexer.terminateThreadPool();
+            // Shutdown thumbnail service
+            UberMedia.ThumbnailGeneratorService.serviceStop();
+            // Clear queue
+            UberMedia.ThumbnailGeneratorService.queue.Clear();
+            // Delete database data
+            UberMedia.Core.GlobalConnector.Query_Execute("DELETE FROM virtual_items; ALTER TABLE virtual_items AUTO_INCREMENT = 0;");
+            // Delete thumbnails
+            if (System.IO.Directory.Exists(AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails")) System.IO.Directory.Delete(AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails", true);
+            // Recreate thumbnails folder
+            System.IO.Directory.CreateDirectory(AppDomain.CurrentDomain.BaseDirectory + "/Content/Thumbnails");
+            // Start thumbnail service
+            UberMedia.ThumbnailGeneratorService.serviceStart();
+            // Start indexers
+            RunIndexers();
+            Response.Redirect(ResolveUrl("/admin"));
+        }
+        else content.Append(
+            UberMedia.Core.Cache_HtmlTemplates["confirm"]
+            .Replace("%ACTION_TITLE%", "Clear &amp; Rebuild Library")
+            .Replace("%ACTION_DESC%", "All data, tagging, virtual-changes and other related items will be wiped and reindexed.")
+            .Replace("%ACTION_URL%", "<!--URL-->/admin/rebuild_all")
+            .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+            );
+    }
+    void admin__rebuild_thumbnails(ref StringBuilder content)
+    {
+        if (Request.Form["confirm"] != null)
+        {
+            CheckNotDoublePost();
+            // Shutdown indexing
+            UberMedia.Indexer.terminateThreadPool();
+            // Shutdown thumbnail service
+            UberMedia.ThumbnailGeneratorService.serviceStop();
+            // Wipe queue
+            lock (UberMedia.ThumbnailGeneratorService.queue)
+                UberMedia.ThumbnailGeneratorService.queue.Clear();
+            // Reset all thumbnails
+            Connector.Query_Execute("UPDATE virtual_items SET thumbnail_data=NULL;");
+            // Start thumbnail service
+            UberMedia.ThumbnailGeneratorService.serviceStart();
+            // Build map of physical folder id's to paths for requeueing
+            Dictionary<string, string> DrivePaths = new Dictionary<string, string>();
+            foreach (ResultRow drive in Connector.Query_Read("SELECT pfolderid, physicalpath FROM physical_folders ORDER BY pfolderid ASC"))
+                DrivePaths.Add(drive["pfolderid"], drive["physicalpath"]);
+            // Queue items
+            foreach (ResultRow item in Connector.Query_Read("SELECT vi.vitemid, vi.pfolderid, vi.phy_path, it.thumbnail FROM virtual_items AS vi LEFT OUTER JOIN item_types AS it ON it.uid=vi.type_uid WHERE vi.type_uid != '100' AND it.thumbnail != '' ORDER BY vitemid ASC"))
+                UberMedia.ThumbnailGeneratorService.addItem(DrivePaths[item["pfolderid"]] + item["phy_path"], item["vitemid"], item["thumbnail"]);
+            // Redirect user
+            Response.Redirect("/admin");
+        }
+        else
+            content.Append(
+                UberMedia.Core.Cache_HtmlTemplates["confirm"]
+            .Replace("%ACTION_TITLE%", "Rebuild All Thumbnails")
+            .Replace("%ACTION_DESC%", "All thumbnails will be deleted and rescheduled for processing.")
+            .Replace("%ACTION_URL%", "<!--URL-->/admin/rebuild_thumbnails")
+            .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+            );
+    }
+    void admin__stop_indexer(ref StringBuilder content)
+    {
+        if (Request.Form["confirm"] != null)
+        {
+            CheckNotDoublePost();
+            UberMedia.Indexer.terminateThreadPool();
+            Response.Redirect(ResolveUrl("/admin"));
+        }
+        else
+            content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
+            .Replace("%ACTION_TITLE%", "Stop Indexer")
+            .Replace("%ACTION_DESC%", "This will force the indexer offline (if any threads of the indexer are executing).")
+            .Replace("%ACTION_URL%", "<!--URL-->/admin/stop_indexer")
+            .Replace("%ACTION_BACK%", "<!--URL-->/admin"));
+    }
+    void admin__run_indexer(ref StringBuilder content)
+    {
+        if (Request.Form["confirm"] != null)
+        {
+            CheckNotDoublePost();
+            RunIndexers();
+            Response.Redirect(ResolveUrl("/admin"));
+        }
+        else
+            content.Append(
+                UberMedia.Core.Cache_HtmlTemplates["confirm"]
+             .Replace("%ACTION_TITLE%", "Run Indexer")
+             .Replace("%ACTION_DESC%", "This will run the indexers manually to find new content and delete missing media; drives already being indexed (right now) will be unaffected.")
+             .Replace("%ACTION_URL%", "<!--URL-->/admin/run_indexer")
+             .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+             );
+    }
+    void admin__start_thumbnails(ref StringBuilder content)
+    {
+        if (Request.Form["confirm"] != null)
+        {
+            CheckNotDoublePost();
+            UberMedia.ThumbnailGeneratorService.serviceStart();
+            Response.Redirect(ResolveUrl("/admin"));
+        }
+        else
+            content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
+            .Replace("%ACTION_TITLE%", "Start Thumbnail Service")
+            .Replace("%ACTION_DESC%", "This will enable the thumbnail service to continue processing items in the thumbnail queue.")
+            .Replace("%ACTION_URL%", "<!--URL-->/admin/start_thumbnails")
+            .Replace("%ACTION_BACK%", "<!--URL-->/admin"));
+    }
+    void admin__stop_thumbnails(ref StringBuilder content)
+    {
+        if (Request.Form["confirm"] != null)
+        {
+            CheckNotDoublePost();
+            UberMedia.ThumbnailGeneratorService.serviceStop();
+            Response.Redirect(ResolveUrl("/admin"));
+        }
+        else
+            content.Append(UberMedia.Core.Cache_HtmlTemplates["confirm"]
+            .Replace("%ACTION_TITLE%", "Stop Thumbnail Service")
+            .Replace("%ACTION_DESC%", "This will disable the thumbnail service from processing items in the thumbnail queue.")
+            .Replace("%ACTION_URL%", "<!--URL-->/admin/stop_thumbnails")
+            .Replace("%ACTION_BACK%", "<!--URL-->/admin"));
+    }
+    void admin__folders(ref StringBuilder content)
+    {
+        // Check if the user has requested to add a new folder
+        if (Request.Form["title"] != null && Request.Form["path"] != null)
+        {
+            string title = Request.Form["title"];
+            string path = Request.Form["path"];
+            bool synopsis = Request.Form["synopsis"] != null;
+            // Validate
+            if (title.Length < PHYSICAL_FOLDER_TITLE_MIN || title.Length > PHYSICAL_FOLDER_TITLE_MAX)
+                ThrowError("Title must be " + PHYSICAL_FOLDER_TITLE_MIN + " to " + PHYSICAL_FOLDER_TITLE_MAX + " characters in length!");
+            else if (path.Length < PHYSICAL_FOLDER_PATH_MIN || path.Length > PHYSICAL_FOLDER_PATH_MAX)
+                ThrowError("Invalid path!");
+            else if (!Directory.Exists(path))
+                ThrowError("Path '" + path + "' does not exist or it is currently inaccessible!");
+            else
+            {
+                // Add folder to db
+                string pfolderid = Connector.Query_Scalar("INSERT INTO physical_folders (title, physicalpath, allow_web_synopsis) VALUES('" + Utils.Escape(title) + "', '" + Utils.Escape(path) + "', '" + (synopsis ? "1" : "0") + "'); SELECT LAST_INSERT_ID();").ToString();
+                Response.Redirect(ResolveUrl("/admin/folder/" + pfolderid));
+            }
+        }
+        // Build list of folders
+        string currentFolders = "";
+        foreach (ResultRow folder in Connector.Query_Read("SELECT * FROM physical_folders ORDER BY title ASC"))
+            currentFolders += UberMedia.Core.Cache_HtmlTemplates["admin_folders_item"]
+                .Replace("%PFOLDERID%", folder["pfolderid"])
+                .Replace("%TITLE%", HttpUtility.HtmlEncode(folder["title"]))
+                .Replace("%PATH%", HttpUtility.HtmlEncode(folder["physicalpath"]))
+                .Replace("%SYNOPSIS%", folder["allow_web_synopsis"]);
+        // Build page content
+        content.Append(
+            UberMedia.Core.Cache_HtmlTemplates["admin_folders"]
+            .Replace("%CURRENT_FOLDERS%", currentFolders)
+            .Replace("%TITLE%", HttpUtility.HtmlEncode(Request.Form["title"]) ?? "")             // Add new folder form
+            .Replace("%PATH%", HttpUtility.HtmlEncode(Request.Form["path"]) ?? "")
+            .Replace("%SYNOPSIS%", Request.Form["synopsis"] != null ? " checked" : "")
+            );
+    }
+    void admin__folder(ref StringBuilder content)
+    {
+        // Grab the folder identifier and validate it
+        string folderid = Request.QueryString["2"];
+        if (folderid == null || !IsNumeric(folderid))
+        {
+            Page__404();
+            return;
+        }
+        // Grab the folders info
+        Result data = Connector.Query_Read("SELECT (SELECT COUNT('') FROM virtual_items WHERE pfolderid=p.pfolderid AND type_uid='100') AS total_folders, IFNULL(SUM(vi.views), 0) AS total_views, COUNT(vi.vitemid) AS total_items, p.* FROM physical_folders AS p LEFT OUTER JOIN virtual_items AS vi ON (vi.pfolderid=p.pfolderid AND vi.type_uid != '100') WHERE p.pfolderid='" + Utils.Escape(folderid) + "'");
+
+        // Redirect if no data is returned
+        if (data.Rows.Count != 1)
+        {
+            Page__404();
+            return;
+        }
+        // Build the content
+        switch (Request.QueryString["3"])
+        {
+            case "rebuild_thumbnails":
+                // Reset any pre-existing thumbnails
+                Connector.Query_Execute("UPDATE virtual_items SET thumbnail_data=NULL WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'");
+                // Get all of the items for this folder
+                Result items = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.vitemid, it.thumbnail FROM (virtual_items AS vi, physical_folders AS pf, item_types AS it) WHERE it.uid=vi.type_uid AND it.system='0' AND vi.pfolderid=pf.pfolderid AND pf.pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'");
+                // Requeue all the thumbnails
+                foreach (ResultRow item in items)
+                    UberMedia.ThumbnailGeneratorService.addItem(item["path"], item["vitemid"], item["thumbnail"]);
+                // Back to folder main page
+                Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
+                break;
+            case "index":
+                UberMedia.Indexer.indexDrive(data[0]["pfolderid"], data[0]["physicalpath"], data[0]["allow_web_synopsis"].Equals("1"));
+                Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
+                break;
+            case "remove":
+                if (Request.Form["confirm"] != null)
+                {
+                    // Shutdown the indexer (if it exists)
+                    UberMedia.Indexer.terminateIndexer(data[0]["pfolderid"]);
+                    // Remove thumbnails
+                    foreach (ResultRow item in Connector.Query_Read("SELECT vitemid FROM virtual_items WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'"))
+                        try
+                        {
+                            if (File.Exists(Server.MapPath("/Content/Thumbnails/" + item["vitemid"] + ".png")))
+                                File.Delete(Server.MapPath("/Content/Thumbnails/" + item["vitemid"] + ".png"));
+                        }
+                        catch { }
+                    // Remove items and the folder its self
+                    Connector.Query_Execute("DELETE FROM virtual_items WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'; DELETE FROM physical_folders WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "';");
+                    Response.Redirect(ResolveUrl("/admin/folders"));
+                }
+                else
+                    content.Append(
+                        UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                        .Replace("%ACTION_TITLE%", "Remove Folder")
+                        .Replace("%ACTION_DESC%", "Are you sure you want to remove this folder? Note: this will not delete the physical folder!")
+                        .Replace("%ACTION_URL%", "<!--URL-->/admin/folder/" + data[0]["pfolderid"] + "/remove")
+                        .Replace("%ACTION_BACK%", "<!--URL-->/admin/folder/" + data[0]["pfolderid"])
+                        );
+                break;
+            case "add_type":
+                string type = Request.Form["type"];
+                if (type != null && IsNumeric(type) && Connector.Query_Count("SELECT ((SELECT COUNT('') FROM item_types WHERE system='0' AND typeid='" + Utils.Escape(type) + "') + (SELECT COUNT('') FROM physical_folder_types WHERE typeid='" + Utils.Escape(type) + "' AND pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'))") == 1)
+                    Connector.Query_Execute("INSERT INTO physical_folder_types (pfolderid, typeid) VALUES('" + Utils.Escape(data[0]["pfolderid"]) + "', '" + Utils.Escape(type) + "');");
+                Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
+                break;
+            case "remove_type":
+                string ty = Request.QueryString["t"];
+                if (ty != null && IsNumeric(ty))
+                    Connector.Query_Execute("DELETE FROM physical_folder_types WHERE typeid='" + Utils.Escape(ty) + "' AND pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "';");
+                Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
+                break;
+            default:
+                // Check if the user has tried to modify the folder title or/and path
+                if (Request.Form["title"] != null && Request.Form["path"] != null)
+                {
+                    string title = Request.Form["title"];
+                    string path = Request.Form["path"];
+                    bool web_synopsis = Request.Form["synopsis"] != null;
+                    if (title.Length < PHYSICAL_FOLDER_TITLE_MIN || title.Length > PHYSICAL_FOLDER_TITLE_MAX)
+                        ThrowError("Title must be " + PHYSICAL_FOLDER_TITLE_MIN + " to " + PHYSICAL_FOLDER_TITLE_MAX + " characters in length!");
+                    else if (path.Length < PHYSICAL_FOLDER_PATH_MIN || path.Length > PHYSICAL_FOLDER_PATH_MAX)
+                        ThrowError("Invalid path!");
+                    else if (!Directory.Exists(path))
+                        ThrowError("Path does not exist!");
+                    else
+                    {
+                        Connector.Query_Execute("UPDATE physical_folders SET physicalpath='" + Utils.Escape(path) + "', title='" + Utils.Escape(title) + "', allow_web_synopsis='" + (web_synopsis ? "1" : "0") + "' WHERE pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "'");
+                        Response.Redirect(ResolveUrl("/admin/folder/" + data[0]["pfolderid"]));
+                    }
+                }
+                // Build list of item types available to add
+                string typesAdd = "";
+                foreach (ResultRow it in Connector.Query_Read("SELECT typeid, title FROM item_types WHERE system='0' ORDER BY title ASC"))
+                    typesAdd += "<option value=\"" + Utils.Escape(it["typeid"]) + "\">" + HttpUtility.HtmlEncode(it["title"]) + "</option>";
+                // Build list of pre-existing types assigned to the folder
+                string typesRemove = "";
+                foreach (ResultRow it in Connector.Query_Read("SELECT pft.typeid, it.title FROM physical_folder_types AS pft LEFT OUTER JOIN item_types AS it ON it.typeid=pft.typeid WHERE pft.pfolderid='" + Utils.Escape(data[0]["pfolderid"]) + "' ORDER BY it.title ASC;"))
+                    typesRemove += UberMedia.Core.Cache_HtmlTemplates["admin_folder_type"]
+                        .Replace("%TYPEID%", it["typeid"])
+                        .Replace("%TITLE%", HttpUtility.HtmlEncode(it["title"]));
+                if (typesRemove.Length == 0) typesRemove = "None.";
+                // Build content
+                content.Append(
+                    UberMedia.Core.Cache_HtmlTemplates["admin_folder"]
+                    .Replace("%TITLE%", HttpUtility.HtmlEncode(data[0]["title"]))                               // Modify
+                    .Replace("%PATH%", HttpUtility.HtmlEncode(data[0]["physicalpath"]))
+                    .Replace("%SYNOPSIS%", data[0]["allow_web_synopsis"].Equals("1") ? "checked" : "")
+                    .Replace("%TOTAL_ITEMS%", data[0]["total_items"])                                           // Stats
+                    .Replace("%TOTAL_FOLDERS%", data[0]["total_folders"])
+                    .Replace("%TOTAL_VIEWS%", data[0]["total_views"])
+                    .Replace("%TYPES%", typesAdd)                                                               // Types
+                    .Replace("%TYPES_REMOVE%", typesRemove)
+                    .Replace("%PFOLDERID%", data[0]["pfolderid"])                                               // Misc
+                    );
+                break;
+        }
+    }
+    void admin__settings(ref StringBuilder content)
+    {
+        // Check if the user has requested to update a setting
+        if (Request.Form.Count != 0)
+        {
+            string queryUpdate = "";
+            foreach (string key in Request.Form.AllKeys)
+                if (key.StartsWith("setting_"))
+                    queryUpdate += "UPDATE settings SET value='" + Utils.Escape(Request.Form[key]) + "' WHERE keyid='" + Utils.Escape(key.Remove(0, 8)) + "'; ";
+            if (queryUpdate.Length > 0)
+                Connector.Query_Execute(queryUpdate);
+        }
+        // Build content
+        content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_settings_header"]);
+        string lastcat = "";
+        foreach (ResultRow setting in Connector.Query_Read("SELECT * FROM settings ORDER BY category ASC, keyid ASC"))
+        {
+            if (!lastcat.Equals(setting["category"]))
+            {
+                lastcat = setting["category"];
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_settings_category"]
+                    .Replace("%CATEGORY%", HttpUtility.HtmlEncode(setting["category"]))
+                    );
+            }
+            content.Append(
+                UberMedia.Core.Cache_HtmlTemplates["admin_settings_item"]
+                .Replace("%KEYID%", HttpUtility.HtmlEncode(setting["keyid"]))
+                .Replace("%VALUE%", HttpUtility.HtmlEncode(setting["value"]))
+                .Replace("%DESCRIPTION%", HttpUtility.HtmlEncode(setting["description"]))
+                );
+        }
+        content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_settings_footer"]);
+    }
+    void admin__requests(ref StringBuilder content)
+    {
+        // Check if the user has requested to delete all of the external request log entries
+        if (Request.QueryString["clear"] != null)
+        {
+            Connector.Query_Execute("DELETE FROM external_requests;");
+            Response.Redirect(ResolveUrl("/admin/requests"));
+        }
+        // Build content
+        int page = Request.QueryString["p"] != null && IsNumeric(Request.QueryString["p"]) ? int.Parse(Request.QueryString["p"]) : 1;
+        if (page < 1) page = 1;
+
+        string reqs = "";
+        foreach (ResultRow req in Connector.Query_Read("SELECT * FROM external_requests ORDER BY datetime DESC LIMIT " + ((PAGE_REQUESTS_ITEMSPERPAGE * page) - PAGE_REQUESTS_ITEMSPERPAGE) + ", " + PAGE_REQUESTS_ITEMSPERPAGE))
+            reqs += UberMedia.Core.Cache_HtmlTemplates["admin_requests_item"]
+                .Replace("%REASON%", HttpUtility.HtmlEncode(req["reason"]))
+                .Replace("%DATETIME%", req["datetime"])
+                .Replace("%URL%", HttpUtility.HtmlEncode(req["url"]));
+        content.Append(
+            UberMedia.Core.Cache_HtmlTemplates["admin_requests"]
+            .Replace("%ITEMS%", reqs.Length > 0 ? reqs : "None.")
+            .Replace("%P_N%", (page < int.MaxValue ? page + 1 : page).ToString())
+            .Replace("%P_P%", (page > 1 ? page - 1 : page).ToString())
+            .Replace("%PAGE%", page.ToString())
+            );
+    }
+    void admin__terminals(ref StringBuilder content)
+    {
+        switch (Request.QueryString["2"])
+        {
+            case null:
+                // Build list of terminals for removal and config generation
+                string terminals = "";
+                string genTerminals = "";
+                foreach (ResultRow terminal in Connector.Query_Read("SELECT * FROM terminals ORDER BY title ASC"))
+                {
+                    terminals += UberMedia.Core.Cache_HtmlTemplates["admin_terminals_item"]
+                        .Replace("%TERMINALID%", terminal["terminalid"])
+                        .Replace("%TITLE%", HttpUtility.HtmlEncode(terminal["title"]))
+                        .Replace("%UPDATED%", terminal["status_updated"].Length > 0 ? terminal["status_updated"] : "(never)");
+                    genTerminals = "<option value=\"" + HttpUtility.HtmlEncode(terminal["terminalid"]) + "\">" + HttpUtility.HtmlEncode(terminal["title"]) + "</option>";
+                }
+                // Build content
+                content.Append(
+                    UberMedia.Core.Cache_HtmlTemplates["admin_terminals"]
+                    .Replace("%TERMINALS%", terminals)
+                    );
+                break;
+            case "remove":
+                string ty = Request.QueryString["t"];
+                if (ty == null || !IsNumeric(ty))
+                {
+                    Page__404();
+                    return;
+                }
+                // Grab the info of the key
+                Result tdata = Connector.Query_Read("SELECT terminalid, title FROM terminals WHERE terminalid='" + Utils.Escape(ty) + "'");
+                // Check if the user has confirmed the deletion, else prompt them
+                if (Request.Form["confirm"] != null)
+                {
+                    Connector.Query_Execute("DELETE FROM terminals WHERE terminalid='" + Utils.Escape(tdata[0]["terminalid"]) + "'");
+                    Response.Redirect(ResolveUrl("/admin/terminals"));
+                }
+                else
+                    content.Append(
+                        UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                        .Replace("%ACTION_TITLE%", "Deletion of Terminal")
+                        .Replace("%ACTION_DESC%", "Are you sure you want to delete the terminal '" + tdata[0]["title"] + "' (TID: " + tdata[0]["terminalid"] + ")?")
+                        .Replace("%ACTION_URL%", "<!--URL-->/admin/terminals/remove?t=" + tdata[0]["terminalid"])
+                        .Replace("%ACTION_BACK%", "<!--URL-->/admin/terminals")
+                        );
+                break;
+            default:
+                Page__404();
+                return;
+        }
+    }
+    void admin__tags(ref StringBuilder content)
+    {
+        // Check what the user has requested
+        switch (Request.QueryString["2"])
+        {
+            case null:
+                // Check if the user has requested to add a tag
+                if (Request.Form["title"] != null)
+                {
+                    string title = Request.Form["title"];
+                    if (title.Length < TAG_TITLE_MIN || title.Length > TAG_TITLE_MAX)
+                        ThrowError("Title must be " + TAG_TITLE_MIN + " to " + TAG_TITLE_MAX + " characters in length!");
+                    else if (Connector.Query_Count("SELECT COUNT('') FROM tags WHERE title LIKE '%" + Utils.Escape(title) + "%'") != 0)
+                        ThrowError("A tag with the same title already exists!");
+                    else
+                        Connector.Query_Execute("INSERT INTO tags (title) VALUES('" + Utils.Escape(title) + "');");
+                }
+                // Build tags
+                string tags = "";
+                foreach (ResultRow tag in Connector.Query_Read("SELECT * FROM tags ORDER BY title ASC"))
+                    tags += UberMedia.Core.Cache_HtmlTemplates["admin_tags_item"]
+                        .Replace("%TAGID%", tag["tagid"])
+                        .Replace("%TITLE%", HttpUtility.HtmlEncode(tag["title"]));
+                // Build content
+                content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_tags"]
+                    .Replace("%TAGS%", tags));
+                break;
+            case "remove":
+                string tagid = Request.QueryString["t"];
+                if (tagid != null && IsNumeric(tagid))
+                {
+                    Result ty = Connector.Query_Read("SELECT tagid, title FROM tags WHERE tagid='" + Utils.Escape(tagid) + "'");
+                    if (ty.Rows.Count != 1)
+                    {
+                        Page__404();
+                        return;
+                    }
+                    if (Request.Form["confirm"] != null)
+                    {
+                        Connector.Query_Execute("DELETE FROM tags WHERE tagid='" + Utils.Escape(tagid) + "'");
+                        Response.Redirect(ResolveUrl("/admin/tags"));
+                    }
+                    else
+                        content.Append(
+                            UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                            .Replace("%ACTION_TITLE%", "Confirm Tag Deletion")
+                            .Replace("%ACTION_DESC%", "Are you sure you want to remvoe tag '" + ty[0]["title"] + "'?")
+                            .Replace("%ACTION_URL%", "<!--URL-->/admin/tags/remove?t=" + ty[0]["tagid"])
+                            .Replace("%ACTION_BACK%", "<!--URL-->/admin/tags")
+                            );
+                }
+                break;
+            default:
+                Page__404();
+                return;
+        }
+    }
+    void admin__reload_templates(ref StringBuilder content)
+    {
+        UberMedia.Core.HtmlTemplates_Reload();
+        content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_reload_templates"]);
+    }
+    void admin__reload_settings(ref StringBuilder content)
+    {
+        UberMedia.Core.CacheSettings_Reload(true);
+        content.Append(UberMedia.Core.Cache_HtmlTemplates["admin_reload_settings"]);
+    }
+    void admin__rebuild_film_cache(ref StringBuilder content)
+    {
+        if (Request.Form["confirm"] != null)
+        {
+            UberMedia.FilmInformation.state = UberMedia.FilmInformation.State.Starting;
+            Connector.Query_Execute("UPDATE film_information_providers SET cache_updated=NULL");
+            UberMedia.FilmInformation.cacheStart();
+            Response.Redirect(ResolveUrl("/admin"));
+        }
+        else
+            content.Append(
+                UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                .Replace("%ACTION_TITLE%", "Rebuild Film Information Cache")
+                .Replace("%ACTION_DESC%", "Are you sure you want to rebuild the film information cache?")
+                .Replace("%ACTION_URL%", "<!--URL-->/admin/rebuild_film_cache")
+                .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+                );
+    }
+    void admin__conversion_start(ref StringBuilder content)
+    {
+        if (Request.Form["confirm"] != null)
+        {
+            UberMedia.ConversionService.startService();
+            Response.Redirect(ResolveUrl("/admin"));
+        }
+        else
+            content.Append(
+                UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                .Replace("%ACTION_TITLE%", "Start Conversion Service")
+                .Replace("%ACTION_DESC%", "Are you sure you want to start the conversion service?")
+                .Replace("%ACTION_URL%", "<!--URL-->/admin/conversion_start")
+                .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+                );
+    }
+    void admin__conversion_stop(ref StringBuilder content)
+    {
+        if (Request.Form["confirm"] != null)
+        {
+            UberMedia.ConversionService.stopService();
+            Response.Redirect(ResolveUrl("/admin"));
+        }
+        else
+            content.Append(
+                UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                .Replace("%ACTION_TITLE%", "Stop Conversion Service")
+                .Replace("%ACTION_DESC%", "Are you sure you want to stop the conversion service?")
+                .Replace("%ACTION_URL%", "<!--URL-->/admin/conversion_stop")
+                .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+                );
+    }
+    void admin__conversion_clear(ref StringBuilder content)
+    {
+        if (Request.Form["confirm"] != null)
+        {
+            UberMedia.ConversionService.queue.Clear();
+            Response.Redirect(ResolveUrl("/admin"));
+        }
+        else
+            content.Append(
+                UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                .Replace("%ACTION_TITLE%", "Clear Conversion Service")
+                .Replace("%ACTION_DESC%", "Are you sure you want to clear the conversion service's queue?")
+                .Replace("%ACTION_URL%", "<!--URL-->/admin/conversion_clear")
+                .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+                );
+    }
+    #endregion
+    #endregion
+
     #region "Methods"
     enum NavItems
     {
@@ -2079,7 +2416,7 @@ public partial class _Default : System.Web.UI.Page
     void RunIndexers()
     {
         foreach (ResultRow drive in Connector.Query_Read("SELECT pfolderid, physicalpath, allow_web_synopsis FROM physical_folders ORDER BY pfolderid ASC"))
-            if (!UberMedia.Indexer.ThreadPool.ContainsKey(drive["pfolderid"])) UberMedia.Indexer.IndexDrive(drive["pfolderid"], drive["physicalpath"], drive["allow_web_synopsis"].Equals("1"));
+            if (!UberMedia.Indexer.threadPool.ContainsKey(drive["pfolderid"])) UberMedia.Indexer.indexDrive(drive["pfolderid"], drive["physicalpath"], drive["allow_web_synopsis"].Equals("1"));
     }
     string DriveTitle(Result drives, string pfolderid)
     {

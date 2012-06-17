@@ -5,7 +5,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UberMediaServer", "Code__Se
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebsiteLauncher", "WebsiteLauncher\WebsiteLauncher.csproj", "{92039039-9D60-4DA8-8184-FC5F090C7E82}"
 EndProject
-Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Code__Website", "Code__Website\", "{CE390DD0-813B-425A-9E35-D590166B95F1}"
+Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Code__Website", "Code__Website", "{CE390DD0-813B-425A-9E35-D590166B95F1}"
 	ProjectSection(WebsiteProperties) = preProject
 		TargetFrameworkMoniker = ".NETFramework,Version%3Dv2.0"
 		Debug.AspNetCompiler.VirtualPath = "/Code__Website"
@@ -22,7 +22,7 @@ Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Code__Website", "Code__Webs
 		Release.AspNetCompiler.ForceOverwrite = "true"
 		Release.AspNetCompiler.FixedNames = "false"
 		Release.AspNetCompiler.Debug = "False"
-		VWDPort = "64224"
+		VWDPort = "51189"
 		VWDVirtualPath = "/"
 	EndProjectSection
 EndProject

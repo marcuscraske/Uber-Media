@@ -8,4 +8,7 @@
 <div id="service_thumbnail">%THUMBNAIL%</div>
 
 <h2>Status - Film Information Service</h2>
-<div id="service_filminformation">%FILMINFORMATION%</div>]]></html></template>
+<div id="service_filminformation">%FILMINFORMATION%</div>
+
+<h2>Status - Conversion Service</h2>
+<div id="service_conversion">%CONVERSION%</div>]]></html></template>

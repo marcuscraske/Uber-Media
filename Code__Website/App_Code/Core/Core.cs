@@ -79,11 +79,13 @@ namespace UberMedia
                 // Load HTML templates cache
                 HtmlTemplates_Reload();
                 // Start the thumbnail service
-                ThumbnailGeneratorService.Delegator_Start();
+                ThumbnailGeneratorService.serviceStart();
                 // Start the film information service
                 FilmInformation.cacheStart();
-                // Index each drive
-                foreach (ResultRow drive in GlobalConnector.Query_Read("SELECT pfolderid, physicalpath, allow_web_synopsis FROM physical_folders ORDER BY title ASC")) Indexer.IndexDrive(drive["pfolderid"], drive["physicalpath"], drive["allow_web_synopsis"].Equals("1"));
+                // Start indexing each drive
+                foreach (ResultRow drive in GlobalConnector.Query_Read("SELECT pfolderid, physicalpath, allow_web_synopsis FROM physical_folders ORDER BY title ASC")) Indexer.indexDrive(drive["pfolderid"], drive["physicalpath"], drive["allow_web_synopsis"].Equals("1"));
+                // Start conversion service
+                ConversionService.startService();
                 // Update the core status to running
                 State = CoreState.Running;
             }
@@ -98,9 +100,9 @@ namespace UberMedia
         {
             State = CoreState.NotRunning;
             // Terminate thread pool of indexer
-            Indexer.TerminateThreadPool();
+            Indexer.terminateThreadPool();
             // Terminate thumbnail service
-            ThumbnailGeneratorService.Delegator_Stop();
+            ThumbnailGeneratorService.serviceStop();
             // Dispose local core
             Cache_HtmlTemplates = null;
             Cache_Settings = null;

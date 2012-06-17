@@ -220,12 +220,14 @@ function adminGetStatus()
         document.getElementById("service_indexing").innerHTML = doc.getElementsByTagName("indexing")[0].childNodes[0].nodeValue;
         document.getElementById("service_thumbnail").innerHTML = doc.getElementsByTagName("thumbnails")[0].childNodes[0].nodeValue;
         document.getElementById("service_filminformation").innerHTML = doc.getElementsByTagName("filminformation")[0].childNodes[0].nodeValue;
+        document.getElementById("service_conversion").innerHTML = doc.getElementsByTagName("conversion")[0].childNodes[0].nodeValue;
     },
     function (a)
     {
         document.getElementById("service_indexing").innerHTML = "Client-side error: failed to retrieve dynamic update...";
         document.getElementById("service_thumbnail").innerHTML = "Client-side error: failed to retrieve dynamic update...";
         document.getElementById("service_filminformation").innerHTML = "Client-side error: failed to retrieve dynamic update...";
+        document.getElementById("service_conversion").innerHTML = "Client-side error: failed to retrieve dynamic update...";
     }
     );
 }

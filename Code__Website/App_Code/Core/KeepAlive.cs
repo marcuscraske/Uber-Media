@@ -7,6 +7,7 @@
  * Project:                 Uber Media
  * File:                    /App_Code/KeepAlive.cs
  * Author(s):               limpygnome						limpygnome@gmail.com
+ *                          Paul Wilson                     http://www.wilsondotnet.com/
  * To-do/bugs:              none
  * 
  * This keeps the application pool running until manually terminated, which gets around the
@@ -43,7 +44,7 @@ namespace Wilson.WebCompile
         public event EventHandler Elapsed;
         protected virtual int KeepAliveMinutes
         {
-            get { return 15; }
+            get { return 10; }
         }
         protected virtual string SkipFiles
         {
@@ -76,12 +77,17 @@ namespace Wilson.WebCompile
         }
         private void KeepAlive(Object sender, System.Timers.ElapsedEventArgs e)
         {
-            timer.Enabled = false;
-            if (this.Elapsed != null) { this.Elapsed(this, e); }
-            timer.Enabled = true;
-            string url = applicationURL;
-            using (HttpWebRequest.Create(url).GetResponse()) { }
-            System.Diagnostics.Debug.WriteLine(url, "Timer");
+            // Check if the services are processing anything, else we can let the application die by not keeping the app alive
+            if (UberMedia.Indexer.serviceIsActive || UberMedia.ThumbnailGeneratorService.serviceIsActive ||
+                UberMedia.FilmInformation.serviceIsActive || UberMedia.ConversionService.serviceIsActive)
+            {
+                timer.Enabled = false;
+                if (this.Elapsed != null) { this.Elapsed(this, e); }
+                timer.Enabled = true;
+                string url = applicationURL;
+                using (HttpWebRequest.Create(url).GetResponse()) { }
+                System.Diagnostics.Debug.WriteLine("Keep-alive request made!");
+            }
         }
         private void CompileApp()
         {

@@ -51,6 +51,10 @@ namespace UberMedia
         #endregion
 
         #region "Variables"
+        /// <summary>
+        /// Used for checking if we need to keep the application-pool alive for this service, when true.
+        /// </summary>
+        public static bool serviceIsActive = false;
         public static State state = State.Unstarted;
         public static string status = "Waiting to be started...";
         #endregion
@@ -67,6 +71,7 @@ namespace UberMedia
         }
         public static void cacheStart_Thread()
         {
+            serviceIsActive = true;
             state = State.Starting;
             status = "Checking IMDB provider...";
             // Check if to rebuild the IMDB provider
@@ -80,6 +85,7 @@ namespace UberMedia
                 status = "Finished building cache.";
                 state = State.Started;
             }
+            serviceIsActive = false;
         }
         public static string getFilmSynopsis(string title, Connector conn)
         {
@@ -105,37 +111,44 @@ namespace UberMedia
         #region "Methods - Synopsis Providers"
         public static string getFilmSynopsis__Database(string title, Connector conn)
         {
-            string newTitle = StripName(title, stripCharsAlphaNumericSpaceApostrophe).Replace(" ", "%") + "%"; // Stripped with only alpha-numeric chars (and also space and ')
-            // Grab every possible match and find the closest match using levenshtein algorithm
-            Result matches = conn.Query_Read("SELECT title, description FROM film_information WHERE title LIKE '" + Utils.Escape(newTitle) + "'");
-            if (matches.Rows.Count == 0)
+            try
             {
-                newTitle = StripName(title, stripCharsAlphaSpaceApostrophe).Replace(" ", "%") + "%"; // Stripped with the same as the above but with no numeric characters
-                matches = conn.Query_Read("SELECT title, description FROM film_information WHERE title LIKE '" + Utils.Escape(newTitle) + "'");
-            }
-            if (matches.Rows.Count == 0) return null;
-            else
-            {
-                ResultRow match;
-                int lowestValue = int.MaxValue;
-                int lowestRow = -1;
-                int currValue;
-                for (int i = 0; i < matches.Rows.Count; i++)
+                string newTitle = StripName(title, stripCharsAlphaNumericSpaceApostrophe).Replace(" ", "%") + "%"; // Stripped with only alpha-numeric chars (and also space and ')
+                // Grab every possible match and find the closest match using levenshtein algorithm
+                Result matches = conn.Query_Read("SELECT title, description FROM film_information WHERE title LIKE '" + Utils.Escape(newTitle) + "'");
+                if (matches.Rows.Count == 0)
                 {
-                    match = matches[i];
-                    currValue = editDistance(title, match["title"]);
-                    // Check if the current row is the closest
-                    if (currValue < lowestValue)
-                    {
-                        lowestValue = currValue;
-                        lowestRow = i;
-                    }
+                    newTitle = StripName(title, stripCharsAlphaSpaceApostrophe).Replace(" ", "%") + "%"; // Stripped with the same as the above but with no numeric characters
+                    matches = conn.Query_Read("SELECT title, description FROM film_information WHERE title LIKE '" + Utils.Escape(newTitle) + "'");
                 }
-                // Return the synopsis of the lowest
-                if (lowestRow != -1)
-                    return matches[lowestRow]["title"] + " - " + matches[lowestRow]["description"];
+                if (matches.Rows.Count == 0) return null;
                 else
-                    return null;
+                {
+                    ResultRow match;
+                    int lowestValue = int.MaxValue;
+                    int lowestRow = -1;
+                    int currValue;
+                    for (int i = 0; i < matches.Rows.Count; i++)
+                    {
+                        match = matches[i];
+                        currValue = editDistance(title, match["title"]);
+                        // Check if the current row is the closest
+                        if (currValue < lowestValue)
+                        {
+                            lowestValue = currValue;
+                            lowestRow = i;
+                        }
+                    }
+                    // Return the synopsis of the lowest
+                    if (lowestRow != -1)
+                        return matches[lowestRow]["title"] + " - " + matches[lowestRow]["description"];
+                    else
+                        return null;
+                }
+            }
+            catch
+            {
+                return null;
             }
         }
         public static string getFilmSynopsis__RottenTomatoes(string title, Connector conn)
