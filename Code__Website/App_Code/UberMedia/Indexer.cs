@@ -50,17 +50,19 @@ namespace UberMedia
         #endregion
 
         #region "Methods - Start/stop indexer(s)"
+        public static void indexAllDrives()
+        {
+            foreach (ResultRow drive in Core.GlobalConnector.Query_Read("SELECT pfolderid, physicalpath, allow_web_synopsis FROM physical_folders ORDER BY title ASC"))
+                Indexer.indexDrive(drive["pfolderid"], drive["physicalpath"], drive["allow_web_synopsis"].Equals("1"));
+        }
         public static void indexDrive(string pfolderid, string path, bool allow_web_synopsis)
         {
             if (!Directory.Exists(path) || Terminate) return; // Doesnt exist/down? Leave...
             lock (threadPool)
             {
-                // Check if a pre-existing thread exists; if yes and not active, remove the thread and pool a new one.
+                // Check if a pre-existing thread exists
                 if (threadPool.ContainsKey(pfolderid))
-                {
-                    if (threadPool[pfolderid].ThreadState == System.Threading.ThreadState.Running) return;
-                    else threadPool.Remove(pfolderid);
-                }
+                    return; // Already running, return
                 updateStatus(pfolderid, "Initializing thread for " + pfolderid);
                 // Build the args to pass to the thread
                 ThreadIndexerAttribs tia = new ThreadIndexerAttribs();
@@ -93,7 +95,11 @@ namespace UberMedia
             {
                 if (threadPool.ContainsKey(pfolderid))
                 {
-                    threadPool[pfolderid].Abort();
+                    try
+                    {
+                        threadPool[pfolderid].Abort();
+                    }
+                    catch { }
                     threadPool.Remove(pfolderid);
                 }
             }
@@ -150,19 +156,26 @@ namespace UberMedia
             string filename, ext, title, desc;
             foreach (string file in Directory.GetFiles(tia.base_path, "*", SearchOption.AllDirectories))
             {
-                if (Terminate) return;
-                filename = file.Replace("/", "\\").Substring(file.LastIndexOf('\\') + 1);
-                ext = filename.LastIndexOf('.') != -1 ? filename.Substring(filename.LastIndexOf('.') + 1).ToLower() : "";
-                title = ext.Length > 0 ? filename.Remove(filename.Length - (ext.Length + 1), (ext.Length + 1)) : filename;
-                if (ext.Length > 0 && ExtensionsMap.ContainsKey(ext) && tia.Connector.Query_Count("SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + tia.pfolderid + "' AND type_uid != '100' AND phy_path='" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "'") == 0)
+                try
                 {
-                    if (tia.allow_web_synopsis)
-                        desc = FilmInformation.getFilmSynopsis(title, tia.Connector);
-                    else
-                        desc = string.Empty;
-                    string parentFolder = getParentVITEMID(tia.pfolderid, file.Remove(0, tia.base_path.Length), ref Cache, tia.Connector);
-                    string vitemid = tia.Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, type_uid, title, description, phy_path, parent, date_added) VALUES('" + tia.pfolderid + "', '" + Utils.Escape(ExtensionsMap[ext]) + "', '" + Utils.Escape(title) + "', '" + Utils.Escape(desc) + "', '" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "', " + (parentFolder != null ? "'" + Utils.Escape(parentFolder) + "'" : "NULL") + ", NOW()); SELECT LAST_INSERT_ID();").ToString();
-                    if (ThumbnailExts.ContainsKey(ext)) ThumbnailGeneratorService.addItem(file, vitemid, ThumbnailExts[ext]);
+                    if (Terminate) return;
+                    filename = file.Replace("/", "\\").Substring(file.LastIndexOf('\\') + 1);
+                    ext = filename.LastIndexOf('.') != -1 ? filename.Substring(filename.LastIndexOf('.') + 1).ToLower() : "";
+                    title = ext.Length > 0 ? filename.Remove(filename.Length - (ext.Length + 1), (ext.Length + 1)) : filename;
+                    if (ext.Length > 0 && ExtensionsMap.ContainsKey(ext) && tia.Connector.Query_Count("SELECT COUNT('') FROM virtual_items WHERE pfolderid='" + tia.pfolderid + "' AND type_uid != '100' AND phy_path='" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "'") == 0)
+                    {
+                        if (tia.allow_web_synopsis)
+                            desc = FilmInformation.getFilmSynopsis(title, tia.Connector);
+                        else
+                            desc = string.Empty;
+                        string parentFolder = getParentVITEMID(tia.pfolderid, file.Remove(0, tia.base_path.Length), ref Cache, tia.Connector);
+                        string vitemid = tia.Connector.Query_Scalar("INSERT INTO virtual_items (pfolderid, type_uid, title, description, phy_path, parent, date_added) VALUES('" + tia.pfolderid + "', '" + Utils.Escape(ExtensionsMap[ext]) + "', '" + Utils.Escape(title) + "', '" + Utils.Escape(desc) + "', '" + Utils.Escape(file.Remove(0, tia.base_path.Length)) + "', " + (parentFolder != null ? "'" + Utils.Escape(parentFolder) + "'" : "NULL") + ", NOW()); SELECT LAST_INSERT_ID();").ToString();
+                        if (ThumbnailExts.ContainsKey(ext)) ThumbnailGeneratorService.addItem(file, vitemid, ThumbnailExts[ext]);
+                    }
+                }
+                catch(Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("CRITICAL ERROR - INDEXER - " + ex.Message + " - " + ex.StackTrace);
                 }
             }
             updateStatus(tia.pfolderid, "Verifying index integrity");
@@ -179,7 +192,12 @@ namespace UberMedia
             lock (threadPool)
             {
                 if (threadPool.ContainsKey(tia.pfolderid)) threadPool.Remove(tia.pfolderid);
-                if (threadPool.Count == 0) serviceIsActive = false;
+                int count = 0;
+                foreach (KeyValuePair<string, Thread> th in threadPool)
+                    if (th.Value.ThreadState == System.Threading.ThreadState.Running || th.Value.ThreadState == System.Threading.ThreadState.WaitSleepJoin)
+                        count++;
+                if (count < 1)
+                    serviceIsActive = false;
             }
             updateStatus(tia.pfolderid, "Thread finished");
         }

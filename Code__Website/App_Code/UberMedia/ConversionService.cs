@@ -138,6 +138,9 @@ namespace UberMedia
                                     break;
                                 }
                             if (!active) status = "Idle; successfully looped at " + DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") + "...";
+                            if (serviceIsActive && !active)
+                                // State has changed - index all drives
+                                Indexer.indexAllDrives();
                             serviceIsActive = active;
                         }
                     }
@@ -194,7 +197,8 @@ namespace UberMedia
             }
             catch { }
             // Remove the process from the list
-            processes.Remove(proc);
+            lock(processes)
+                processes.Remove(proc);
             // Verify the new file exists, if so perform action unless the process did not exit (hence failed)
             try
             {
@@ -208,7 +212,7 @@ namespace UberMedia
                             case ConversionAction.Delete:
                                 try
                                 {
-                                    File.Delete(ci.pathOutput);
+                                    File.Delete(ci.pathSource);
                                 }
                                 catch { }
                                 break;
@@ -252,12 +256,18 @@ namespace UberMedia
                 }
             }
             catch { }
+            // Run the indexer for the original drive again
+            Indexer.indexDrive(ci.phy_pfolderid, ci.phy_path, ci.phy_allowsynopsis);
+            // Null status (to idle)
             if (ci.threadIndex != -1) threadStatus[ci.threadIndex] = null;
         }
         #endregion
     }
     public class ConversionInfo
     {
+        public string phy_pfolderid = null;
+        public bool phy_allowsynopsis = false;
+        public string phy_path = null;
         public string pathSource = null;
         public string pathOutput = null;
         public int videoBitrate = -1;

@@ -83,7 +83,7 @@ namespace UberMedia
                 // Start the film information service
                 FilmInformation.cacheStart();
                 // Start indexing each drive
-                foreach (ResultRow drive in GlobalConnector.Query_Read("SELECT pfolderid, physicalpath, allow_web_synopsis FROM physical_folders ORDER BY title ASC")) Indexer.indexDrive(drive["pfolderid"], drive["physicalpath"], drive["allow_web_synopsis"].Equals("1"));
+                
                 // Start conversion service
                 ConversionService.startService();
                 // Update the core status to running

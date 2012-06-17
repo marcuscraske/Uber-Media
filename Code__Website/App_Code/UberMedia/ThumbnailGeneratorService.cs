@@ -126,8 +126,14 @@ namespace UberMedia
             }
             catch { }
             lock (threads)
-                if (threads.Count == 1)
+            {
+                int count = 0;
+                foreach (Thread th in threads)
+                    if (th.ThreadState == System.Threading.ThreadState.Running || th.ThreadState == System.Threading.ThreadState.WaitSleepJoin)
+                        count++;
+                if(count <= 1)
                     serviceIsActive = false;
+            }
         }
         #endregion
 

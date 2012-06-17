@@ -970,7 +970,7 @@ public partial class _Default : System.Web.UI.Page
             return;
         }
         else if (Request.QueryString["1"].Equals("folder") && Request.QueryString["2"] != null && IsNumeric(Request.QueryString["2"]) && int.Parse(Request.QueryString["2"]) >= 0)
-            files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.pfolderid='" + Utils.Escape(Request.QueryString["2"]) + "' AND vi.parent is NULL AND vi.type_uid != '100'" + (filter != null ? " AND vi.phy_path LIKE '%." + Utils.Escape(filter) + "'" : string.Empty) + ";");
+            files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, pf.physicalpath, pf.allow_web_synopsis, vi.title, vi.pfolderid FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.pfolderid='" + Utils.Escape(Request.QueryString["2"]) + "' AND vi.parent is NULL AND vi.type_uid != '100'" + (filter != null ? " AND vi.phy_path LIKE '%." + Utils.Escape(filter) + "'" : string.Empty) + ";");
         else if (IsNumeric(Request.QueryString["1"]) && int.Parse(Request.QueryString["1"]) >= 0)
         // Check if the vitemid is a folder or an actual item
         {
@@ -981,11 +981,11 @@ public partial class _Default : System.Web.UI.Page
                 {
                     // Folder
                     isOriginFolder = true;
-                    files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.parent='" + Utils.Escape(Request.QueryString["1"]) + "' AND vi.type_uid != '100'" + (filter != null ? " AND vi.phy_path LIKE '%." + Utils.Escape(filter) + "'" : string.Empty) + ";");
+                    files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, pf.physicalpath, pf.allow_web_synopsis, vi.title, vi.pfolderid FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.parent='" + Utils.Escape(Request.QueryString["1"]) + "' AND vi.type_uid != '100'" + (filter != null ? " AND vi.phy_path LIKE '%." + Utils.Escape(filter) + "'" : string.Empty) + ";");
                 }
                 else
                     // Media item
-                    files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, vi.title FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.vitemid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (filter != null ? " AND vi.phy_path LIKE '%." + Utils.Escape(filter) + "'" : string.Empty) + ";");
+                    files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, pf.physicalpath, pf.allow_web_synopsis, vi.title, vi.pfolderid FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.vitemid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (filter != null ? " AND vi.phy_path LIKE '%." + Utils.Escape(filter) + "'" : string.Empty) + ";");
             }
         }
         // No files - 404 due to invalid parameters
@@ -1081,6 +1081,9 @@ public partial class _Default : System.Web.UI.Page
                             basePath = Path.GetDirectoryName(file["path"]);
                             filename = Path.GetFileNameWithoutExtension(file["path"]);
                             ci = new UberMedia.ConversionInfo();
+                            ci.phy_pfolderid = file["pfolderid"];
+                            ci.phy_path = file["physicalpath"];
+                            ci.phy_allowsynopsis = file["allow_web_synopsis"].Equals("1");
                             ci.pathSource = file["path"];
                             ci.pathOutput = basePath + "\\" + filename + "." + newFormat;
                             ci.actionOriginal = action;
@@ -1774,6 +1777,7 @@ public partial class _Default : System.Web.UI.Page
             }
         }
         else indexing.Append("No threads are actively indexing any folders.");
+        indexing.Append("<br />Active: ").Append(UberMedia.Indexer.serviceIsActive);
         // Thumbnail service
         StringBuilder thumbnail = new StringBuilder();
         if (UberMedia.ThumbnailGeneratorService.threads.Count > 0)
@@ -1788,10 +1792,12 @@ public partial class _Default : System.Web.UI.Page
         thumbnail
             .Append("<br /><br />Items queued for processing: ").Append(UberMedia.ThumbnailGeneratorService.queue.Count)
             .Append("<br />Next item: " + (UberMedia.ThumbnailGeneratorService.queue.Count > 0 ? UberMedia.ThumbnailGeneratorService.queue[0][0] : "none."))
-            .Append("<br />Delegator status: ").Append(UberMedia.ThumbnailGeneratorService.status);
+            .Append("<br />Delegator status: ").Append(UberMedia.ThumbnailGeneratorService.status)
+            .Append("<br />Active: ").Append(UberMedia.ThumbnailGeneratorService.serviceIsActive);
         // Film information service
         StringBuilder filmInformation = new StringBuilder();
-        filmInformation.Append(UberMedia.FilmInformation.state.ToString()).Append(" - ").Append(UberMedia.FilmInformation.status);
+        filmInformation.Append(UberMedia.FilmInformation.state.ToString()).Append(" - ").Append(UberMedia.FilmInformation.status)
+            .Append("<br />Active: ").Append(UberMedia.FilmInformation.serviceIsActive);
         // Conversion service
         StringBuilder conversion = new StringBuilder();
         for (t = 0; t < UberMedia.ConversionService.threads.Count; t++)
@@ -1799,8 +1805,9 @@ public partial class _Default : System.Web.UI.Page
             th = UberMedia.ConversionService.threads[t];
             conversion.Append("<div>Thread ").Append(t).Append(" - ").Append(th.ThreadState.ToString()).Append(" - ").Append(UberMedia.ConversionService.threadStatus != null && t < UberMedia.ConversionService.threadStatus.Length ? UberMedia.ConversionService.threadStatus[t] ?? "Idle." : "Unknown.").Append("</div>");
         }
-        conversion.Append("<br />Items queued for conversion: ").Append(UberMedia.ConversionService.queue.Count);
-        conversion.Append("<br />Delegator status: ").Append(UberMedia.ConversionService.status);
+        conversion.Append("<br />Items queued for conversion: ").Append(UberMedia.ConversionService.queue.Count)
+        .Append("<br />Delegator status: ").Append(UberMedia.ConversionService.status)
+        .Append("<br />Active: ").Append(UberMedia.ConversionService.serviceIsActive);
         // Check if this is an ajax request
         if (Request.QueryString["ajax"] != null)
         {
