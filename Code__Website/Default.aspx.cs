@@ -996,7 +996,7 @@ public partial class _Default : System.Web.UI.Page
         }
         // Prepare to build the page
         StringBuilder content = new StringBuilder();
-        Result folders = Connector.Query_Read("SELECT pfolderid, title FROM physical_folders ORDER BY title ASC");
+        Result folders = Connector.Query_Read("SELECT pfolderid, title, physicalpath FROM physical_folders ORDER BY title ASC");
         // Check we have files to convert
         if (files.Rows.Count == 0)
         {
@@ -1061,7 +1061,7 @@ public partial class _Default : System.Web.UI.Page
                     foreach(ResultRow folder in folders)
                         if(folder["pfolderid"].Equals(convertActionMove))
                         {
-                            actionMove = folder["path"];
+                            actionMove = folder["physicalpath"];
                             found = true;
                             break;
                         }

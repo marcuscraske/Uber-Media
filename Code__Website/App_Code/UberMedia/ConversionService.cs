@@ -196,58 +196,62 @@ namespace UberMedia
             // Remove the process from the list
             processes.Remove(proc);
             // Verify the new file exists, if so perform action unless the process did not exit (hence failed)
-            if (File.Exists(ci.pathOutput))
+            try
             {
-                if (!failed)
+                if (File.Exists(ci.pathOutput))
                 {
-                    switch (ci.actionOriginal)
+                    if (!failed)
                     {
-                        case ConversionAction.Nothing: break;
-                        case ConversionAction.Delete:
-                            try
-                            {
-                                File.Delete(ci.pathOutput);
-                            }
-                            catch { }
-                            break;
-                        case ConversionAction.Move:
-                            try
-                            {
-                                string filename = Path.GetFileNameWithoutExtension(ci.pathSource);
-                                string ext = Path.GetExtension(ci.pathSource);
-                                if (File.Exists(ci.actionOriginalArgs + "\\" + filename + "." + ext))
+                        switch (ci.actionOriginal)
+                        {
+                            case ConversionAction.Nothing: break;
+                            case ConversionAction.Delete:
+                                try
                                 {
-                                    int incr = 0;
-                                    while (File.Exists(ci.actionOriginalArgs + "\\" + filename + " (" + incr + ")." + ext) && incr < int.MaxValue)
-                                        incr++;
-                                    try
-                                    {
-                                        File.Move(ci.pathSource, ci.actionOriginalArgs + "\\" + filename + " (" + incr + ")." + ext);
-                                    }
-                                    catch {}
+                                    File.Delete(ci.pathOutput);
                                 }
-                                else
-                                    File.Move(ci.pathSource, ci.actionOriginalArgs + "\\" + filename + "." + ext);
-                            }
-                            catch { }
-                            break;
-                        case ConversionAction.Rename_Extension_With_Bk:
-                            try
-                            {
-                                File.Move(ci.pathSource, ci.pathSource + ".bk");
-                            }
-                            catch { }
-                            break;
+                                catch { }
+                                break;
+                            case ConversionAction.Move:
+                                try
+                                {
+                                    string filename = Path.GetFileNameWithoutExtension(ci.pathSource);
+                                    string ext = Path.GetExtension(ci.pathSource);
+                                    if (File.Exists(ci.actionOriginalArgs + "\\" + filename + ext))
+                                    {
+                                        int incr = 0;
+                                        while (File.Exists(ci.actionOriginalArgs + "\\" + filename + " (" + incr + ")" + ext) && incr < int.MaxValue)
+                                            incr++;
+                                        try
+                                        {
+                                            File.Move(ci.pathSource, ci.actionOriginalArgs + "\\" + filename + " (" + incr + ")" + ext);
+                                        }
+                                        catch { }
+                                    }
+                                    else
+                                        File.Move(ci.pathSource, ci.actionOriginalArgs + "\\" + filename + ext);
+                                }
+                                catch { }
+                                break;
+                            case ConversionAction.Rename_Extension_With_Bk:
+                                try
+                                {
+                                    File.Move(ci.pathSource, ci.pathSource + ".bk");
+                                }
+                                catch { }
+                                break;
+                        }
                     }
+                    else
+                        // Delete the output file if it exists - most likely incomplete
+                        try
+                        {
+                            File.Delete(ci.pathOutput);
+                        }
+                        catch { }
                 }
-                else
-                    // Delete the output file if it exists - most likely incomplete
-                    try
-                    {
-                        File.Delete(ci.pathOutput);
-                    }
-                    catch { }
             }
+            catch { }
             if (ci.threadIndex != -1) threadStatus[ci.threadIndex] = null;
         }
         #endregion
