@@ -132,7 +132,6 @@ namespace UberMediaServer.Interfaces
                             case "150":
                                 // Navigate to normal YouTube page since the video cannot be embedded
                                 mainForm.np.displayMessage("Switching to advert player...");
-                                mainForm.cursorShow();
                                 browser.ScrollBarsEnabled = true;
                                 browser.Navigate(mainForm.libraryURL + "/youtube/" + videoid);
                                 break;

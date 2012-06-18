@@ -988,22 +988,15 @@ public partial class _Default : System.Web.UI.Page
                     files = Connector.Query_Read("SELECT CONCAT(pf.physicalpath, vi.phy_path) AS path, pf.physicalpath, pf.allow_web_synopsis, vi.title, vi.pfolderid FROM virtual_items AS vi LEFT OUTER JOIN physical_folders AS pf ON pf.pfolderid=vi.pfolderid WHERE vi.vitemid='" + Utils.Escape(Request.QueryString["1"]) + "'" + (filter != null ? " AND vi.phy_path LIKE '%." + Utils.Escape(filter) + "'" : string.Empty) + ";");
             }
         }
-        // No files - 404 due to invalid parameters
-        if (files == null || files.Rows.Count == 0)
-        {
-            Page__404();
-            return;
-        }
         // Prepare to build the page
         StringBuilder content = new StringBuilder();
         Result folders = Connector.Query_Read("SELECT pfolderid, title, physicalpath FROM physical_folders ORDER BY title ASC");
         // Check we have files to convert
-        if (files.Rows.Count == 0)
+        if (files == null || files.Rows.Count == 0)
         {
             content.Append(
                 UberMedia.Core.Cache_HtmlTemplates["convert_nofiles"]
                 );
-            return;
         }
         else
         {
@@ -1572,6 +1565,8 @@ public partial class _Default : System.Web.UI.Page
                     // Removes an item from the playlist - if cid is empty, use skip command
                     if (cid != null && cid.Length > 0)
                         Connector.Query_Execute("DELETE FROM terminal_buffer WHERE command='media' AND cid='" + Utils.Escape(Request.QueryString["cid"]) + "'");
+                    else
+                        terminalBufferEntry("next", mc, string.Empty, false, true, Connector);
                     break;
                 case "play_now":
                     string cid2 = Request.QueryString["cid"];
@@ -1581,27 +1576,27 @@ public partial class _Default : System.Web.UI.Page
                     break;
                 case "c_pi":
                     // Previous item
-                    terminalBufferEntry("previous", mc, "", false, true, Connector);
+                    terminalBufferEntry("previous", mc, string.Empty, false, true, Connector);
                     break;
                 case "c_sb":
                     // Skip backwards
-                    terminalBufferEntry("skip_backward", mc, "", false, true, Connector);
+                    terminalBufferEntry("skip_backward", mc, string.Empty, false, true, Connector);
                     break;
                 case "c_s":
                     // Stop
-                    terminalBufferEntry("stop", mc, "", false, true, Connector);
+                    terminalBufferEntry("stop", mc, string.Empty, false, true, Connector);
                     break;
                 case "c_p":
                     // Toggles play
-                    terminalBufferEntry("play_toggle", mc, "", false, true, Connector);
+                    terminalBufferEntry("play_toggle", mc, string.Empty, false, true, Connector);
                     break;
                 case "c_sf":
                     // Skip forward
-                    terminalBufferEntry("skip_forward", mc, "", false, true, Connector);
+                    terminalBufferEntry("skip_forward", mc, string.Empty, false, true, Connector);
                     break;
                 case "c_ni":
                     // Next item
-                    terminalBufferEntry("next", mc, "", false, true, Connector);
+                    terminalBufferEntry("next", mc, string.Empty, false, true, Connector);
                     break;
                 case "c_vol":
                     // Changes the value of the volume; check for v querystring
