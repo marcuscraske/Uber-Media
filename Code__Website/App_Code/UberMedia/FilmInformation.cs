@@ -227,7 +227,7 @@ namespace UberMedia
                 object data = imdbConn.Query_Scalar("SELECT provid FROM film_information_providers WHERE title='" + Utils.Escape(PROVIDER_IDENTIFIER_IMDB) + "'");
                 if (data == null || !int.TryParse(data.ToString(), out provid))
                     // Create provider
-                    provid = int.Parse(imdbConn.Query_Scalar("INSERT INTO film_information_providers (title) VALUES('" + Utils.Escape(PROVIDER_IDENTIFIER_IMDB) + "')").ToString());
+                    provid = int.Parse(imdbConn.Query_Scalar("INSERT INTO film_information_providers (title) VALUES('" + Utils.Escape(PROVIDER_IDENTIFIER_IMDB) + "'); SELECT LAST_INSERT_ID();").ToString());
                 else
                 {
                     // Drop all data by provider
@@ -237,7 +237,7 @@ namespace UberMedia
             }
             catch (Exception ex)
             {
-                status = "Error occurred retrieving IMDB provider identifier - " + ex.Message + " - " + ex.GetBaseException().Message;
+                status = "Error occurred retrieving IMDB provider identifier - " + ex.Message + " - " + ex.GetBaseException().Message + " - " + ex.StackTrace;
                 state = State.Error;
                 return;
             }
