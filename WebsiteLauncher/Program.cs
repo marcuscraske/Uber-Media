@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.IO;
+using System.Diagnostics;
 
 namespace WebsiteLauncher
 {
@@ -34,7 +35,10 @@ namespace WebsiteLauncher
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-
+            // Launch the updater
+            try
+            { Process.Start(Environment.CurrentDirectory + "\\Updater.exe"); }
+            catch { }
             // Check the database and web-server both exist and are valid
             if (!Directory.Exists(PATH_WEB))
                 MessageBox.Show("The directory with the web-server is missing, cannot continue!", "Critical Failure", MessageBoxButtons.OK, MessageBoxIcon.Error);

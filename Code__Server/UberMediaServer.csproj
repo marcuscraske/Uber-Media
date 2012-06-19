@@ -217,7 +217,9 @@
     <Content Include="libvlccore.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Updater.xml" />
+    <Content Include="Updater.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <None Include="Resources\cross.png" />
     <None Include="Resources\tick.png" />
   </ItemGroup>

@@ -65,6 +65,10 @@ namespace UberMediaServer
         {
             SetStyle(ControlStyles.AllPaintingInWmPaint, true);
             SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+            // Launch the updater
+            try
+            { Process.Start(Environment.CurrentDirectory + "\\Updater.exe"); }
+            catch { }
             // Check if the configuration file exists, else show the configurator
             if (!File.Exists(Application.StartupPath + "\\Settings.xml"))
             {
