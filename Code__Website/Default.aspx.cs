@@ -85,6 +85,7 @@ public partial class _Default : System.Web.UI.Page
             Response.Write("<h3>Base Reason</h3>");
             Response.Write("<p>" + UberMedia.Core.failureError.GetBaseException().Message + "</p>");
             Response.Write("<p>" + UberMedia.Core.failureError.GetBaseException().StackTrace + "</p>");
+            Connector.Disconnect();
             Response.End();
         }
 #if DEBUG
@@ -635,6 +636,7 @@ public partial class _Default : System.Web.UI.Page
 </body>
 </html>
 ");
+            Connector.Disconnect();
             Response.End();
         }
     }
@@ -850,6 +852,7 @@ public partial class _Default : System.Web.UI.Page
 
                     bin.Close();
                     fs.Close();
+                    Connector.Disconnect();
                     Response.End();
                 }
                 catch (Exception ex)
@@ -1192,6 +1195,7 @@ public partial class _Default : System.Web.UI.Page
                             .Replace("<!--URL-->", ResolveUrl(""))
                             );
             }
+            Connector.Disconnect();
             Response.End();
         }
     }
@@ -1206,6 +1210,7 @@ public partial class _Default : System.Web.UI.Page
         else
             // Store the setting in a session variable
             Session["mediacomputer"] = Request.QueryString["c"];
+        Connector.Disconnect();
         Response.End();
     }
     public void Page__shutdown()
@@ -1345,6 +1350,7 @@ public partial class _Default : System.Web.UI.Page
         // Write to the response stream
         Response.AddHeader("Content-Length", data.Length.ToString());
         Response.BinaryWrite(data);
+        Connector.Disconnect();
         Response.End(); // End the response - nothing more to send
     }
 
@@ -1374,6 +1380,7 @@ public partial class _Default : System.Web.UI.Page
                 break;
             default:
                 Response.Write("ERROR:Unknown command specified!");
+                Connector.Disconnect();
                 Response.End();
                 break;
         }
@@ -1397,6 +1404,7 @@ public partial class _Default : System.Web.UI.Page
         else
             Response.Write("ERROR:No title provided!");
         // Stop any other HTML from being printed by ending the response
+        Connector.Disconnect();
         Response.End();
     }
     /// <summary>
@@ -1421,6 +1429,7 @@ public partial class _Default : System.Web.UI.Page
                 Connector.Query_Execute("DELETE FROM terminal_buffer WHERE cid='" + Utils.Escape(res[0]["cid"]) + "'");
             }
         }
+        Connector.Disconnect();
         Response.End();
     }
     /// <summary>
@@ -1456,6 +1465,7 @@ public partial class _Default : System.Web.UI.Page
             else
                 Response.Write("ERROR:Virtual item not found!");
         }
+        Connector.Disconnect();
         Response.End();
     }
     #endregion
@@ -1629,7 +1639,6 @@ public partial class _Default : System.Web.UI.Page
             else
             {
                 Connector.Disconnect();
-                Connector = null;
                 Response.End();
             }
         }
@@ -1837,6 +1846,7 @@ public partial class _Default : System.Web.UI.Page
             xml.WriteEndDocument();
 
             xml.Flush();
+            Connector.Disconnect();
             Response.End();
         }
         else
