@@ -57,6 +57,7 @@ namespace UberMedia
         public static bool serviceIsActive = false;
         public static State state = State.Unstarted;
         public static string status = "Waiting to be started...";
+        private static Thread cacheThread = null;
         #endregion
 
         #region "Methods"
@@ -66,8 +67,21 @@ namespace UberMedia
         /// </summary>
         public static void cacheStart()
         {
-            Thread th = new Thread(cacheStart_Thread);
-            th.Start();
+            cacheThread = new Thread(cacheStart_Thread);
+            cacheThread.Start();
+        }
+        public static void cacheStop()
+        {
+            try
+            {
+                if (cacheThread != null)
+                    cacheThread.Abort();
+            }
+            catch { }
+            finally
+            {
+                cacheThread = null;
+            }
         }
         public static void cacheStart_Thread()
         {
@@ -86,6 +100,7 @@ namespace UberMedia
                 state = State.Started;
             }
             serviceIsActive = false;
+            cacheThread = null;
         }
         public static string getFilmSynopsis(string title, Connector conn)
         {

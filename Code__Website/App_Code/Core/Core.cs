@@ -83,7 +83,7 @@ namespace UberMedia
                 // Start the film information service
                 FilmInformation.cacheStart();
                 // Start indexing each drive
-                
+                Indexer.indexAllDrives();
                 // Start conversion service
                 ConversionService.startService();
                 // Update the core status to running
@@ -103,6 +103,10 @@ namespace UberMedia
             Indexer.terminateThreadPool();
             // Terminate thumbnail service
             ThumbnailGeneratorService.serviceStop();
+            // Terminate film information service
+            FilmInformation.cacheStop();
+            // Terminate conversion service
+            ConversionService.stopService();
             // Dispose local core
             Cache_HtmlTemplates = null;
             Cache_Settings = null;

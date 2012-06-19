@@ -20,4 +20,5 @@
 <a href="<!--URL-->/admin/rebuild_all"><img src="<!--URL-->/Content/Images/rebuild_thumbnail.png" alt="Rebuild Library" />Clear &amp; Rebuild Library</a>
 <a href="<!--URL-->/admin/reload_templates"><img src="<!--URL-->/Content/Images/reload_templates.png" alt="Reload HTML Templates" />Reload HTML Templates</a>
 <a href="<!--URL-->/admin/reload_settings"><img src="<!--URL-->/Content/Images/reload_settings.png" alt="Reload Core Settings" />Reload Core Settings</a>
-<a href="<!--URL-->/devdump"><img src="<!--URL-->/Content/Images/admin_devdump.png" alt="Dump HTML Templates" />Dump HTML Templates</a>]]></html></template>
+<a href="<!--URL-->/devdump"><img src="<!--URL-->/Content/Images/admin_devdump.png" alt="Dump HTML Templates" />Dump HTML Templates</a>
+<a href="<!--URL-->/admin/uninstall"><img src="<!--URL-->/Content/Images/admin_uninstall.png" alt="Uninstall" />Uninstall</a>]]></html></template>

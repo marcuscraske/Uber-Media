@@ -132,9 +132,11 @@ public partial class _Default : System.Web.UI.Page
     /// </summary>
     public void Page__devdump()
     {
-        UberMedia.Installer.HtmlTemplatesDump(Server.MapPath("/Install/Templates"), Connector);
-        Response.Write("HTML templates written.");
-        Response.End();
+        string path = Server.MapPath("/Install/Templates");
+        UberMedia.Installer.HtmlTemplatesDump(path, Connector);
+        PageElements["CONTENT_RIGHT"] = "<h2>Success</h2><p>HTML templates written to:</p><p>" + HttpUtility.HtmlEncode(path) + "</p>"
+            + "<p>Date/time: " + DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") + "</p>"
+            + "<a href=\"./admin\" class=\"BUTTON\">Back to Admin</a>";
     }
     // Main
     /// <summary>
@@ -1743,6 +1745,9 @@ public partial class _Default : System.Web.UI.Page
             case "conversion_clear":
                 admin__conversion_clear(ref content);
                 break;
+            case "uninstall":
+                admin__uninstall(ref content);
+                break;
             default:
                 Page__404();
                 return;
@@ -2375,6 +2380,24 @@ public partial class _Default : System.Web.UI.Page
                 .Replace("%ACTION_TITLE%", "Clear Conversion Service")
                 .Replace("%ACTION_DESC%", "Are you sure you want to clear the conversion service's queue?")
                 .Replace("%ACTION_URL%", "<!--URL-->/admin/conversion_clear")
+                .Replace("%ACTION_BACK%", "<!--URL-->/admin")
+                );
+    }
+    void admin__uninstall(ref StringBuilder content)
+    {
+        if (Request.Form["confirm"] != null)
+        {
+            UberMedia.Core.Core_Stop();
+            File.Delete(Server.MapPath("/Config.xml"));
+            UberMedia.Core.Core_Start();
+            Response.Redirect(ResolveUrl("/"));
+        }
+        else
+            content.Append(
+                UberMedia.Core.Cache_HtmlTemplates["confirm"]
+                .Replace("%ACTION_TITLE%", "Uninstall Core")
+                .Replace("%ACTION_DESC%", "Are you sure you want to uninstall the core? This will not delete the database data, but only the Config.xml file...")
+                .Replace("%ACTION_URL%", "<!--URL-->/admin/uninstall")
                 .Replace("%ACTION_BACK%", "<!--URL-->/admin")
                 );
     }
