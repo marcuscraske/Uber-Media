@@ -9,7 +9,7 @@
   <!-- The local file executed afterwards -->
   <executeFile>Launcher.exe</executeFile>
   <!-- The URL used for retrieving the data of the current version of the application (zip file) -->
-  <urlBinary>https://github.com/ubermeat/Uber-Media/raw/master/Binaries/Download_Website.zip</urlBinary>
+  <urlBinary>http://www.ubermeat.co.uk/downloads/Download_Website.zip</urlBinary>
   <!-- The URL used for retrieving the current version of the application -->
   <urlVersionCheck>https://raw.github.com/ubermeat/Uber-Media/master/VERSION_WEBSITE</urlVersionCheck>
   <!-- The URL used for displaying the change-log -->

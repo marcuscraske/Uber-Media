@@ -9,7 +9,7 @@
   <!-- The local file executed afterwards -->
   <executeFile>UberMediaServer.exe</executeFile>
   <!-- The URL used for retrieving the data of the current version of the application (zip file) -->
-  <urlBinary>https://github.com/ubermeat/Uber-Media/raw/master/Binaries/Download_Terminal.zip</urlBinary>
+  <urlBinary>http://www.ubermeat.co.uk/downloads/Download_Terminal.zip</urlBinary>
   <!-- The URL used for retrieving the current version of the application -->
   <urlVersionCheck>https://raw.github.com/ubermeat/Uber-Media/master/VERSION_SERVER</urlVersionCheck>
   <!-- The URL used for displaying the change-log -->
