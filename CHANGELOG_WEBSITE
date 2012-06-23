@@ -1,0 +1,2 @@
+0.3.0:
+	- Added ID3 tag support for thumbnail generation for audio files.

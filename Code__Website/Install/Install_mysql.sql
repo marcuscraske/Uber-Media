@@ -156,7 +156,7 @@ CREATE TABLE IF NOT EXISTS `film_information`
 -- Item Types
 INSERT IGNORE INTO `item_types` (`typeid`, `title`, `uid`, `extensions`, `thumbnail`, `interface`, `system`) VALUES
 	('1', 'Video', '1000', 'avi,mkv,mp4,wmv,m2ts,mpg', 'ffmpeg', 'video_vlc', '0'),
-	('2', 'Audio', '1200', 'mp3,wma,wav', '', 'video_vlc', '0'),
+	('2', 'Audio', '1200', 'mp3,wma,wav', 'audio', 'video_vlc', '0'),
 	('3', 'YouTube', '1300', 'yt', 'youtube', 'youtube', '0'),
 	('4', 'Web Link', '1400', null, '', 'browser', '0'),
 	('5', 'Virtual Folder', '100', null, '', null, '1'),

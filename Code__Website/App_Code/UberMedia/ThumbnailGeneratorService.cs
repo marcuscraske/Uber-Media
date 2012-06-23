@@ -265,6 +265,43 @@ namespace UberMedia
             {
             }
         }
+        public static void thumbnailProcessor__audio(string path, string vitemid)
+        {
+            try
+            {
+                Tags.ID3.ID3Info i = new Tags.ID3.ID3Info(path, true);
+                // Ensure data and pictures were found
+                if (i.HaveException || !i.ID3v2Info.HaveTag || i.ID3v2Info.AttachedPictureFrames.Count == 0)
+                    return;
+                Image img = i.ID3v2Info.AttachedPictureFrames[0].Picture;
+                Bitmap thumbnail = new Bitmap(int.Parse(Core.Cache_Settings["thumbnail_width"]), int.Parse(Core.Cache_Settings["thumbnail_height"]));
+                Graphics g = Graphics.FromImage(thumbnail);
+                g.FillRectangle(new SolidBrush(Color.Black), 0, 0, thumbnail.Width, thumbnail.Height);
+                double fitToThumbnailRatio = (img.Width > img.Height ? (double)thumbnail.Width / (double)img.Width : (double)thumbnail.Height / (double)img.Height);
+                Rectangle drawArea = new Rectangle();
+                drawArea.Width = (int)(fitToThumbnailRatio * (double)img.Width);
+                drawArea.Height = (int)(fitToThumbnailRatio * (double)img.Height);
+                drawArea.X = (int)(((double)thumbnail.Width - (double)drawArea.Width) / 2);
+                drawArea.Y = (int)(((double)thumbnail.Height - (double)drawArea.Height) / 2);
+                g.DrawImage(img, drawArea);
+                g.Dispose();
+                // Convert to a byte array
+                MemoryStream ms = new MemoryStream();
+                thumbnail.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+                thumbnail.Dispose();
+                img.Dispose();
+                byte[] data = ms.ToArray();
+                ms.Dispose();
+                // Upload to the database
+                Dictionary<string, object> parameters = new Dictionary<string, object>();
+                parameters.Add("thumbnail", data);
+                parameters.Add("vitemid", vitemid);
+                Core.GlobalConnector.Query_Execute_Parameters("UPDATE virtual_items SET thumbnail_data=@thumbnail WHERE vitemid=@vitemid", parameters);
+            }
+            catch
+            {
+            }
+        }
         #endregion
 
         #region "Methods"
