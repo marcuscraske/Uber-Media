@@ -4,6 +4,10 @@ A networked media application allowing multiple terminals, or media-computers, t
 a wide-range of media items are supported through a dynamic plugin-system, with the items indexed in a virtual file-system to allow fast searching and virtual
 organization and data-collection (such as user-ratings and descriptions pulled from third-party services).
 
+Downloads (cannot be hosted on Github due to size restrictions of raw downloads):
+http://ubermeat.co.uk/downloads/Download_Website.zip - the core/central website for indexing and controlling terminals
+http://ubermeat.co.uk/downloads/Download_Terminal.zip - the terminal software used for playing media and controlling a media computer
+
 Features:
 > Virtual file-system; multiple folders, which can be local or file-shares, can be indexed.
 > Open-ended plugin-system which allows for custom-written interfaces to be used to play items.
