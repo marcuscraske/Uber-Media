@@ -156,6 +156,9 @@ namespace UberMediaServer.Interfaces
             }
             set
             {
+                // Ensure the medium is not e.g. buffering; this is an old bug where if you skip during buffering, an error occurs
+                if (!m_player.IsPlaying || (currentState != MediaState.Playing && currentState != MediaState.Paused))
+                    return;
                 m_player.Position = ((float)value / duration) * 1000;
             }
         }
