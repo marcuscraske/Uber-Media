@@ -1,3 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?><template><description><![CDATA[The left-hand sub-menu of the status page.]]></description><html><![CDATA[<h2>Options</h2>
-<a href="<!--URL-->/status/shutdown"><img src="<!--URL-->/Content/Images/Status/shutdown.png" alt="Shutdown Icon" title="Shutdown Icon" />Shutdown All Terminals</a>
-<a href="<!--URL-->/status/restart"><img src="<!--URL-->/Content/Images/Status/restart.png" alt="Restart Icon" title="Restart Icon" />Restart All Terminals</a>]]></html></template>

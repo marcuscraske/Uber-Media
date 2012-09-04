@@ -1,0 +1,3 @@
+1.0.0:
+	- Added fix for seeking during buffering causing crash with VLC.
+	- Incremented to major release due to being stable and major changes to website.

@@ -1,2 +1,4 @@
+1.0.0:
+	- Website now uses Uber CMS to reduce code maintenance and to allow developers to develop their own plugins.
 0.3.0:
 	- Added ID3 tag support for thumbnail generation for audio files.

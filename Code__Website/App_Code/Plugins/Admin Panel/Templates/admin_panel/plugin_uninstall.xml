@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?><template><pkey><![CDATA[admin_panel]]></pkey><hkey><![CDATA[plugin_uninstall]]></hkey><description><![CDATA[Uninstall confirmation page.]]></description><html><![CDATA[<form method="post" action="<!--ADMIN_URL-->">
+	<div class="ROW HEADER">
+		<div class="CELL1">Uninstall Plugin - Confirm</div>
+		<div class="clear"></div>
+	</div>
+	<div class="ROW">
+		<div class="CELL1">
+			You are about to uninstall the following plugin:
+		</div>
+		<div class="clear"></div>
+	</div>
+	<div class="ROW">
+		<div class="CELL1">
+			%TITLE% (plugin ID: %PLUGINID%)
+		</div>
+		<div class="clear"></div>
+	</div>
+	<div class="ROW">
+		<div class="CELL1">
+			All data related to the plugin will be lost! Ensure you have backed-up any e.g. configuration and user-data.
+		</div>
+		<div class="clear"></div>
+	</div>
+	<div class="ROW SUB_HEADER">
+		<div class="CELL1">Options</div>
+		<div class="clear"></div>
+	</div>
+	<div class="ROW">
+		<div class="CELL1">
+			<div class="CHECKBOX">
+				<input type="checkbox" name="delete_path" />
+				<div>Delete physical plugin files</div>
+			</div>
+		</div>
+		<div class="clear"></div>
+	</div>
+	<div class="ROW">
+		<div class="CELL1">
+			<input type="submit" class="BUTTON FR" value="Uninstall" />
+		</div>
+		<div class="clear"></div>
+	</div>
+	<input type="hidden" name="action" value="uninstall" />
+	<input type="hidden" name="pluginid" value="%PLUGINID%" />
+	<input type="hidden" name="confirm" value="1" />
+	<input type="hidden" name="csrf" value="%CSRF%" />
+</form>
+%ERROR%]]></html></template>

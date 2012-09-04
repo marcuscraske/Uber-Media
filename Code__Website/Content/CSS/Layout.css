@@ -1,521 +1,361 @@
-﻿/* Shared */
-.FR
-{
-    float: right;
-}
-/* Main Body */
-body
-{
-    margin: 0em;
-    background: #690;
-    font: normal 12px Verdana;
-    color: #000;
-}
-a
-{
-    color: #360;
-}
-a:hover
-{
-    color: #999;
-}
+/* Main layout */
 .clear
 {
-    clear: both;
+	clear: both;
 }
-::-webkit-scrollbar
+::selection
 {
-    width: 1.25em;
+    background: #000;
+    color: #FFF;
 }
-::-webkit-scrollbar-thumb
+body
 {
-    background: #333;
-    border-radius: 0.5em;
+	margin: 0em;
+	background: #690;
+	color: #FFF;
+	font: normal 14px Arial,Verdana;
 }
-::-webkit-scrollbar-track
+.FAUX_NAV
 {
-    background: #999;
-}
-h1
-{
-    -webkit-text-shadow: 0px 0px 5px #360;
-    -moz-text-shadow: 0px 0px 5px #360;
-    text-shadow: 0px 0px 5px #360;
-}
-.AREA_SHADE
-{
-    position: fixed;
-    top: 0em;
-    left: 0em;
-    width: 100%;
-    height: 6.5em;
-    background: #9C0;
-}
-.AREA_SHADE2
-{
-    position: fixed;
-    top: 6.5em;
-    width: 100%;
-    left: 0em;
-    height: 1em;
-    background: #360;
-}
-.AREA_WRAPPER, .AREA_FOOTER
-{
-    width: 80em;
-    margin: auto;
-}
-.AREA_WRAPPER
-{
-    position: relative;
+	z-index: 2;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	background: #360;
+	height: 6em;
 }
 .AREA_BANNER
 {
-    line-height: 3em;
-    height: 3em;
-    color: #FFF;
-    padding-left: 0.8em;
+	z-index: 3;
+	position: relative;
+	width: 100%;
+	background: #9C0;
+	height: 4em;
 }
-.AREA_BANNER div
+.AREA_BANNER h1
 {
-    float: right;
+	margin: 0em;
+	padding: 0.5em;
+	text-shadow: 0em 0em 0.3em #666;
 }
-.AREA_NAVIGATION
+.AREA_BANNER h1 a
 {
-    background: #360;
-    height: 2.5em;
-    line-height: 2.5em;
-    padding: 0em 0em 0em 1em;
-    margin-bottom: 0.5em;
-    border-radius: 5px 5px 0px 0px;
-}
-.AREA_NAVIGATION select, .AREA_NAVIGATION input[type=text]
-{
-    border: solid 0.1em #CCC;
-    width: 12em;
-}
-.AREA_NAVIGATION span
-{
-    float: left;
-    width: 0.1em;
-    background: #CCC;
-    margin: 0.5em 0.5em 0.5em 0.5em;
-    height: 1.5em;
-}
-.AREA_NAVIGATION div
-{
-    float: right;
-    margin: 0em 1em 0em 0em;
-    color: #FFF;
-    font-size: smaller;
-}
-.AREA_NAVIGATION div a
-{
-    margin: 0em !important;
-    padding: 0em !important;
-    float: none;
-}
-.AREA_NAVIGATION div a:hover, .AREA_NAVIGATION div a:focus
-{
-    background: none !important;
-    color: #CCC;
-}
-.AREA_NAVIGATION a
-{
-    float: left;
     text-decoration: none;
-    margin: 0em 0.2em 0em 0.2em;
-    padding: 0em 1.5em 0em 1.5em;
     color: #FFF;
-    -webkit-transition: 0.3s linear;
-    -moz-transition: 0.3s linear;
-    -o-transition: 0.3s linear;
-    transition: 0.3s linear;
-    border-radius: 0px 0px 5px 5px;
 }
-.AREA_NAVIGATION a:hover, .AREA_NAVIGATION a:focus, .AREA_NAVIGATION a.selected
+.WRAPPER
+{
+	position: relative;
+	margin: auto;
+	width: 60em;
+}
+.AREA_ITEM
+{
+	position: relative;
+}
+.AREA_NAV
+{
+	z-index: 3;
+	width: 100%;
+	background: #360;
+	height: 2em;
+}
+.AREA_NAV .ITEM /* Menu item container */
+{
+	float: left;
+	color: #FFF;
+	text-decoration: none;
+	background: #360;
+	overflow: hidden;
+	height: 2em;
+	line-height: 1em;
+	margin-left: 0.5em;
+	font-size: 1em;
+}
+.AREA_NAV .ITEM img
+{
+    width: 1.2em;
+    height: 1.2em;
+    margin-right: 0.5em;
+    border: none;
+    vertical-align: middle;
+}
+.AREA_NAV .ITEM:hover, .AREA_NAV .ITEM:focus
+{
+	overflow: visible;
+	background: #9C0;
+}
+.AREA_NAV .ITEM div
+{
+    clear: both;
+}
+.AREA_NAV .ITEM:hover div, .AREA_NAV .ITEM:focus div
+{
+    box-shadow: 0em 0.5em 1em -0.5em #000;
+    background: #690;
+}
+.AREA_NAV .ITEM a /* Menu item container item */
+{
+	float: left;
+	width: 100%;
+	height: 2em;
+	color: #FFF;
+	text-decoration: none;
+}
+.AREA_NAV .ITEM div a:hover, .AREA_NAV .ITEM div a:focus /* Sub menu items on hover */
+{
+	background: #333;
+	color: #FFF !important;
+}
+.AREA_NAV .ITEM:hover a, .AREA_NAV .ITEM:focus a /* Items on container hover */
+{
+	color: #360;
+}
+.AREA_NAV .ITEM:hover div a, .AREA_NAV .ITEM:focus div a
+{
+    color: #FFF;
+}
+.AREA_NAV .ITEM a span /* Padding */
+{
+	display: block;
+	padding: 0.5em;
+}
+.AREA_NAV .ITEM div /* Sub menu */
+{
+	float: left;
+	width: 100%;
+	background: #9C0;
+}
+.AREA_NAV .ACCOUNT
+{
+	float: right;
+	height: 2em;
+	line-height: 2em;
+	margin-right: 0.5em;
+}
+.AREA_NAV .NAV_BUTTON, .AREA_NAV .NAV_SEP
+{
+    float: right;
+}
+.AREA_NAV .NAV_BUTTON
+{
+    color: #FFF;
+    text-decoration: none;
+    padding: 0em 0.5em;
+    height: 2em;
+}
+.AREA_NAV .NAV_SEP
+{
+    margin: 0.25em 0.5em;
+    height: 1.5em;
+	border-right: solid 0.1em #690;
+}
+.AREA_NAV .NAV_BUTTON:hover, .AREA_NAV .NAV_BUTTON:focus
 {
     background: #9C0;
+    color: #333;
 }
-.AREA_CONTENT #LEFT
+.AREA_NAV .NAV_BUTTON img
 {
-    float: left;
-    width: 16em;
-    margin: 1em 0.5em 1em 0em;
-    background: #FFF;
+    width: 1.3em;
+    height: 1.3em;
+    vertical-align: middle;
+    border: none;
 }
-.AREA_CONTENT #RIGHT
+.AREA_CONTENT
 {
-    float: right;
-    width: 60em;
-    margin: 1em 0em 1em 0.5em;
-    min-height: 30em;
-    background: #FFF;
+	z-index: 1;
+	width: 100%;
+	background: #FFF;
+	color: #360;
+	padding: 0.5em;
+	min-height: 25em;
+	border-radius: 0.5em;
+	border-top-left-radius: 0em;
+	border-top-right-radius: 0em;
 }
-.AREA_CONTENT #LEFT, .AREA_CONTENT #RIGHT
+.AREA_FOOTER, .AREA_FOOTER a
 {
-    padding: 0.5em;
-    -webkit-box-shadow: 0px 0px 5px #360; 
-    -moz-box-shadow: 0px 0px 5px #360; 
-    box-shadow: 0px 0px 5px #360;
-    border-radius: 5px;
-    overflow: hidden;
+	color: #360;
 }
 .AREA_FOOTER
 {
-    padding-top: 0.5em;
+	padding: 0.5em;
+	text-align: center;
+}
+.AREA_SHADOW
+{
+	box-shadow: 0em 0em 3em -1em #000;
+}
+.AREA_TITLE
+{
+	width: 100%;
+	margin: 1em 0em 0em 0em;
+}
+h2, h3
+{
+	font-size: 1em;
+	padding: 0.5em;
+}
+h2
+{
+	background: #360;
+	color: #FFF;
+	border-top-left-radius: 0.5em;
+	border-top-right-radius: 0.5em;
+}
+h3
+{
+	background: #CCC;
+	color: #666;
+	margin: 0em;
+}
+/* -- Content region -- */
+.FL
+{
+    float: left !important;
+}
+.FR
+{
+    float: right !important;
+}
+.TC
+{
     text-align: center;
-    color: #330;
 }
-.AREA_FOOTER a
+/* Error container */
+.ERROR, .SUCCESS
 {
-    color: #330;
-}
-/* Content Area */
-.AREA_CONTENT #LEFT h2, .AREA_CONTENT #RIGHT h2, .AREA_CONTENT #RIGHT h3
-{
-    font-size: inherit;
+    margin: 0.5em 0em;
     padding: 0.5em;
-    border-radius: 5px;
-    clear: both;
-    margin-bottom: 0.5em;
 }
-.AREA_CONTENT #LEFT h2, .AREA_CONTENT #RIGHT h2
+.ERROR .TEXT, .SUCCESS .TEXT
 {
-    background: #360;
-    color: #FFF;
+    padding: 0.3em 0.5em;
 }
-.AREA_CONTENT #LEFT h2 a, .AREA_CONTENT #RIGHT h2 a
+.ERROR .TEXT
 {
-    color: #FFF;
-    margin-left: 0.5em;
+    background: #FCC;
+    color: #F00;
+    border: solid 0.2em #F00;
 }
-.AREA_CONTENT #RIGHT h3
-{
-    color: #333;
-    background: #CCC;
-}
-.AREA_CONTENT #LEFT a
-{
-    display: block;
-    float: left;
-    clear: left;
-    width: 14em;
-    text-decoration: none;
-    border-bottom: dashed 1px #CCC;
-    color: #000;
-    min-height: 2em;
-    line-height: 2em;
-    padding: 0em 0.5em 0em 1.5em;
-}
-.AREA_CONTENT #LEFT a:hover
-{
-    background: #CCC;
-}
-.AREA_CONTENT #LEFT .selected
+.SUCCESS .TEXT
 {
     background: #9C0;
     color: #360;
+    border: solid 0.2em #360;
 }
-.AREA_CONTENT #LEFT a img
-{
-    float: left;
-    margin: 0.4em;
-    margin-left: -1.5em;
-    width: 1.25em; height: 1.25em;
-    border: none;
-}
-.AREA_CONTENT #RIGHT a.TAG
-{
-    float: left;
-    border: solid 0.1em #999;
-    background: #CCC;
-    padding: 0.25em;
-    margin: 0em 0.5em 0.5em 0em;
-    border-radius: 5px;
-    color: #333;
-    text-decoration: none;
-    overflow: hidden;
-}
-.AREA_CONTENT #RIGHT a.TAG:hover, .AREA_CONTENT #RIGHT a.TAG:focus
-{
-    background: #EEE;
-}
-.AREA_CONTENT #RIGHT .TAG_REMOVE
-{
-    float: left;
-}
-.AREA_CONTENT #RIGHT .TAG_REMOVE .RL
-{
-    color: #360;
-    margin-right: 0.5em;
-    text-decoration: none;
-}
-.AREA_CONTENT #RIGHT .ITEM
-{
-    float: left;
-    width: 19em;
-    overflow: hidden;
-    border: solid 0.1em #CCC;
-    margin: 0em 0.5em 0.5em 0em;
-}
-.AREA_CONTENT #RIGHT .ITEM .THUMB
-{
-    float: left;
-    width: 7em;
-    height: 5em;
-    margin-right: 0.5em;
-    border: none;
-}
-.AREA_CONTENT #RIGHT .ITEM .INFO
-{
-    float: right;
-    width: 100%;
-    height: 5em;
-    text-decoration: none;
-}
-.AREA_CONTENT #RIGHT .ITEM .INFO:hover
-{
-    background: #9C0;
-    color: #360;
-}
-.AREA_CONTENT #RIGHT .ITEM .OPTIONS
-{
-    clear: both;
-    float: right;
-    height: 2.5em;
-    width: 100%;
-    background: #CCC;
-}
-.AREA_CONTENT #RIGHT .ITEM .OPTIONS img
-{
-    width: 1.5em;
-    height: 1.5em;
-    padding: 0.5em;
-    float: right;
-    border: none;
-}
-.AREA_CONTENT #RIGHT div.B_FOOTER
-{
-    width: 100%;
-    text-align: center;
-}
-.AREA_CONTENT #RIGHT a.B_NEXT
-{
-    float: right;
-}
-.AREA_CONTENT #RIGHT a.B_PREV
-{
-    float: left;
-}
-.AREA_CONTENT #RIGHT a.B_NEXT, .AREA_CONTENT #RIGHT a.B_PREV
-{
-    border-radius: 5px;
-    background: #360;
-    padding: 0.5em 0.75em 0.5em 0.75em;
-    text-decoration: none;
-    color: #FFF;
-}
-.AREA_CONTENT #RIGHT a.B_NEXT:hover, .AREA_CONTENT #RIGHT a.B_PREV:hover, .AREA_CONTENT #RIGHT a.B_NEXT:focus, .AREA_CONTENT #RIGHT a.B_PREV:focus
-{
-    background: #CCC;
-    color: #333;
-}
-/* Items page */
-.AREA_CONTENT #RIGHT .I_THUMBNAIL
-{
-	float: left;
-	border: solid 1px #CCC;
-	margin: 0em 1em 1em 0em;
-}
-.AREA_CONTENT #RIGHT .I_DESC
-{
-    min-height: 7em;
-}
-.AREA_CONTENT #RIGHT .ITEM_IMG
-{
-    max-width: 100%;
-}
-/* Admin System */
+/* Button */
 .BUTTON
 {
-    background: #360;
-    color: #FFF;
-    border-radius: 5px;
+    display: inline-block;
+    background: #CCC;
+    color: #333;
     border: none;
-    min-height: 2em;
-    line-height: 2em;
-    min-width: 4em;
+    border-radius: 0.4em;
+    padding: 0.5em;
     cursor: pointer;
-    padding: 0.1em 0.7em;
+    text-decoration: none;
+    font: inherit;
+    line-height: 1em;
+    margin: 0.25em;
 }
-.BUTTON:hover
+.BUTTON:hover, .BUTTON:focus
+{
+    background: #333;
+    color: #FFF;
+}
+/* Textbox and Textarea */
+.TEXTBOX
+{
+    width: 12em;
+}
+.TEXTBOX, .TEXTAREA
+{
+    border: solid 0.1em #CCC;
+    padding: 0.25em;
+}
+.TEXTBOX:hover, .TEXTBOX:focus, .TEXTAREA:hover, .TEXTAREA:focus
 {
     background: #CCC;
     color: #333;
+    border: solid 0.1em #666;
 }
-input.BUTTON
-{
-    float: right;
-}
-a.BUTTON
+/* Checkbox */
+.CHECKBOX
 {
     display: inline-block;
-    text-decoration: none;
-    text-align: center;
+    color: #333;
+    margin: 0.5em;
+    height: 2em;
+    line-height: 2em;
+    border: solid 0.1em #CCC;
 }
-a.BUTTON.M
+.CHECKBOX div
 {
-    margin-right: 0.5em;
+    float: right;
+    background: #CCC;
+    padding: 0em 0.5em;
 }
-/* Table */
-.R /* Row */
+.CHECKBOX input[type=checkbox]
+{
+    float: left;
+    margin: 0.5em;
+    padding: 0em;
+}
+.CHECKBOX input[type=checkbox]:checked ~ div
+{
+    background: #9C0;
+    color: #360;
+}
+/* Tables */
+.ROW
 {
     clear: both;
-    width: 100%;
-    padding-bottom: 0.25em;
-    margin-bottom: 0.25em;
+    padding: 0.5em;
+    margin: 0.5em 0em;
 }
-.RD /* -- Row dotted */
+.ROW.HEADER, .ROW.SUB_HEADER /* For shared styling for heading rows */
 {
-    border-bottom: dotted 0.2em #CCC;
+    border-radius: 0.5em;
 }
-.RH /* Row header */
+.ROW.HEADER /* For header rows */
+{
+    background: #333;
+    color: #FFF;
+}
+.ROW.SUB_HEADER
 {
     background: #CCC;
     color: #333;
-    font-weight: bold;
-    border-radius: 5px;
 }
-.R .C, .R .C3 /* Cell of a row */
+.ROW.HEADER a
+{
+    color: #FFF;
+    text-decoration: none;
+}
+.ROW.BORDER /* Bottom-border */
+{
+    border-bottom: solid 0.2em #CCC;
+}
+.ROW .CELL1, .ROW .CELL2, .ROW .CELL3, .ROW .CELL4
 {
     float: left;
 }
-.R .C /* Rpw with two cells */
+.ROW .CELL1 /* Row with one cell */
+{
+    width: 100%;
+}
+.ROW .CELL2 /* Row with two cells */
 {
     width: 50%;
 }
-.R .C3 /* Row with three cells */
+.ROW .CELL3 /* Row with three cells */
 {
     width: 33%;
 }
-.R .C .P, .R .C3 .P
+.ROW .CELL4 /* Row with four cells */
 {
-    padding: 0.5em;
-}
-.R .C .P2, .R .C3 .P2
-{
-    padding: 0.25em 0.5em;
-}
-.R .C img, .R .C3 img /* Cell icon */
-{
-    margin-right: 0.5em;
-}
-/* Table - form items */
-.R input[type=reset]
-{
-    float: left;
-}
-.R textarea, .R input[type=text], .R select
-{
-    border: solid 0.1em #CCC;
-    color: #360;
-}
-.R textarea:hover, .R input[type=text]:hover, .R textarea:focus, .R input[type=text]:focus, .R select:hover, .R select:focus
-{
-    border: solid 0.1em #333;
-    background: #CCC;
-}
-/* Error message */
-.ERROR_BOX
-{
-    margin-top: 0.5em;
-    display: none;
-    visibility: hidden;
-    width: 100%;
-    color: #F00;
-    background: #FCC;
-    border: solid 0.2em #F00;
-}
-.ERROR_BOX div
-{
-    padding: 0.5em;
-}
-/* Admin -------------------------------------------------------------------------------------------------------- *
-/* Folders */
-.FOLDER
-{
-    display: block;
-    border: solid 0.1em transparent;
-    border-bottom: solid 0.2em #360;
-    padding: 0.5em;
-    text-decoration: none;
-    color: #000;
-}
-.FOLDER span
-{
-    font-size: large;
-    color: #360;
-}
-.FOLDER:hover
-{
-    background: #CCC;
-    border: solid 0.1em #333;
-    border-bottom: solid 0.2em #333;
-}
-/* Terminals */
-.TERMINAL
-{
-    display: block;
-    text-decoration: none;
-    color: #000;
-    border: solid 0.1em transparent;
-    border-bottom: solid 0.2em #360;
-    padding: 0.5em;
-}
-.TERMINAL span
-{
-    font-size: large;
-    color: #360;
-}
-.TERMINAL div div
-{
-    width: 12em;
-    float: left;
-}
-.TERMINAL:hover
-{
-    background: #CCC;
-    border: solid 0.1em #333;
-    border-bottom: solid 0.2em #333;
-}
-/* External Requests */
-.ADMIN_REQ .R /* Row */
-{
-    clear: both;
-    border-bottom: solid 0.2em #CCC;
-    word-wrap: break-word;
-}
-.ADMIN_REQ .H /* Header */
-{
-    border-bottom: solid 0.2em #333;
-    font-weight: bold;
-    color: #333;
-}
-.ADMIN_REQ .R .A, .ADMIN_REQ .R .B, .ADMIN_REQ .R .C
-{
-    float: left;
-    padding: 0.5em;
-}
-.ADMIN_REQ .R .A
-{
-    width: 10em;
-}
-.ADMIN_REQ .R .B
-{
-    width: 15em;
-}
-.ADMIN_REQ .R .C
-{
-    width: 32em;
+    width: 25%;
 }
